@@ -1,0 +1,30 @@
+{
+  "name": "agentscope-spark-design",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter \"@ali/agentscope-ai-design\" build",
+    "build:design": "pnpm --filter \"@ali/agentscope-ai-design\" build",
+    "prepare": "husky",
+    "setup:dumi": "pnpm --filter \"@ali/agentscope-ai-design\" dumi:setup"
+  },
+  "dependencies": {
+    
+  },
+  "devDependencies": {
+    "husky": "^8.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agentscope-ai/agentscope-spark-design.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/agentscope-ai/agentscope-spark-design/issues"
+  },
+  "homepage": "https://github.com/agentscope-ai/agentscope-spark-design#readme"
+}
