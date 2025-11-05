@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { IconButton, Progress } from '@ali/agentscope-ai-design';
+import { IconButton, Progress } from '@agentscope-ai/design';
 import {
   SparkPauseFill,
   SparkVolumeLine,

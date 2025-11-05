@@ -1,8 +1,12 @@
 {
-  "name": "@ali/agentscope-ai-design",
-  "version": "4.7.13",
+  "name": "@agentscope-ai/design",
+  "version": "1.0.11",
   "description": "阿里云飞天实验室ui库",
-  "repository": "http://gitlab.alibaba-inc.com/liveme-console/spark-design.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agentscope-ai/agentscope-spark-design.git",
+    "directory": "packages/spark-design"
+  },
   "license": "MIT",
   "sideEffects": [
     "*.less",
@@ -167,7 +171,8 @@
     "pnpm": "9"
   },
   "publishConfig": {
-    "registry": "https://registry.anpm.alibaba-inc.com"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "pnpm": {
     "overrides": {
