@@ -1,12 +1,8 @@
 {
   "name": "@agentscope-ai/design",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "阿里云飞天实验室ui库",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/agentscope-ai/agentscope-spark-design.git",
-    "directory": "packages/spark-design"
-  },
+  "repository": "http://gitlab.alibaba-inc.com/liveme-console/spark-design.git",
   "license": "MIT",
   "sideEffects": [
     "*.less",
@@ -18,22 +14,20 @@
   "bin": "scripts/index.js",
   "files": [
     "lib",
-    "scripts/index.js",
-    "scripts/init-migrate-config.js",
-    "scripts/replace_components_import.js",
-    "scripts/replace_css_variables.js",
-    "scripts/mcp-docs-server.js",
-    "llms"
+    "scripts/index.js"
   ],
   "scripts": {
     "build": "father build",
     "build:mcp": "esbuild mcp/index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=scripts/mcp-docs-server.js --banner:js='#!/usr/bin/env node' --external:fs --external:path --external:process",
     "build:watch": "father dev",
     "changelog": "conventional-changelog -t publish/  -p angular -i CHANGELOG.md -s && replace '^\\# \\[' '## [' ./CHANGELOG.md",
+    "ci:install-deps": "tnpm i pnpm@9 -D && pnpm --version && pnpm install",
     "copy-antd-docs": "node copy-antd-docs.js",
     "dev": "dumi dev",
     "docs:build": "dumi build && node scripts/build-index-llms-txt.js",
+    "docs:build:gh": "GITHUB_PAGES=true dumi build",
     "docs:preview": "dumi preview",
+    "docs:syncYuque": "node syncYuque.js",
     "docsMD:build": "node docMD.js",
     "doctor": "father doctor",
     "lint": "npm run lint:es && npm run lint:css",
@@ -70,7 +64,7 @@
   "dependencies": {
     "@agentscope-ai/icons": "^1.0.35",
     "@agentscope-ai/icons-override-antd": "6.0.0",
-    "@agentscope-ai/icons-svg-override-antd": "4.4.2",
+    "@ali/bl-icon": "1.2.0",
     "@codemirror/autocomplete": "^6.18.7",
     "@codemirror/lang-cpp": "^6.0.2",
     "@codemirror/lang-css": "^6.3.1",
@@ -104,8 +98,9 @@
     "uuid": "^11.0.5"
   },
   "devDependencies": {
-    "@alibot/dumi-plugin-api-parser": "^1.0.3",
     "@alibot/dumi-plugin-llms": "1.0.4",
+    "@alibot/dumi-plugin-api-parser": "1.0.3",
+    "@ali/dumi-theme-spark": "^0.0.97",
     "@commitlint/cli": "^17.1.2",
     "@commitlint/config-conventional": "^17.1.0",
     "@modelcontextprotocol/sdk": "1.17.3",
@@ -171,8 +166,7 @@
     "pnpm": "9"
   },
   "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.anpm.alibaba-inc.com"
   },
   "pnpm": {
     "overrides": {

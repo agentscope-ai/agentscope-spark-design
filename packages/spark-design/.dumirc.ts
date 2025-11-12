@@ -7,23 +7,26 @@ const version = buildArgv['def_publish_version'];
 const PROD = env && env !== 'daily';
 
 export default defineConfig({
-  history: { type: 'hash' },
+  history: { type: 'browser' },
   alias: {
-    '@': path.resolve(__dirname, './src'),
-    '@dumi': path.resolve(__dirname, './.dumi'),
-    '@agentscope-ai/design': path.resolve(__dirname, './src'),
-    '@ant-design/icons': path.resolve(__dirname, './node_modules/@agentscope-ai/icons-override-antd'),
-    '@ant-design/icons-svg': path.resolve(__dirname, './node_modules/@agentscope-ai/icons-svg-override-antd'),
+    '@': ['/src'],
+    '@dumi': ['/.dumi'],
+    '@agentscope-ai/design': ['/src'],
+    '@ant-design/icons': ['/node_modules/@agentscope-ai/icons-override-antd'],
+    '@ant-design/icons-svg': [
+      '/node_modules/@agentscope-ai/icons-svg-override-antd',
+    ],
   },
+  base: process.env.GITHUB_PAGES ? '/sd-doc/' : '/',
   publicPath: env
     ? `https://${
         PROD ? '' : 'dev.'
       }g.alicdn.com/code/npm/@ali/agentscope-ai-design/${
         version || pkg.version
       }/docs-dist/`
-    : '/',
-  outputPath: 'docs-dist',
-  hash: false,
+    : process.env.GITHUB_PAGES ? '/sd-doc/' : '/',
+  outputPath: 'dist',
+  hash: true,
   themeConfig: {
     demoTitle: {
       llmTxtBase: `https://${
@@ -72,11 +75,7 @@ export default defineConfig({
         type: 'component',
         dir: 'src/components/commonComponents',
       },
-      // 大模型开发
-      {
-        type: 'component',
-        dir: 'src/components/BLComponents',
-      },
+      // hooks
       { type: 'hook', dir: 'src/hooks' },
       // 工具函数
       {

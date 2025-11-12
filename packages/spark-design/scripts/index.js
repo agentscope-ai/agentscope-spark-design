@@ -10,6 +10,7 @@ const command = args[0];
 // 定义可用的脚本
 const scripts = {
   'init-migrate-config': 'init-migrate-config.js',
+  'migrate-from-bl': 'migrate-from-bl.js',
   'mcp-docs-server': 'mcp-docs-server.js'
 };
 
@@ -22,10 +23,12 @@ function showHelp() {
 
 可用命令:
   init-migrate-config    初始化迁移配置
+  migrate-from-bl        从BL迁移
   mcp-docs-server        启动MCP文档服务器
 
 示例:
   npx @ali/agentscope-ai-design init-migrate-config
+  npx @ali/agentscope-ai-design migrate-from-bl
   npx @ali/agentscope-ai-design mcp-docs-server
 
 选项:

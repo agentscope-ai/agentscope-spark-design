@@ -18,9 +18,9 @@ importers:
       '@agentscope-ai/icons-override-antd':
         specifier: 6.0.0
         version: 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@agentscope-ai/icons-svg-override-antd':
-        specifier: 4.4.2
-        version: 4.4.2
+      '@ali/bl-icon':
+        specifier: 1.2.0
+        version: 1.2.0
       '@codemirror/autocomplete':
         specifier: ^6.18.7
         version: 6.18.7
@@ -115,8 +115,11 @@ importers:
         specifier: ^11.0.5
         version: 11.1.0
     devDependencies:
+      '@ali/dumi-theme-spark':
+        specifier: ^0.0.97
+        version: 0.0.97(@ali/agentscope-ai-design@4.7.13(@babel/runtime@7.26.0)(@codemirror/language@6.11.0)(@codemirror/search@6.5.10)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.6)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(dumi@2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@alibot/dumi-plugin-api-parser':
-        specifier: ^1.0.3
+        specifier: 1.0.3
         version: 1.0.3(dumi@2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4)))
       '@alibot/dumi-plugin-llms':
         specifier: 1.0.4
@@ -297,6 +300,34 @@ packages:
     resolution: {integrity: sha512-xhVaM4fyIiAMdVFuuU5i3CFUdFa/IblF+fvITVMFaUEO3w/V5tVCAF6WIA3T03n1/RPuzRkA7Ao1PFtSGtGelw==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0
+
+  '@ali/agentscope-ai-design@4.7.13':
+    resolution: {integrity: sha512-dS5XS8VgaDiOHPpOZKR3bMAdhSOtJEKcwLa8erCZownmvmD/hNqIbSopEu3DmA63aKWIRVR8eqoMQspkatNhVQ==}
+    engines: {pnpm: '9'}
+    hasBin: true
+    peerDependencies:
+      '@rc-component/util': 1.2.1
+      antd: ^5.18.0
+      classnames: ^2.5.1
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  '@ali/bl-icon@1.2.0':
+    resolution: {integrity: sha512-3Jf29aTJSSQhzdPEv1QBseYs3klvHERfSPfh9NDww/wO+XLdQLGD4u1bjLrlnrPv6FCAnyuocfGKk1GQ65vzqA==}
+
+  '@ali/dumi-plugin-api-parser@1.0.3':
+    resolution: {integrity: sha512-b9zU+TZ8iiY3kTlSuO9Td7vcT6ovHlOP1nrQv7SuYkIiRTh696+RO4pfYygG/mfMcPuVdWDsFh0ohynM/7os9g==}
+    peerDependencies:
+      dumi: ^2
+
+  '@ali/dumi-theme-spark@0.0.97':
+    resolution: {integrity: sha512-BBDaAheR5Ax40gXndongUFcziEkss+jWEGrHo6EueQeXuDn5rsWBIcRb1TyQ8XxsLYDqecxZPRj49zNLaZ/qpA==}
+    peerDependencies:
+      '@ali/agentscope-ai-design': ^4.6.0
+      antd: ^5
+      dumi: ^2.4.13
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
 
   '@alibot/dumi-plugin-api-parser@1.0.3':
     resolution: {integrity: sha512-Epij7l2YgH3Y1OtNLhW69Ah1ZG+iR80vosb6oa+1C8XgfYCfvouqxNCrquvMnSI5Ke8EIZxxiLP0/Mxc9vtsJA==}
@@ -1394,6 +1425,9 @@ packages:
   '@eslint/js@8.57.1':
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@fingerprintjs/fingerprintjs@4.6.2':
+    resolution: {integrity: sha512-g8mXuqcFKbgH2CZKwPfVtsUJDHyvcgIABQI7Y0tzWEFXpGxJaXuAuzlifT2oTakjDBLTK4Gaa9/5PERDhqUjtw==}
 
   '@floating-ui/core@0.6.2':
     resolution: {integrity: sha512-jktYRmZwmau63adUG3GKOAVCofBXkk55S/zQ94XOorAHhwqFIOFAy1rSp2N0Wp6/tGbe9V3u/ExlGZypyY17rg==}
@@ -2553,6 +2587,9 @@ packages:
   '@types/istanbul-reports@3.0.4':
     resolution: {integrity: sha512-pk2B1NWalF9toCRu6gjBzR69syFjP4Od8WRAX+0mmf9lAjCRicLOWc+ZrxZHx/0XRjotgkF9t6iaMJ+aXcOdZQ==}
 
+  '@types/js-cookie@3.0.6':
+    resolution: {integrity: sha512-wkw9yd1kEXOPnvEeEV1Go1MmxtBJL0RR79aOTAApecWFVu7w0NNXNqhcWgvw2YgZDYadliXkl14pa3WXw5jlCQ==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -3170,6 +3207,12 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
 
+  ahooks@3.9.6:
+    resolution: {integrity: sha512-Mr7f05swd5SmKlR9SZo5U6M0LsL4ErweLzpdgXjA1JPmnZ78Vr6wzx0jUtvoxrcqGKYnX0Yjc02iEASVxHFPjQ==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
     peerDependencies:
@@ -3196,6 +3239,9 @@ packages:
 
   animated-scroll-to@2.3.0:
     resolution: {integrity: sha512-PT/5MSKCWQaK2kuOl2HT2KJMuJEvUS4/TgMhWy82c2EmF74/CIkvPBPKOvd8nMYP6Higo7xCn49/iSW9BccMoQ==}
+
+  animated-scroll-to@2.3.2:
+    resolution: {integrity: sha512-GBX6+V06anH2rRt1sGmYXvAVpBo0tMmJxVvGuMcd+KV+EzMnYFSYBnccCa5IYWJvEigI+vFLKKLLEeO6SyfjcQ==}
 
   ansi-escapes@5.0.0:
     resolution: {integrity: sha512-5GFMVX8HqE/TB+FuBJGuO5XG0WrsA6ptUqoODaT/n9mmUaZFkqnBueB4leqGBCmrUHnCnC4PCZTCd0E7QQ83bA==}
@@ -5338,6 +5384,7 @@ packages:
 
   intersection-observer@0.12.2:
     resolution: {integrity: sha512-7m1vEcPCxXYI8HqnL8CKI6siDyD+eIWSwgB3DZA+ZTogxk9I4CDnj4wilt9x/+/QbHI4YG5YZNmC6458/e9Ktg==}
+    deprecated: The Intersection Observer polyfill is no longer needed and can safely be removed. Intersection Observer has been Baseline since 2019.
 
   intl-format-cache@4.3.1:
     resolution: {integrity: sha512-OEUYNA7D06agqPOYhbTkl0T8HA3QKSuwWh1HiClEnpd9vw7N+3XsQt5iZ0GUEchp5CW1fQk/tary+NsbF3yQ1Q==}
@@ -9268,6 +9315,94 @@ snapshots:
       lodash.throttle: 4.1.1
       react: 18.3.1
 
+  '@ali/agentscope-ai-design@4.7.13(@babel/runtime@7.26.0)(@codemirror/language@6.11.0)(@codemirror/search@6.5.10)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.6)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@agentscope-ai/icons': 1.0.35
+      '@agentscope-ai/icons-override-antd': 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@ali/bl-icon': 1.2.0
+      '@codemirror/autocomplete': 6.18.7
+      '@codemirror/lang-cpp': 6.0.2
+      '@codemirror/lang-css': 6.3.1
+      '@codemirror/lang-go': 6.0.1
+      '@codemirror/lang-html': 6.4.9
+      '@codemirror/lang-java': 6.0.1
+      '@codemirror/lang-javascript': 6.2.3
+      '@codemirror/lang-json': 6.0.1
+      '@codemirror/lang-markdown': 6.3.4
+      '@codemirror/lang-php': 6.0.1
+      '@codemirror/lang-python': 6.2.0
+      '@codemirror/lang-yaml': 6.1.2
+      '@codemirror/lint': 6.8.5
+      '@emotion/react': 11.14.0(@types/react@18.3.18)(react@18.3.1)
+      '@halofe/global-locale': 1.0.3
+      '@halofe/global-string-format': 1.0.8
+      '@rc-component/util': 1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@uiw/codemirror-extensions-mentions': 4.25.1(@codemirror/state@6.5.2)(@codemirror/view@6.36.6)
+      '@uiw/codemirror-theme-vscode': 4.23.11(@codemirror/language@6.11.0)(@codemirror/state@6.5.2)(@codemirror/view@6.36.6)
+      '@uiw/react-codemirror': 4.20.2(@babel/runtime@7.26.0)(@codemirror/autocomplete@6.18.7)(@codemirror/language@6.11.0)(@codemirror/lint@6.8.5)(@codemirror/search@6.5.10)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.6)(codemirror@6.0.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      ahooks: 3.8.4(react@18.3.1)
+      antd: 5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      antd-style: 3.7.1(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      classnames: 2.5.1
+      dayjs: 1.11.13
+      dompurify: 2.5.8
+      js-cookie: 3.0.5
+      lodash-es: 4.17.21
+      query-string: 7.1.3
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      slate: 0.91.4
+      slate-history: 0.86.0(slate@0.91.4)
+      slate-react: 0.92.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(slate@0.91.4)
+      stylis: 4.3.6
+      uuid: 11.1.0
+    transitivePeerDependencies:
+      - '@babel/runtime'
+      - '@codemirror/language'
+      - '@codemirror/search'
+      - '@codemirror/state'
+      - '@codemirror/theme-one-dark'
+      - '@codemirror/view'
+      - '@types/react'
+      - codemirror
+      - supports-color
+
+  '@ali/bl-icon@1.2.0': {}
+
+  '@ali/dumi-plugin-api-parser@1.0.3(dumi@2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4)))':
+    dependencies:
+      debug: 4.4.0
+      dumi: 2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4))
+      typescript: 5.7.2
+    optionalDependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@ali/dumi-theme-spark@0.0.97(@ali/agentscope-ai-design@4.7.13(@babel/runtime@7.26.0)(@codemirror/language@6.11.0)(@codemirror/search@6.5.10)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.6)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(dumi@2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@agentscope-ai/icons': 1.0.35
+      '@agentscope-ai/icons-override-antd': 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@ali/agentscope-ai-design': 4.7.13(@babel/runtime@7.26.0)(@codemirror/language@6.11.0)(@codemirror/search@6.5.10)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.2)(@codemirror/view@6.36.6)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@ali/dumi-plugin-api-parser': 1.0.3(dumi@2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4)))
+      '@fingerprintjs/fingerprintjs': 4.6.2
+      '@makotot/ghostui': 2.0.0(react@18.3.1)
+      ahooks: 3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      animated-scroll-to: 2.3.2
+      antd: 5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      antd-style: 3.7.1(@types/react@18.3.18)(antd@5.24.9(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      copy-to-clipboard: 3.3.3
+      dumi: 2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4))
+      heti: 0.9.5
+      json5: 2.2.3
+      lodash-es: 4.17.21
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - '@types/react'
+      - supports-color
+
   '@alibot/dumi-plugin-api-parser@1.0.3(dumi@2.4.21(@babel/core@7.26.0)(@swc/helpers@0.5.1)(@types/node@20.5.1)(@types/react@18.3.18)(eslint@8.57.1)(lightningcss@1.29.1)(prettier@2.8.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@4.29.1)(stylelint@14.16.1)(terser@5.37.0)(type-fest@4.31.0)(typescript@5.7.2)(webpack@5.97.1(@swc/core@1.12.6(@swc/helpers@0.5.1))(esbuild@0.21.4)))':
     dependencies:
       debug: 4.4.0
@@ -10518,6 +10653,10 @@ snapshots:
 
   '@eslint/js@8.57.1': {}
 
+  '@fingerprintjs/fingerprintjs@4.6.2':
+    dependencies:
+      tslib: 2.8.1
+
   '@floating-ui/core@0.6.2': {}
 
   '@floating-ui/dom@0.4.5':
@@ -11682,6 +11821,8 @@ snapshots:
     dependencies:
       '@types/istanbul-lib-report': 3.0.3
 
+  '@types/js-cookie@3.0.6': {}
+
   '@types/json-schema@7.0.15': {}
 
   '@types/jsonfile@6.1.4':
@@ -12740,6 +12881,21 @@ snapshots:
       screenfull: 5.2.0
       tslib: 2.8.1
 
+  ahooks@3.9.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@babel/runtime': 7.26.0
+      '@types/js-cookie': 3.0.6
+      dayjs: 1.11.13
+      intersection-observer: 0.12.2
+      js-cookie: 3.0.5
+      lodash: 4.17.21
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      react-fast-compare: 3.2.2
+      resize-observer-polyfill: 1.5.1
+      screenfull: 5.2.0
+      tslib: 2.8.1
+
   ajv-formats@2.1.1(ajv@8.17.1):
     optionalDependencies:
       ajv: 8.17.1
@@ -12768,6 +12924,8 @@ snapshots:
       require-from-string: 2.0.2
 
   animated-scroll-to@2.3.0: {}
+
+  animated-scroll-to@2.3.2: {}
 
   ansi-escapes@5.0.0:
     dependencies:

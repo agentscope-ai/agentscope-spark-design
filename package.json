@@ -5,10 +5,7 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "build": "pnpm --filter \"@ali/agentscope-ai-design\" build",
-    "build:design": "pnpm --filter \"@ali/agentscope-ai-design\" build",
-    "prepare": "husky",
-    "setup:dumi": "pnpm --filter \"@ali/agentscope-ai-design\" dumi:setup"
+    "prepare": "husky"
   },
   "dependencies": {
     

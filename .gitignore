@@ -1,8 +1,27 @@
+# Dependencies
 node_modules
+pnpm-lock.yaml
+
+# Build output
+dist
+lib
+docs-dist
+*.log
+
+# IDE
 .history
 .DS_Store
-*.module.css
-*.module.css.map
 .cursor/**
 .env
 .vscode
+.idea
+
+# Temp files
+*.module.css
+*.module.css.map
+.dumi/tmp
+.dumi/tmp-*
+
+# Test coverage
+coverage
+.nyc_output

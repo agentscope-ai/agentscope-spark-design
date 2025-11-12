@@ -6273,6 +6273,7 @@ var package_default = {
     "lib",
     "scripts/index.js",
     "scripts/init-migrate-config.js",
+    "scripts/migrate-from-bl.js",
     "scripts/replace_components_import.js",
     "scripts/replace_css_variables.js",
     "scripts/mcp-docs-server.js",
@@ -6288,6 +6289,7 @@ var package_default = {
     dev: "dumi dev",
     "docs:build": "dumi build",
     "docs:preview": "dumi preview",
+    "docs:syncYuque": "node syncYuque.js",
     "docsMD:build": "node docMD.js",
     doctor: "father doctor",
     lint: "npm run lint:es && npm run lint:css",
@@ -6324,6 +6326,7 @@ var package_default = {
   dependencies: {
     "@agentscope-ai/icons": "^1.0.8",
     "@agentscope-ai/icons-override-antd": "6.0.0",
+    "@ali/bl-icon": "1.2.0",
     "@codemirror/lang-cpp": "^6.0.2",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-go": "^6.0.1",
@@ -6354,7 +6357,8 @@ var package_default = {
   },
   devDependencies: {
     "@alibot/dumi-plugin-api-parser": "^1.0.3",
-    "@alibot/dumi-plugin-llms": "1.0.4",
+    "@alibot/dumi-plugin-llms": "^1.0.4",
+    "@ali/dumi-theme-spark": "^0.0.80",
     "@modelcontextprotocol/sdk": "1.17.3",
     zod: "^3.24.2",
     "@commitlint/cli": "^17.1.2",

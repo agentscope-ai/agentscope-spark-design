@@ -1,7 +1,6 @@
 node_modules
 /lib
 /dist
-.dumi
 .dumi/tmp
 .dumi/tmp-test
 .dumi/tmp-production
@@ -10,4 +9,3 @@ node_modules
 .DS_Store
 .unit_test_reporter
 .ci
-.vscode

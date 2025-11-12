@@ -6,7 +6,6 @@ import {
   isElement,
   isIntl,
   isSafari,
-  iszhCN,
   renderTooltip,
 } from '..';
 
@@ -17,13 +16,6 @@ test('isIntl', () => {
     isIntl: true,
   };
   expect(isIntl()).toBe(true);
-});
-
-test('iszhCN', () => {
-  window.ALIYUN_CONSOLE_CONFIG = {
-    LOCALE: 'en-US',
-  };
-  expect(iszhCN()).toBe(true);
 });
 
 test('renderTooltip', () => {
