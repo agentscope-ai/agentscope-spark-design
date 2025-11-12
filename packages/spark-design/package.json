@@ -27,8 +27,6 @@
     "docs:build": "dumi build && node scripts/build-index-llms-txt.js",
     "docs:build:gh": "GITHUB_PAGES=true dumi build",
     "docs:preview": "dumi preview",
-    "docs:syncYuque": "node syncYuque.js",
-    "docsMD:build": "node docMD.js",
     "doctor": "father doctor",
     "lint": "npm run lint:es && npm run lint:css",
     "lint:css": "stylelint --fix \"{src,test}/**/*.{css,less}\"",

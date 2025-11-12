@@ -5,10 +5,9 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "prepare": "husky"
-  },
-  "dependencies": {
-    
+    "prepare": "husky",
+    "start:spark-design": "cd packages/spark-design && pnpm install && pnpm run start",
+    "build:spark-design": "cd packages/spark-design && pnpm install && pnpm run build"
   },
   "devDependencies": {
     "husky": "^8.0.1"
