@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/design",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "AgentScope Spark Design - UI Library for AgentScope AI",
   "repository": "http://gitlab.alibaba-inc.com/liveme-console/spark-design.git",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "docs:preview": "dumi preview",
     "doctor": "father doctor",
     "dumi:setup": "dumi setup",
-    "postinstall": "npm run dumi:setup",
+    "prepare": "npm run dumi:setup",
     "start": "npm run dev",
     "test": "vitest"
   },
@@ -129,7 +129,7 @@
     "pnpm": "9"
   },
   "publishConfig": {
-    "registry": "https://registry.npm.org",
+    "registry": "https://registry.npmjs.org",
     "access": "public"
   },
   "pnpm": {

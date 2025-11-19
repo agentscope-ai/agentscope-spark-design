@@ -14,8 +14,9 @@ export default defineConfig({
   alias: {
     '@': ['/src'],
     '@dumi': ['/.dumi'],
+    '@agentscope-ai/design/lib/antd/themes': ['/lib/antd/themes'],
+    '@agentscope-ai/design/lib': ['/lib'],
     '@agentscope-ai/design': ['/src'],
-    '@agnetscope-ai/design/lib': ['/lib'],
     '@ant-design/icons': ['/node_modules/@agentscope-ai/icons-override-antd'],
     '@ant-design/icons-svg': [
       '/node_modules/@agentscope-ai/icons-svg-override-antd',
