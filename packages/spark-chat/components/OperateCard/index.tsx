@@ -1,0 +1,1 @@
+export { default, type IOperateCardProps } from './OperateCard';

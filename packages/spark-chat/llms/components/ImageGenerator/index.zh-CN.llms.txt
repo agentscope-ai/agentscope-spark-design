@@ -1,0 +1,136 @@
+
+
+# ImageGenerator
+生图类Query的过程展示
+
+
+
+## 示例
+
+```tsx
+import { ImageGenerator } from '@agentscope-ai/chat';
+import { useTimeout } from 'ahooks';
+import { Flex } from 'antd';
+import { useState } from 'react';
+
+export default function () {
+  const [src, setSrc] = useState('');
+
+  useTimeout(() => {
+    setSrc('https://img.alicdn.com/imgextra/i1/O1CN01lS5S0a1yl6FKoBZHl_!!6000000006618-0-tps-1280-1280.jpg');
+  }, 20 * 1000)
+
+  return <Flex vertical gap="middle">
+    <ImageGenerator
+      src={src}
+      skeletonText="Painting..."
+    />
+
+    <ImageGenerator
+      src="https://img.alicdn.com/imgextra/i1/O1CN01lS5S0a1yl6FKoBZHl_!!6000000006618-0-tps-1280-1280.jpg"
+    />
+  </Flex>
+}
+```
+
+import { ImageGenerator } from '@agentscope-ai/chat'
+
+#### 更多示例
+
+
+
+## 自定义尺寸
+
+```tsx
+import { ImageGenerator } from '@agentscope-ai/chat';
+import { useTimeout } from 'ahooks';
+import { Flex } from 'antd';
+import { useState } from 'react';
+
+export default function () {
+
+  return <Flex vertical gap="middle">
+    <ImageGenerator
+      width={16}
+      height={9}
+      block
+    />
+  </Flex>
+}
+```
+
+
+
+## 自定义骨架 loading
+
+```tsx
+import { ImageGenerator } from '@agentscope-ai/chat';
+import { Flex } from 'antd';
+import { createStyles } from 'antd-style';
+
+
+const useStyles = createStyles(({ token }) => {
+  return {
+    skeleton: {
+      position: 'relative',
+      overflow: 'hidden',
+      borderRadius: 8,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bg: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      width: '200%',
+      height: '200%',
+      transform: 'translate(-50%, -50%) rotate(0deg)',
+      objectFit: 'cover',
+    },
+    icon: {
+      width: 64,
+      height: 64,
+      zIndex: 1,
+    }
+  };
+});
+
+export default function () {
+  const { styles } = useStyles();
+  return <Flex vertical gap="middle">
+    <ImageGenerator
+
+      skeleton={<div className={styles.skeleton} style={{ width: 320, height: 320 }}>
+        <img
+          className={styles.bg}
+          src="https://img.alicdn.com/imgextra/i2/O1CN01j5MC6r1scV7D2cNYt_!!6000000005787-2-tps-1366-1354.png"
+          alt=""
+        />
+
+        <img
+          className={styles.icon}
+          src="https://img.alicdn.com/imgextra/i2/O1CN01tLbrX11xwGHaPhX0F_!!6000000006507-54-tps-500-500.apng"
+        />
+
+
+      </div>}
+    />
+
+
+  </Flex>
+}
+```
+
+#### API
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| width | 生成图片的宽度，单位为像素 | number | 320 | 
+| height | 生成图片的高度，单位为像素 | number | 320 | 
+| src | 图片的URL地址，为空时显示加载状态 | string | '' | 
+| loadingText | 图片生成过程中的提示文本 | string | 'Painting...' | 
+| doneText | 图片生成完成后的提示文本 | string | 'Paint Completed' | 
+| skeleton | 自定义骨架屏组件，用于加载状态显示 | ReactNode | null | 
+| skeletonText | 自定义骨架屏组件的加载态提示 | string | 'Painting...' | 
+| block | 是否为块级元素，使得图片宽高比为 width / height | boolean | false | 

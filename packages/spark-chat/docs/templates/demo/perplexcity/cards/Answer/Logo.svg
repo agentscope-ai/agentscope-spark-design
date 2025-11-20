@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="none"
+  version="1.1" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <clipPath id="master_svg0_6_1918">
+      <rect x="0" y="0" width="32" height="32" rx="8" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#master_svg0_6_1918)">
+    <rect x="0" y="0" width="32" height="32" rx="8" fill="var(--sps-color-text-base)" fill-opacity="1" />
+    <g>
+      <g>
+        <rect x="11" y="8" width="3" height="6" rx="1.5" fill="var(--sps-color-bg-layout)" fill-opacity="1" />
+      </g>
+      <g>
+        <rect x="18" y="8" width="3" height="6" rx="1.5" fill="var(--sps-color-bg-layout)" fill-opacity="1" />
+      </g>
+    </g>
+  </g>
+</svg>

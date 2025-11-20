@@ -1,0 +1,224 @@
+
+
+# ChatAnywhere
+
+ChatAnywhere 是使用 Alibaba Cloud Spark Chat 基础组件整合一起的开箱即用的对话容器，使用 ChatAnywhere 可以不再关心对话消息的状态管理（比如 `setMessages(...)`），同时可以更加快速地构建优秀的 LLM 对话体验。
+
+<div style="display: flex;gap: 16px">
+  <div>
+    <img src="https://gw.alicdn.com/imgextra/i1/O1CN01hDxvBo1SFRABmCu2q_!!6000000002217-2-tps-2880-1800.png"></img>
+  </div>
+  <div>
+    <img src="https://gw.alicdn.com/imgextra/i1/O1CN011m5rNF1zGhZtJ8NKb_!!6000000006687-2-tps-2880-1800.png"></img>
+  </div>
+  <div>
+    <img src="https://gw.alicdn.com/imgextra/i2/O1CN014r9Tm11JGVY1KeN0H_!!6000000001001-2-tps-2880-1800.png"></img>
+  </div>
+</div>
+
+## 试一下
+
+
+
+## ## 快速开始
+
+```tsx
+import React from 'react';
+import { DemoContextProvider } from './DemoContext';
+import Chat from './Chat';
+import { ConfigProvider, carbonTheme } from '@agentscope-ai/design';
+
+
+export default function () {
+  return <div style={{ height: '100vh' }} >
+    <ConfigProvider {...carbonTheme}
+      prefix='sps'
+      prefixCls="sps">
+      <DemoContextProvider>
+        <Chat />
+      </DemoContextProvider>
+    </ConfigProvider>
+  </div>
+}
+
+
+```
+
+在`ChatAnywhere`里，我们可以不在使用 React 状态管理去更新对话流，而是使用 「**核心 API `updateMessage(...)`」** 即可实时更新上屏消息。
+
+
+## ## API & Types
+
+```tsx
+import {
+  ChatAnywhere,
+  ChatAnywhereRef,
+  DefaultCards,
+  sleep,
+  TMessage,
+  uuid,
+} from '@agentscope-ai/chat';
+import { useCallback, useEffect, useRef } from 'react';
+import { useAsyncEffect } from 'ahooks';
+
+export default function () {
+  const ref = useRef<ChatAnywhereRef>();
+
+  const onSubmit = useCallback(async (data) => {
+    ref.current.updateMessage({
+      id: uuid(),
+      role: 'user',
+      content: data.query,
+    });
+    await sleep(100);
+
+    const answer = {
+      id: uuid(), // 后续使用这个 id 来更新消息
+      role: 'assistant',
+      content: 'assistant content',
+    };
+
+    ref.current.updateMessage(answer);
+
+    // 1. 发送 query
+    // 2. 根据实际的后端要求通过 SSE 等协议持续获取数据，循环调用 updateMessage
+    // const response = await fetch();
+
+    // for await (const chunk of Stream({
+    //   readableStream: response.body,
+    // })) {
+    //   ref.current.updateMessage(answer);
+    // }
+  }, []);
+
+  const onStop = useCallback(async () => {}, []);
+
+  useAsyncEffect(async () => {
+    // 适合调用后端接口查询历史消息后设置历史消息
+    ref.current.updateMessage({
+      id: uuid(),
+      role: 'user',
+      content: 'I want to View page PV data',
+    });
+  }, []);
+
+  return (
+    <ChatAnywhere
+      ref={ref}
+      uiConfig={{}}
+      onInput={{
+        onSubmit,
+      }}
+      onStop={onStop}
+    ></ChatAnywhere>
+  );
+}
+```
+
+### TSession
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| key | 会话的唯一标识符，用于区分不同的聊天会话 | string | (必填) | 
+| messages | 会话中的消息列表，按组进行组织 | TMessage[][] | (必填) | 
+| label | 会话的显示名称 | string | (必填) | 
+
+
+### TMessage
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| id | 消息的唯一标识符 | string | (必填) | 
+| content | 消息的文本内容 | string |  | 
+| cards | 消息中的卡片组件配置 | TMessageCard[] |  | 
+| role | 消息的角色类型，区分用户、助手和系统消息 | 'user' \| 'assistant' \| 'system' | (必填) | 
+| msgStatus | 消息的处理状态，影响显示效果 | 'finished' \| 'interrupted' \| 'generating' \| 'error' |  | 
+
+
+### TMessageCard
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| id | 卡片的唯一标识符 | string |  | 
+| code | 卡片的类型代码 | string | (必填) | 
+| component | 卡片的渲染组件 | React.FC |  | 
+| data | 卡片的数据内容 | string \| any |  | 
+
+
+### ChatAnywhere Props
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| cardConfig | 卡片组件的配置映射，用于自定义不同类型卡片的渲染 | {
+    [key: string]: React.FC<any>;
+  } |  | 
+| uiConfig | UI界面的配置选项，用于自定义外观和布局 | IChatAnywhereConfigUIConfig |  | 
+| onInput | 输入功能的配置选项 | IChatAnywhereConfigOnInput | (必填) | 
+| onStop | 停止生成的回调函数 | void |  | 
+| onRegenerate | 重新生成消息的回调函数 | void |  | 
+| onSessionKeyChange | 会话切换时的回调函数 | void |  | 
+| onUpload | 文件上传功能的配置选项 | IChatAnywhereConfigOnUpload[] |  | 
+
+
+### IChatAnywhereConfigUIConfig
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| narrowScreen | 是否启用窄屏模式，影响响应式布局 | boolean |  | 
+| background | 背景样式配置 | string |  | 
+| header | 自定义头部组件 | React.ReactElement |  | 
+| quickInput | 快速输入组件，用于提供预设的输入选项 | React.ReactElement \| React.ReactElement[] |  | 
+| logo | 应用logo组件 | React.ReactElement |  | 
+| welcome | 欢迎页面组件 | React.ReactElement |  | 
+| disclaimer | 免责声明组件或文本 | React.ReactElement \| string |  | 
+
+
+### IChatAnywhereConfigOnInput
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| beforeUI | 输入框前的UI组件 | React.ReactElement |  | 
+| afterUI | 输入框后的UI组件 | React.ReactElement |  | 
+| morePrefixActions | 更多前缀操作组件 | React.ReactElement \| React.ReactElement[] |  | 
+| hide | 是否隐藏输入框 | boolean |  | 
+| header | 输入框头部组件 | React.ReactElement \| React.ReactElement[] |  | 
+| onSubmit | 提交消息时的回调函数 | void | (必填) | 
+| maxLength | 输入内容的最大长度限制 | number |  | 
+| beforeSubmit | 提交前的验证函数 | () => Promise<Boolean> |  | 
+| zoomable | 是否支持缩放功能 | boolean |  | 
+| placeholder | 输入框的占位符文本 | string |  | 
+| disabled | 输入框是否禁用 | boolean |  | 
+
+
+### IChatAnywhereConfigOnUpload
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| renderType | 上传组件的渲染类型，影响上传附件样式 | 'simple' \| 'default' |  | 
+| maxCount | 最大上传文件数量 | GetProp<typeof Upload, 'maxCount'> |  | 
+| beforeUpload | 上传前的处理函数 | GetProp<typeof Upload, 'beforeUpload'> |  | 
+| customRequest | 自定义上传请求函数 | GetProp<typeof Upload, 'customRequest'> | (必填) | 
+| multiple | 是否支持多文件上传 | boolean |  | 
+| accept | 接受的文件类型 | string |  | 
+| icon | 上传按钮的图标 | string \| React.ReactElement |  | 
+| disabled | 是否禁用上传组件 | boolean |  | 
+
+
+### ChatAnywhereRef
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| setInputContent | 设置输入框内容的方法 | (content: string) => void | (必填) | 
+| scrollToBottom | 滚动到底部的方法 | (options?: ScrollToBottomOptions) => void | (必填) | 
+| reload | 重新加载的方法 | () => void | (必填) | 
+| messages | 当前会话的消息列表 | TMessage[] | (必填) | 
+| updateMessage | 更新消息的方法 | (message: Partial<TMessage> & { id: string }) => void | (必填) | 
+| getMessages | 获取当前消息列表的同步函数 | () => TMessage[] | (必填) | 
+| removeMessage | 删除消息的方法 | (message: Partial<TMessage>) => void | (必填) | 
+| removeAllMessages | 删除所有消息的方法 | () => void | (必填) | 
+| loading | 是否正在加载状态，影响UI的交互性 | boolean | (必填) | 
+| setLoading | 设置加载状态的状态更新函数 | React.Dispatch<React.SetStateAction<boolean>> | (必填) | 
+| getLoading | 获取当前加载状态的同步函数 | () => boolean | (必填) | 
+| disabled | 是否禁用组件，影响所有交互功能 | boolean | (必填) | 
+| setDisabled | 设置禁用状态的状态更新函数 | React.Dispatch<React.SetStateAction<boolean>> | (必填) | 
+| getDisabled | 获取当前禁用状态的同步函数 | () => boolean | (必填) | 

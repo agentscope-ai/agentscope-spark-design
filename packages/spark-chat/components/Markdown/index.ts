@@ -1,0 +1,1 @@
+export { default, type MarkdownProps } from './Markdown';

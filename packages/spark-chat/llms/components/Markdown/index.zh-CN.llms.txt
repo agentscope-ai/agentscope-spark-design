@@ -1,0 +1,347 @@
+
+
+# Markdown
+是一个用于渲染 Markdown 文本的 React 组件。它支持各种 Markdown 语法，例如标题、列表、链接、图片、代码块等。
+
+
+
+## 示例
+
+```tsx
+import { SparkEditLine } from '@agentscope-ai/icons';
+import { IconButton, Input, Modal } from '@agentscope-ai/design';
+import { Markdown } from '@agentscope-ai/chat';
+import { useState } from 'react';
+
+let content = `# 这是一个一级标题
+## 这是一个二级标题
+### 这是一个三级标题
+#### 这是一个四级标题
+##### 这是一个五级标题
+###### 这是一个六级标题
+
+---
+
+这是第一个段落。
+
+这是第二个段落。
+
+city pop, short for city pop, is a genre of music that originated in japan during the late 1970s and early 1980s. it blends elements of jazz, folk, easy listening, and aor (adult oriented rock) with a distinctly urban feel. the term "city pop" often evokes images of the sophisticated, stylish, and sometimes nostalgic lifestyle of tokyo and other major japanese cities during this period. city pop is characterized by its smooth melodies, mellow rhythms, and often dreamy or introspective lyrics. common themes include city life, summer vibes, nature, and romantic encounters. the music is frequently associated with a particular aesthetic that reflects the fashion, design, and cultural trends of urban japan in the 1980s. some notable city pop artists include mariya takeuchi, known for her iconic song " plastic love," and joe hisaishi, a composer famous for his work on studio ghibli films, though he is not strictly considered a city pop artist. today, city pop has experienced a resurgence in popularity, particularly among younger generations who appreciate its unique sound and the nostalgic value it holds.
+
+---
+
+- 项目1
+- 项目2
+  - 子项目2.1
+  - 子项目2.2
+- 项目3
+
+---
+
+1. 第一项
+2. 第二项
+   1. 第二项的第一子项
+   2. 第二项的第二子项
+3. 第三项
+
+---
+
+> 这是一个引用。
+
+---
+
+*这是斜体文本*
+_这是斜体文本_
+**这是粗体文本**
+__这是粗体文本__
+  
+***这是粗斜体文本***
+**_这是粗斜体文本_**
+_**这是粗斜体文本**_
+___这是粗斜体文本___
+~~这是删除线文本~~
+
+---
+
+[https://www.aliyun.com](https://www.aliyun.com)
+
+![](https://gw.alicdn.com/imgextra/i4/O1CN01sjZ4Uu1erFDOC6IkA_!!6000000003924-2-tps-396-224.png)
+
+![](https://cloud.video.taobao.com/vod/HGJp6c7KVGDDfyeN8eimSccR_OnaS9E7PTqNzbVoAfE.mp4)
+
+![](https://cloud.video.taobao.com/vod/HGJp6c7KVGDDfyeN8eimSccR_OnaS9E7PTqNzbVoAfE.mp3)
+
+---
+\`这是单行代码\`
+
+\`\`\`java
+class HelloWorld {
+    public static void main(String[] args) {
+        System.out.println("Hello World!"); 
+        // Hello World!
+    }
+}
+\`\`\`
+
+
+---
+
+| 标题1 | 标题2 | 标题3 |标题2 | 标题3 |标题1 | 标题2 | 标题3 |标题2 | 标题3 |标题1 | 标题2 | 标题3 |标题2 | 标题3 |
+|-------|-------|-------|----|-------|------|-------|-------|----|-------|------|-------|-------|----|-------|
+| 单元格1 | 单元格2 | 单元格3 |单元格3 |单元格3 |单元格1 | 单元格2 | 单元格3 |单元格3 |单元格3 |单元格1 | 单元格2 | 单元格3 |单元格3 |单元格3 |
+| 单元格4 | 单元格5 | 单元格6 |单元格6 |单元格6 |单元格4 | 单元格5 | 单元格6 |单元格6 |单元格6 |单元格4 | 单元格5 | 单元格6 |单元格6 |单元格6 |
+
+---
+`;
+
+
+
+export default function () {
+  const [value, setValue] = useState(content);
+  const [open, setOpen] = useState(false);
+
+  return <>
+    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <IconButton icon={<SparkEditLine />} onClick={() => setOpen(true)} />
+      <Modal open={open} onCancel={() => setOpen(false)} title="markdown editor" footer={null} centered>
+        <Input.TextArea value={value} onChange={(e) => setValue(e.target.value)} autoSize={{ minRows: 30, maxRows: 30 }} />
+      </Modal>
+    </div>
+    <Markdown content={value} />
+  </>;
+}
+```
+
+
+import { Markdown } from '@agentscope-ai/chat';
+
+
+
+#### 更多示例
+
+
+
+## 数学公式
+
+```tsx
+import React from 'react';
+import { Markdown } from '@agentscope-ai/chat';
+
+const content = `三角函数是一类数学函数，主要用来描述直角三角形中的角度与边长之间的关系。最常用的三角函数包括正弦（sine, 简写为sin）、余弦（cosine, 简写为cos）和正切（tangent, 简写为tan）。此外还有它们的倒数：余割（cosecant, 简写为csc或cosec）、正割（secant, 简写为sec）和余切（cotangent, 简写为cot）。
+
+这些函数的基本定义如下：
+
+1. **正弦（sin）**：对于一个角θ，在直角三角形中，正弦是该角对边与斜边的比值。
+   \\[ 1 + 2 = 3 \\]
+
+2. **余弦（cos）**：对于一个角θ，在直角三角形中，余弦是该角邻边与斜边的比值。
+   \\[ \\cos(\\theta) = \\frac{\\text{邻边}}{\\text{斜边}} \\]
+
+3. **正切（tan）**：对于一个角θ，在直角三角形中，正切是对边与邻边的比值。
+   \\[ \\tan(\\theta) = \\frac{\\text{对边}}{\\text{邻边}} \\]
+
+4. **余割（csc）**：是正弦的倒数。
+   \\[ \\csc(\\theta) = \\frac{1}{\\sin(\\theta)} \\]
+
+5. **正割（sec）**：是余弦的倒数。
+   \\[ \\sec(\\theta) = \\frac{1}{\\cos(\\theta)} \\]
+
+6. **余切（cot）**：是正切的倒数。
+   \\[ \\cot(\\theta) = \\frac{1}{\\tan(\\theta)} \\]
+
+三角函数在数学、物理学、工程学等领域有着广泛的应用，尤其是在处理周期性现象时。
+
+矩阵是数学中一种重要的工具，广泛应用于线性代数、计算机科学、物理学等领域。以下是关于矩阵形式的详细说明：
+矩阵是一个**按矩形排列的数表**，由 **m 行 n 列** 的元素组成，通常用大写字母表示（如 A、B）。 
+
+一般形式如下：
+$$
+A = \\begin{bmatrix}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{bmatrix}
+$$
+
+---
+
+其中 \( C \) 表示圆的周长，\( \pi \) 是圆周率（大约等于 3.14159），而 \( r \) 是圆的半径。
+
+其中 $ C $ 表示圆的周长，$ \pi $ 是圆周率（大约等于 3.14159），而 $ r $ 是圆的半径。
+
+---
+
+\\[
+x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+\\]
+
+\\[
+\\begin{align*}
+1. & \\quad x + y = 10 \\\\
+2. & \\quad 2x - y = 0
+\\end{align*}
+\\]
+
+
+$$ x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} $$
+
+$$
+\\begin{align*}
+1. & \\quad x + y = 10 \\\\
+2. & \\quad 2x - y = 0
+\\end{align*}
+$$
+`;
+
+export default function () {
+  return <Markdown content={content} />;
+}
+```
+
+
+## 引用
+
+```tsx
+import React from 'react';
+import { Markdown } from '@agentscope-ai/chat';
+
+const content = `杭州今天和未来几天的天气预报如下：
+
+今天（2月18日）多云，气温在4-12℃之间[two][3]。白天多云，夜间转阴[7]。风力较大，上午为偏东风2-3级，傍晚增大到4级[7]。
+
+未来几天天气概况：
+- 2月19日（明天）：阴天，有小雨，气温11℃左右[3][7]
+- 2月20日：阴天，小到中雨，气温7℃左右[3][7]
+- 2月21日：多云，气温7℃左右[3]
+- 2月22日：小雨，气温7℃左右[3]
+
+总体来看，未来几天杭州天气较凉，以阴天和雨天为主，气温在7-11℃之间波动。建议市民适当增添衣物，注意保暖，外出时携带雨具[2][3][7]。
+`;
+
+const citations = [
+  'https://www.weather.com.cn/weather/101210101.shtml',
+  'https://tianqi.moji.com/weather/china/zhejiang/hangzhou',
+  'https://weather.cma.cn/web/weather/58457.html',
+  'https://tianqi.so.com/weather/101210101',
+  'https://www.accuweather.com/zh/cn/hangzhou/106832/weather-forecast/106832',
+  'https://www.hzqx.com',
+  'https://www.hzqx.com/pc/hztq/',
+].map((url, index) => {
+  return {
+    url,
+    title: `参考${index + 1}`,
+    content: url,
+  };
+})
+
+export default function () {
+  return <Markdown cursor content={content} citations={citations} citationsMap={{
+    'two': {
+      url: 'https://www.weather.com.cn/weather/101210101.shtml',
+      title: '参考2',
+      content: 'https://www.weather.com.cn/weather/101210101.shtml',
+    },
+  }} />;
+}
+```
+
+
+## 打字效果
+
+```tsx
+import React, { useRef } from 'react';
+import { Markdown } from '@agentscope-ai/chat';
+import { useInViewport } from 'ahooks';
+
+const content = `三角函数是一类数学函数，主要用来描述直角三角形中的角度与边长之间的关系。最常用的三角函数包括正弦（sine, 简写为sin）、余弦（cosine, 简写为cos）和正切（tangent, 简写为tan）。此外还有它们的倒数：余割（cosecant, 简写为csc或cosec）、正割（secant, 简写为sec）和余切（cotangent, 简写为cot）。
+
+这些函数的基本定义如下：
+
+1. **正弦（sin）**：对于一个角θ，在直角三角形中，正弦是该角对边与斜边的比值。
+   \\[ 1 + 2 = 3 \\]
+
+2. **余弦（cos）**：对于一个角θ，在直角三角形中，余弦是该角邻边与斜边的比值。
+   \\[ \\cos(\\theta) = \\frac{\\text{邻边}}{\\text{斜边}} \\]
+
+3. **正切（tan）**：对于一个角θ，在直角三角形中，正切是对边与邻边的比值。
+   \\[ \\tan(\\theta) = \\frac{\\text{对边}}{\\text{邻边}} \\]
+
+4. **余割（csc）**：是正弦的倒数。
+   \\[ \\csc(\\theta) = \\frac{1}{\\sin(\\theta)} \\]
+
+5. **正割（sec）**：是余弦的倒数。
+   \\[ \\sec(\\theta) = \\frac{1}{\\cos(\\theta)} \\]
+
+6. **余切（cot）**：是正切的倒数。
+   \\[ \\cot(\\theta) = \\frac{1}{\\tan(\\theta)} \\]
+
+三角函数在数学、物理学、工程学等领域有着广泛的应用，尤其是在处理周期性现象时。
+
+矩阵是数学中一种重要的工具，广泛应用于线性代数、计算机科学、物理学等领域。以下是关于矩阵形式的详细说明：
+矩阵是一个**按矩形排列的数表**，由 **m 行 n 列** 的元素组成，通常用大写字母表示（如 A、B）。 
+
+一般形式如下：
+$$
+A = \\begin{bmatrix}
+a_{11} & a_{12} & \\cdots & a_{1n} \\\\
+a_{21} & a_{22} & \\cdots & a_{2n} \\\\
+\\vdots & \\vdots & \\ddots & \\vdots \\\\
+a_{m1} & a_{m2} & \\cdots & a_{mn}
+\\end{bmatrix}
+$$
+
+---
+
+其中 \( C \) 表示圆的周长，\( \pi \) 是圆周率（大约等于 3.14159），而 \( r \) 是圆的半径。
+
+其中 $ C $ 表示圆的周长，$ \pi $ 是圆周率（大约等于 3.14159），而 $ r $ 是圆的半径。
+
+---
+
+\\[
+x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+\\]
+
+\\[
+\\begin{align*}
+1. & \\quad x + y = 10 \\\\
+2. & \\quad 2x - y = 0
+\\end{align*}
+\\]
+
+
+$$ x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} $$
+
+$$
+\\begin{align*}
+1. & \\quad x + y = 10 \\\\
+2. & \\quad 2x - y = 0
+\\end{align*}
+$$
+`;
+
+export default function () {
+  const ref = useRef(null);
+  const [inViewport] = useInViewport(ref);
+
+  return <div ref={ref}><Markdown content={content} typing={inViewport} cursor /></div>;
+}
+```
+
+
+#### API
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| content | 要渲染的Markdown内容字符串 | string |  | 
+| cursor | 光标样式类型，支持点状、下划线或布尔值控制 | boolean \| 'dot' \| 'underline' |  | 
+| baseFontSize | 基础字体大小，影响整个Markdown内容的字体大小 | number |  | 
+| baseLineHeight | 基础行高，影响文本的行间距 | number |  | 
+| citations | 引用数据数组，用于显示引用信息 | InnerMarkdownProps['citations'] |  | 
+| citationsMap | 引用映射对象，用于快速查找引用信息 | InnerMarkdownProps['citationsMap'] |  | 
+| components | 自定义组件映射，用于覆盖默认的Markdown元素渲染 | Components & Record<string, FC> |  | 
+| allowHtml | 是否允许渲染HTML标签，影响安全性 | boolean |  | 
+| typing | 是否启用打字机效果，逐字显示内容 | boolean |  | 
+| raw | 是否以原始文本形式显示，跳过Markdown解析 | boolean |  | 
+| className | 组件的CSS类名 | string |  | 

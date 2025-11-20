@@ -1,0 +1,402 @@
+
+
+<DemoTitle title="HistoryPanel" desc="对话历史面板" llmTxtName="Conversations"></DemoTitle>
+
+
+
+## 示例
+
+```tsx
+import { Button, IconButton } from '@agentscope-ai/design';
+import { createStyles } from 'antd-style';
+import { ReactNode, useState } from 'react';
+import { HistoryPanel } from '@agentscope-ai/chat';
+import { SparkDeleteLine, SparkOperateLeftLine, SparkOperateRightLine, SparkPlusLine } from '@agentscope-ai/icons';
+
+const useStyles = createStyles(({ token }) => {
+  return {
+    layout: {
+      position: 'relative',
+      display: 'flex',
+      height: 416,
+      border: `1px solid ${token.colorBorderSecondary}`,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    left: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: 280,
+      background: token.colorBgLayout,
+      transition: 'margin-left 0.3s ease-in-out',
+      zIndex: 1,
+    },
+    open: {
+      position: 'absolute',
+      left: 20,
+      top: 16,
+    },
+    close: {
+      marginLeft: -280,
+    },
+    header: {
+      margin: '16px 20px 8px 20px',
+      height: 32,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 16,
+    },
+    btn: {
+      margin: '0 20px 16px 20px',
+
+    },
+    list: {
+      height: 0,
+      flex: 1,
+      overflowY: 'scroll',
+      padding: '0 16px 16px 20px',
+
+      '&::-webkit-scrollbar': {
+        width: 4,
+      },
+
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'transparent !important',
+
+        '&:hover': {
+          backgroundColor: `${token.colorFill} !important`,
+        }
+      },
+
+    }
+  };
+});
+
+const items = Array.from({ length: 10 }).map((_, index) => ({
+  key: `item${index + 1}`,
+  label: `What is Spark Design?`,
+  disabled: index === 3,
+}));
+
+function Layout(props: { children: ReactNode }) {
+  const { styles, cx, theme } = useStyles();
+
+  return <div className={styles.layout}>{props.children}</div>
+}
+
+export default function () {
+  const [open, setOpen] = useState(true);
+  const { styles, cx, theme } = useStyles();
+
+
+  return <Layout>
+    <div className={styles.open}>
+      <IconButton bordered={false} icon={<SparkOperateRightLine />} onClick={() => setOpen(!open)} />
+
+    </div>
+    <div className={cx(styles.left, open ? '' : styles.close)}>
+      <div className={styles.header}>
+        <strong>SPARK CHAT</strong>
+        <IconButton bordered={false} icon={<SparkOperateLeftLine />} onClick={() => setOpen(!open)} />
+      </div>
+      <div className={styles.btn}>
+        <Button block type="primary" icon={<SparkPlusLine />}>
+          New Chat
+        </Button>
+      </div>
+      <div className={styles.list}>
+        <HistoryPanel
+          menu={(session) => ({
+            items: [
+              {
+                label: '删除',
+                key: 'delete',
+                icon: <SparkDeleteLine />,
+                danger: true,
+              },
+            ],
+            onClick: (e) => {
+              e.domEvent.stopPropagation();
+            },
+          })}
+          items={items} defaultActiveKey="item1" />
+      </div>
+    </div>
+  </Layout>
+}
+```
+
+import { HistoryPanel } from '@agentscope-ai/chat'
+
+#### 历史面板示例
+
+以下是此组件的示例和变体
+
+
+
+## 展示时间戳
+
+```tsx
+import { Button } from '@agentscope-ai/design';
+import { createStyles } from 'antd-style';
+import { ReactNode, useState } from 'react';
+import { HistoryPanel } from '@agentscope-ai/chat';
+import { SparkDeleteLine, SparkEditLine, SparkPlusLine } from '@agentscope-ai/icons';
+
+
+const useStyles = createStyles(({ token }) => {
+  return {
+    layout: {
+      display: 'flex',
+      height: 416,
+      border: `1px solid ${token.colorBorderSecondary}`,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    left: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: 280,
+      background: token.colorBgLayout,
+    },
+    header: {
+      margin: '16px 20px 8px 20px',
+      height: 32,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 16,
+    },
+    btn: {
+      margin: '0 20px 16px 20px',
+
+    },
+    list: {
+      height: 0,
+      flex: 1,
+      overflowY: 'scroll',
+      padding: '0 16px 16px 20px',
+
+      '&::-webkit-scrollbar': {
+        width: 4,
+      },
+
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'transparent !important',
+
+        '&:hover': {
+          backgroundColor: `${token.colorFill} !important`,
+        }
+      },
+
+    }
+  };
+});
+
+const items = Array.from({ length: 10 }).map((_, index) => ({
+  key: `item${index + 1}`,
+  label: `What is Spark Design?`,
+  desc: new Date(Date.now() - index * 1000).toLocaleString(),
+  disabled: index === 3,
+}));
+
+function Layout(props: { children: ReactNode }) {
+  const { styles, cx, theme } = useStyles();
+
+  return <div className={styles.layout}>{props.children}</div>
+}
+
+export default function () {
+  const [open, setOpen] = useState(false);
+  const { styles, cx, theme } = useStyles();
+
+  return <Layout>
+    <div className={styles.left}>
+      <div className={styles.header}>
+        <strong>SPARK CHAT</strong>
+      </div>
+      <div className={styles.btn}>
+        <Button block type="primary" icon={<SparkPlusLine />}>
+          New Chat
+        </Button>
+      </div>
+      <div className={styles.list}>
+        <HistoryPanel
+          menu={(session) => ({
+            items: [
+              {
+                label: '编辑',
+                key: 'edit',
+                icon: <SparkEditLine />,
+              },
+              {
+                label: '删除',
+                key: 'delete',
+                icon: <SparkDeleteLine />,
+                danger: true,
+              },
+            ],
+            onEdit(label: string) {
+              if (label) return Promise.resolve();
+              return Promise.reject();
+            },
+            onClick: (e) => {
+            },
+          })}
+          items={items} defaultActiveKey="item1" />
+      </div>
+    </div>
+  </Layout>
+}
+```
+
+
+## 展示时间戳 & 时间线
+
+```tsx
+import { Button } from '@agentscope-ai/design';
+import { createStyles } from 'antd-style';
+import { ReactNode, useState } from 'react';
+import { HistoryPanel } from '@agentscope-ai/chat';
+import { SparkDeleteLine, SparkEditLine, SparkPlusLine } from '@agentscope-ai/icons';
+
+
+const useStyles = createStyles(({ token }) => {
+  return {
+    layout: {
+      display: 'flex',
+      height: 416,
+      border: `1px solid ${token.colorBorderSecondary}`,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    left: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: 280,
+      background: token.colorBgLayout,
+    },
+    header: {
+      margin: '16px 20px 8px 20px',
+      height: 32,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 16,
+    },
+    btn: {
+      margin: '0 20px 16px 20px',
+
+    },
+    list: {
+      height: 0,
+      flex: 1,
+      overflowY: 'scroll',
+      padding: '0 16px 16px 20px',
+
+      '&::-webkit-scrollbar': {
+        width: 4,
+      },
+
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'transparent !important',
+
+        '&:hover': {
+          backgroundColor: `${token.colorFill} !important`,
+        }
+      },
+
+    }
+  };
+});
+
+const items = Array.from({ length: 10 }).map((_, index) => ({
+  key: `item${index + 1}`,
+  label: `What is Spark Design?`,
+  desc: new Date(Date.now() - index * 1000).toLocaleString(),
+  disabled: index === 3,
+  timeline: true,
+}));
+
+function Layout(props: { children: ReactNode }) {
+  const { styles, cx, theme } = useStyles();
+
+  return <div className={styles.layout}>{props.children}</div>
+}
+
+export default function () {
+  const [open, setOpen] = useState(false);
+  const { styles, cx, theme } = useStyles();
+
+  return <Layout>
+    <div className={styles.left}>
+      <div className={styles.header}>
+        <strong>SPARK CHAT</strong>
+      </div>
+      <div className={styles.btn}>
+        <Button block type="primary" icon={<SparkPlusLine />}>
+          New Chat
+        </Button>
+      </div>
+      <div className={styles.list}>
+        <HistoryPanel
+          menu={(session) => ({
+            items: [
+              {
+                label: '编辑',
+                key: 'edit',
+                icon: <SparkEditLine />,
+              },
+              {
+                label: '删除',
+                key: 'delete',
+                icon: <SparkDeleteLine />,
+                danger: true,
+              },
+            ],
+            
+            onClick: (e) => {
+              if (e.key === 'edit') {
+                if (e.label) return Promise.resolve();
+                return Promise.reject();
+              }
+              debugger;
+              e.domEvent.stopPropagation();
+            },
+          })}
+          items={items} defaultActiveKey="item1" />
+      </div>
+    </div>
+  </Layout>
+}
+```
+
+#### API
+
+##### HistoryPanel
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| items | 会话列表的数据源数组，包含所有会话信息 | Conversation[] |  | 
+| activeKey | 当前激活的会话标识符，用于高亮显示选中项 | Conversation['key'] |  | 
+| defaultActiveKey | 组件初始化时的默认选中会话标识符 | Conversation['key'] |  | 
+| onActiveChange | 会话选择发生变化时的回调函数，接收新的会话标识符 | (value: string) => void |  | 
+| menu | 会话操作菜单配置，支持静态配置或动态函数返回 | MenuProps \| ((value: Conversation) => MenuProps) |  | 
+| styles | 语义化样式对象，用于精确控制不同区域的样式 | Partial<Record<'item', React.CSSProperties>> |  | 
+| classNames | 语义化CSS类名，用于为不同区域添加自定义类名 | Partial<Record<'item', string>> |  | 
+| prefixCls | 自定义CSS类名前缀，用于样式隔离和主题定制 | string |  | 
+| rootClassName | 自定义根容器的CSS类名，用于覆盖默认样式 | string |  | 
+
+
+##### Conversation
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| key | 会话的唯一标识符，用于区分不同的聊天会话 | string | (必填) | 
+| label | 会话的显示名称，支持文本或React元素 | React.ReactNode |  | 
+| timestamp | 会话创建或最后活动的时间戳，用于排序和显示 | number |  | 
+| icon | 会话的图标元素，用于视觉识别 | React.ReactNode |  | 
+| disabled | 是否禁用该会话，影响交互功能 | boolean |  | 
+| timeline | 是否在时间线中显示该会话，用于分组显示 | boolean |  | 
