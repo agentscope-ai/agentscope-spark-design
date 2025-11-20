@@ -7,6 +7,7 @@
   "scripts": {
     "prepare": "husky",
     "start:spark-design": "cd packages/spark-design && pnpm install && pnpm run start",
+    "build": "cd packages/spark-design && pnpm install && pnpm run build",
     "build:spark-design": "cd packages/spark-design && pnpm install && pnpm run build",
     "lint": "npm run lint:es && npm run lint:css",
     "lint:css": "stylelint --fix \"**/{src,test}/**/*.{css,less}\"",
