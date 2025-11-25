@@ -8,6 +8,10 @@ const COLOR_LIST: TagProps['color'][] = [
   'teal',
   'blue',
   'mauve',
+  'success',
+  'error',
+  'warning',
+  'info',
 ];
 
 export default () => {

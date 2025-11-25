@@ -3,8 +3,6 @@ declare module '*.less';
 declare module '*.module.less';
 declare module '*.svg';
 
-declare const MOBILE: boolean;
-
 interface Window {
   g_config: any;
   ALIYUN_CONSOLE_CONFIG: any;

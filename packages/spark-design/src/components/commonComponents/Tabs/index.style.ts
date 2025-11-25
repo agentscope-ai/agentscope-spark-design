@@ -31,6 +31,13 @@ export const useStyle = createGlobalStyle`
   
   .${(p) => p.antPrefix}-segmented-item-label {
     font-weight: 500;
+    color: var(--${(p) => p.antPrefix}-color-text-secondary);
+  }
+}
+
+.${(p) => p.antPrefix}-segmented-item-selected {  
+  .${(p) => p.antPrefix}-segmented-item-label {
+    font-weight: 500;
     color: var(--${(p) => p.antPrefix}-color-text);
   }
 }

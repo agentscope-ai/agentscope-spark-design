@@ -12,6 +12,10 @@ enum SparkTagColors {
   Blue = 'blue',
   Mauve = 'mauve',
   Transparent = 'transparent',
+  Success = 'success',
+  Error = 'error',
+  Warning = 'warning',
+  Info = 'info',
 }
 
 export interface SparkTagProps extends TagProps {

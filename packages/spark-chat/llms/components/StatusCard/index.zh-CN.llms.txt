@@ -1,0 +1,79 @@
+
+
+# StatusCard
+表达LLM或Agent的执行任务状态
+
+
+
+## 示例
+
+```tsx
+import { StatusCard } from '@agentscope-ai/chat';
+import { Flex } from 'antd';
+import { useState } from 'react';
+
+
+export default function () {
+  const [done, setDone] = useState(false);
+  return <Flex vertical gap={16}>
+    <StatusCard title="Success" status="success">
+
+      <StatusCard.Statistic values={[
+        { title: 'Runtime', value: '23min' },
+        { title: 'Input Token', value: '200k' },
+        { title: 'Output Token', value: '1000k' },
+      ]} />
+    </StatusCard>
+    <StatusCard title="Execution Failed" description="Failed to load resource: net::ERR_CONNECTION_CLOSED" status="error" />
+    <StatusCard title="Warning" status="warning" />
+
+
+    <StatusCard.HITL
+      done={done}
+      onDone={() => setDone(true)}
+      title="Human intervention required"
+      description="Please log in after entering your account and password"
+      waitButtonText="I have completed, continue task"
+      doneButtonText="User has confirmed"
+    />
+
+
+  </Flex>
+}
+```
+
+import { StatusCard } from '@agentscope-ai/chat'
+
+#### API
+
+##### IStatusCardProps
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| title | 标题 | string | (必填) | 
+| status | 状态 | 'success' \| 'error' \| 'warning' \| 'info' | (必填) | 
+| description | 描述 | string |  | 
+| icon | 图标 | React.ReactNode |  | 
+| children | 子元素 | React.ReactNode |  | 
+
+
+##### IStatusCardHITLProps
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| title | 标题 | string | (必填) | 
+| description | 描述 | string | '需要用户人工干预' | 
+| waitButtonText | 等待按钮文本 | string | '我已完成，继续任务' | 
+| doneButtonText | 完成按钮文本 | string | '用户已确认' | 
+| done | 是否完成 | boolean | (必填) | 
+| onDone | 完成回调 | () => void | (必填) | 
+
+
+##### IStatusCardStatisticProps
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| values | 统计数据 | {
+    title: string;
+    value: string;
+  }[] | (必填) | 

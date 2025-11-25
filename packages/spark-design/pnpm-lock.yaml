@@ -57,6 +57,9 @@ importers:
       '@codemirror/lint':
         specifier: ^6.8.4
         version: 6.8.5
+      '@codemirror/state':
+        specifier: ^6.4.1
+        version: 6.5.2
       '@codemirror/view':
         specifier: ^6.38.8
         version: 6.38.8
@@ -99,6 +102,9 @@ importers:
       query-string:
         specifier: ^7.1.3
         version: 7.1.3
+      rc-slider:
+        specifier: ^10.6.2
+        version: 10.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       slate:
         specifier: 0.91.4
         version: 0.91.4
@@ -7210,6 +7216,13 @@ packages:
     peerDependencies:
       react: '*'
       react-dom: '*'
+
+  rc-slider@10.6.2:
+    resolution: {integrity: sha512-FjkoFjyvUQWcBo1F3RgSglky3ar0+qHLM41PlFVYB4Bj3RD8E/Mv7kqMouLFBU+3aFglMzzctAIWRwajEuueSw==}
+    engines: {node: '>=8.x'}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
 
   rc-slider@11.1.8:
     resolution: {integrity: sha512-2gg/72YFSpKP+Ja5AjC5DPL1YnV8DEITDQrcc1eASrUYjl0esptaBVJBh5nLTXCCp15eD8EuGjwezVGSHhs9tQ==}
@@ -17567,6 +17580,14 @@ snapshots:
       rc-overflow: 1.3.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       rc-util: 5.44.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       rc-virtual-list: 3.16.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
+  rc-slider@10.6.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      '@babel/runtime': 7.26.0
+      classnames: 2.5.1
+      rc-util: 5.44.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 

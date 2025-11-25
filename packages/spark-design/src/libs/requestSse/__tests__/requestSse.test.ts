@@ -28,12 +28,9 @@ describe('requestSSE', () => {
     const result = [];
     await requestSse('/api/sse', {
       onmessage(msg) {
-        // console.log('onmessage:', msg);
         result.push(msg);
       },
     });
-    // expect(fetch).toHaveBeenCalledWith('/api/sse', {});
-    // console.log('result:', result);
     expect(result.map((one) => one.data).join('\n')).toEqual('line1\nline2');
     expect(result.map((one) => one.event).join('\n')).toEqual('test1\ntest2');
     expect(result.map((one) => one.id).join('\n')).toEqual('1\n2');
@@ -47,7 +44,6 @@ describe('requestSSE', () => {
     await expect(
       requestSse('/api/sse', {
         onmessage(msg) {
-          // console.log('onmessage:', msg);
           result.push(msg.data);
         },
       }),

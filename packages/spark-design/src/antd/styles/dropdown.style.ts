@@ -12,6 +12,10 @@ export const useDropdownStyle = createGlobalStyle`
     color: var(--${(p) => p.antPrefix}-color-error);
     background-color: var(--${(p) => p.antPrefix}-color-error-bg-hover);
   }
+
+  .${(p) => p.antPrefix}-dropdown-menu-item:hover {
+    background-color: var(--${(p) => p.antPrefix}-color-fill-tertiary);
+  }
   
   .${(p) => p.antPrefix}-dropdown-menu-title-content {
     text-align: left;

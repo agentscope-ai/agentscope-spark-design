@@ -1,0 +1,349 @@
+
+
+# 百炼
+
+这篇指南将介绍如何在使用 Alibaba Cloud Spark Chat 接入在阿里云百炼上搭建的智能体。
+
+## 前置准备
+
+
+- 如何获取 baseURL - [https://help.aliyun.com/zh/model-studio/getting-started/what-is-model-studio](https://help.aliyun.com/zh/model-studio/getting-started/what-is-model-studio)
+- 如何获取 API Key - [https://help.aliyun.com/zh/model-studio/developer-reference/get-api-key](https://help.aliyun.com/zh/model-studio/developer-reference/get-api-key)
+- 已创建智能体应用，并已获取 APP_ID（阿里云百炼应用 ID）：在应用管理页面的应用卡片上获取。,
+  - [https://help.aliyun.com/zh/model-studio/single-agent-application](https://help.aliyun.com/zh/model-studio/single-agent-application)
+  - [https://bailian.console.aliyun.com/?tab=app#/app-center](https://bailian.console.aliyun.com/?tab=app#/app-center)
+
+## 工作流调用
+
+### 工作流搭建
+
+demo 比较简单，实际可以开启各种 RAG、MCP、循环调用 等相关功能
+
+<img src="https://gw.alicdn.com/imgextra/i1/O1CN01djpE1e280W7hW930J_!!6000000007870-2-tps-2452-1654.png" width="50%" />
+
+### 代码编写
+
+demo 使用了自定义卡片实现了一个表单，用来获取用户输入的参数，并调用工作流进行执行
+
+<img src="https://gw.alicdn.com/imgextra/i1/O1CN01n0tmbe1kYp0hcR83z_!!6000000004696-1-tps-1068-720.gif" width="50%" />
+
+
+## ## 智能体调用
+
+```tsx
+import { ConfigProvider, carbonTheme, Card, Input, Select, Button } from '@agentscope-ai/design';
+import { Bubble, ChatInput, Stream, type TMessage, CustomCardsProvider } from '@agentscope-ai/chat';
+import { useRef, useState } from 'react';
+import { produce } from 'immer';
+import './App.css';
+import { Flex, Space } from 'antd';
+import React from 'react';
+
+const MessagesContext = React.createContext<{
+  messages: TMessage[];
+  setMessages: React.Dispatch<React.SetStateAction<TMessage[]>>;
+  loading?: boolean;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}>({
+  messages: [],
+  setMessages: () => { },
+  setLoading: () => { },
+  loading: false,
+});
+
+function Sender({
+  handleSend,
+  loading,
+}: {
+  handleSend: (input: string) => void;
+  loading: boolean;
+}) {
+  const [input, setInput] = useState('');
+
+  return (
+    <ChatInput
+      value={input}
+      onChange={setInput}
+      onSubmit={(input) => {
+        handleSend(input);
+        setInput('');
+      }}
+      loading={loading}
+    />
+  );
+}
+
+function TranslateStart() {
+  const { setMessages, loading, setLoading } = React.useContext(MessagesContext);
+  const [originText, setOriginText] = useState('');
+  const [targetLang, setTargetLang] = useState('英语');
+  const currentAnswer = useRef<TMessage | null>(null);
+  const [disabled, setDisabled] = useState(false);
+
+  return <Card title="Translate Start">
+    <Space direction="vertical" size={8}>
+      <Flex align='center'>
+        <label className='w-[80px] flex-none'>originText</label>
+        <Input placeholder="请输入翻译内容" value={originText} onChange={(e) => setOriginText(e.target.value)} />
+      </Flex>
+      <Flex align='center'>
+        <label className='w-[80px] flex-none'>targetLang</label>
+        <Select placeholder="请选择目标语言"
+          value={targetLang}
+          onChange={(value) => setTargetLang(value)}
+          options={[
+            { label: '英语', value: '英语' },
+            { label: '日语', value: '日语' },
+            { label: '法语', value: '法语' },
+          ]}
+        />
+      </Flex>
+
+      <Button type="primary"
+
+        disabled={disabled}
+        loading={!disabled && loading} onClick={async () => {
+          setLoading(true);
+          const id = 'a' + Date.now().toString();
+
+
+          currentAnswer.current = {
+            role: 'assistant',
+            content: '',
+            msgStatus: 'generating',
+            id,
+          };
+
+          setMessages((v) => [...v, currentAnswer.current as TMessage]);
+
+
+
+          const response = await fetch(`https://dashscope.aliyuncs.com/api/v1/apps/YOUR_APP_ID/completion`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer sk-xxxx`,
+              'X-DashScope-SSE': 'enable',
+            },
+            body: JSON.stringify({
+              session_id: Date.now().toString(),
+              input: {
+                prompt: '开始翻译', biz_params: {
+                  originText: originText,
+                  targetLang: targetLang
+                }
+              },
+              parameters: {
+                incremental_output: false
+              },
+            }),
+          });
+
+          if (response.body) {
+            for await (const chunk of Stream({
+              readableStream: response.body,
+            }, {})) {
+
+              const data = JSON.parse(chunk.data);
+
+              currentAnswer.current = produce(currentAnswer.current, (draft) => {
+                if (data.output?.finish_reason === 'stop') {
+                  draft.msgStatus = 'finished';
+                }
+                draft.content = data.output?.text || '';
+              });
+              setMessages((v) => v.map((item) => item.id === currentAnswer.current?.id ? currentAnswer.current : item));
+
+            }
+          };
+
+          setLoading(false);
+          setDisabled(true);
+        }}>翻译</Button>
+    </Space>
+  </Card>;
+}
+
+function App() {
+  const [messages, setMessages] = useState<TMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = async (input: string) => {
+    const query = {
+      role: 'user',
+      content: input,
+      id: 'q' + Date.now().toString(),
+    } as TMessage;
+
+    setMessages((v) => [...v, query]);
+  };
+
+  return (
+    <ConfigProvider {...carbonTheme} prefix="spark-chat" prefixCls="spark-chat">
+      <CustomCardsProvider cardConfig={{
+        TranslateStart,
+      }}>
+        <MessagesContext.Provider value={{ messages, setMessages, loading, setLoading }}>
+          <div className="h-[100vh] p-[20px] flex flex-col">
+            <Bubble.List
+              items={messages}
+              classNames={{
+                wrapper: 'flex-1 h-[0]',
+              }}
+            />
+            <div className='mb-[8px]'>
+              <Button onClick={() => {
+                setMessages((v) => [...v, {
+                  role: 'assistant',
+                  cards: [{ code: 'TranslateStart', }],
+                  id: 'q' + Date.now().toString(),
+                }]);
+
+              }}>翻译模式</Button>
+            </div>
+            <Sender handleSend={handleSend} loading={loading} />
+          </div>
+        </MessagesContext.Provider>
+      </CustomCardsProvider>
+    </ConfigProvider>
+  );
+}
+
+export default App;
+```
+
+### 智能体搭建
+
+demo 比较简单，实际可以开启各种 RAG、MCP 等相关功能
+
+<img src="https://gw.alicdn.com/imgextra/i2/O1CN01oduDVS1cOjMACqWMp_!!6000000003591-2-tps-2452-1654.png" width="50%" />
+
+### 代码编写
+
+
+## <img src="https://gw.alicdn.com/imgextra/i2/O1CN01tAh5r71D07gMq9kfP_!!6000000000153-2-tps-2452-1654.png" width="50%" />
+
+```tsx
+import { ConfigProvider, carbonTheme } from '@agentscope-ai/design';
+import { Bubble, ChatInput, Stream, type TMessage } from '@agentscope-ai/chat';
+import { useRef, useState } from 'react';
+import { produce } from 'immer';
+import './App.css';
+
+function Sender({
+  handleSend,
+  loading,
+}: {
+  handleSend: (input: string) => void;
+  loading: boolean;
+}) {
+  const [input, setInput] = useState('');
+
+  return (
+    <ChatInput
+      value={input}
+      onChange={setInput}
+      onSubmit={(input) => {
+        handleSend(input);
+        setInput('');
+      }}
+      loading={loading}
+    />
+  );
+}
+
+function App() {
+  const [messages, setMessages] = useState<TMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const sessionIdRef = useRef<string>(Date.now().toString());
+  const currentAnswer = useRef<TMessage | null>(null);
+
+  const handleSend = async (input: string) => {
+    const query = {
+      role: 'user',
+      content: input,
+      id: 'q' + Date.now().toString(),
+    } as TMessage;
+
+    const id = 'a' + Date.now().toString();
+
+    currentAnswer.current = {
+      role: 'assistant',
+      content: '',
+      msgStatus: 'generating',
+      id,
+    };
+
+    setMessages((v) => [...v, query, currentAnswer.current as TMessage]);
+    setLoading(true);
+
+    const response = await fetch(
+      `https://dashscope.aliyuncs.com/api/v1/apps/YOUR_APP_ID/completion`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer sk-xxxx`,
+          'X-DashScope-SSE': 'enable',
+        },
+        body: JSON.stringify({
+          session_id: sessionIdRef.current,
+          input: {
+            prompt: '推荐一下美食',
+            biz_params: {
+              user_prompt_params: {
+                city: input,
+              },
+            },
+          },
+          parameters: {
+            incremental_output: false,
+          },
+        }),
+      },
+    );
+
+    if (response.body) {
+      for await (const chunk of Stream(
+        {
+          readableStream: response.body,
+        },
+        {},
+      )) {
+        const data = JSON.parse(chunk.data);
+        currentAnswer.current = produce(currentAnswer.current, (draft) => {
+          if (data.output?.finish_reason === 'stop') {
+            draft.msgStatus = 'finished';
+          }
+          draft.content = data.output?.text || '';
+        });
+        setMessages((v) =>
+          v.map((item) =>
+            item.id === currentAnswer.current?.id
+              ? currentAnswer.current
+              : item,
+          ),
+        );
+      }
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <ConfigProvider {...carbonTheme} prefix="spark-chat" prefixCls="spark-chat">
+      <div className="h-[100vh] p-[20px] flex flex-col">
+        <Bubble.List
+          items={messages}
+          classNames={{
+            wrapper: 'flex-1 h-[0]',
+          }}
+        />
+        <Sender handleSend={handleSend} loading={loading} />
+      </div>
+    </ConfigProvider>
+  );
+}
+
+export default App;
+```

@@ -1,0 +1,43 @@
+
+
+# Disclaimer
+免责声明
+
+
+
+## 示例
+
+```tsx
+import React from 'react';
+import { Disclaimer } from '@agentscope-ai/chat';
+
+export default () => <Disclaimer />;
+```
+
+import { Disclaimer } from '@agentscope-ai/chat'
+
+
+#### 免责声明示例
+
+以下是此组件的示例和变体
+
+
+## 嵌入链接
+
+```tsx
+import React from 'react';
+import { Disclaimer } from '@agentscope-ai/chat';
+
+export default () => <Disclaimer afterLink={{  text: 'See More', href: 'https://www.aliyun.com'}}/>;
+```
+
+#### API
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| desc | 免责声明的文本内容，用于提醒用户AI的局限性 | React.ReactElement \| string |  | 
+| style | 免责声明组件的内联样式对象，用于自定义外观 | React.CSSProperties |  | 
+| afterLink | 免责声明后的链接配置，用于提供更多相关信息 | {
+    href: string
+    text: string
+  } |  | 

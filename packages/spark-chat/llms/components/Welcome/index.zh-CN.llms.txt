@@ -1,0 +1,123 @@
+
+
+# Welcome
+对话的落地欢迎页
+
+
+
+## 示例
+
+```tsx
+import { Welcome, ChatInput } from '@agentscope-ai/chat';
+import { Flex } from 'antd';
+
+export default function () {
+  return <Flex vertical  style={{ height: '100%', }}>
+    <Welcome
+      style={{ justifyContent: 'center', flex: 1 }}
+      logo={null}
+      title={<div style={{ textAlign: 'center' }}>Nice to meet you!</div>}
+      desc="How can I help you today?"
+    />
+    <ChatInput placeholder='Please type here...' />
+  </Flex>
+}
+```
+
+import { Welcome } from '@agentscope-ai/chat'
+
+#### 欢迎页示例
+
+以下是欢迎页组件的示例和变体
+
+
+
+## 附带品牌 - A
+
+```tsx
+import { ChatInput, Welcome } from '@agentscope-ai/chat';
+import { Flex } from "antd";
+
+
+export default function () {
+  return <Flex vertical style={{ height: '100%', }}>
+    <Welcome
+      style={{ justifyContent: 'center', flex: 1 }}
+      title="Nice to meet you!"
+      desc="How can I help you today?"
+      logo="https://gw.alicdn.com/imgextra/i3/O1CN01VFloZL1oERpBMx2Nv_!!6000000005193-55-tps-56-56.svg"
+    />
+
+    <ChatInput placeholder='Please type here...' />
+  </Flex>
+}
+```
+
+
+## 附带品牌 - B
+
+```tsx
+import React from "react";
+import { ChatInput, Welcome } from '@agentscope-ai/chat';
+import { Flex } from "antd";
+
+
+export default function () {
+  return <Flex vertical style={{ height: '100%', }}>
+
+
+    <Welcome
+      style={{ display: 'block', marginTop: 32,  flex: 1 }}
+      title="How can I help you today?"
+      desc={null}
+      logo={
+        <img
+          style={{
+            width: 40,
+            height: 40,
+            marginBottom: 10,
+          }}
+          src="https://gw.alicdn.com/imgextra/i3/O1CN01VFloZL1oERpBMx2Nv_!!6000000005193-55-tps-56-56.svg" />
+      }
+    />
+
+
+    <ChatInput placeholder='Please type here...' />
+
+
+  </Flex>
+}
+```
+
+
+## 自定义
+
+```tsx
+import { ChatInput } from '@agentscope-ai/chat';
+import { Flex } from "antd";
+import EyeFollower from './EyeFollower';
+
+
+export default function () {
+
+  return <Flex vertical style={{ height: '100%', }}>
+    <Flex justify='center' style={{ margin: '64px 0 32px 0', }}>
+      <EyeFollower />
+    </Flex>
+
+    <ChatInput placeholder='Please type here...' />
+  </Flex>
+}
+
+
+```
+
+
+#### API
+
+| 属性名 | 描述 | 类型 | 默认值 | 
+|--------|--------|--------|--------|
+| title | 欢迎页面的主标题，支持文本或React元素 | React.ReactNode \| string |  | 
+| desc | 欢迎页面的描述文本，用于补充说明或引导用户 | React.ReactNode \| string |  | 
+| logo | 欢迎页面的品牌标识，支持图片URL或自定义React元素 | React.ReactNode \| string |  | 
+| style | 欢迎组件的内联样式对象，用于自定义外观 | React.CSSProperties |  | 

@@ -1,0 +1,86 @@
+.urlWrapper {
+  cursor: pointer;
+}
+
+.urlWrapper,
+.moreWrapper {
+  position: relative;
+  padding: 4px 8px;
+  flex-grow: 0;
+  align-self: inherit;
+  background: var(--sps-color-fill-tertiary);
+  border-radius: 99px;
+}
+
+.urlWrapper.simple {
+  .description {
+    display: none;
+  }
+}
+
+.urlWrapper.detail {
+  .title {
+    font-weight: 500;
+  }
+}
+
+.url,
+.more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--sps-color-border-secondary);
+  border-radius: 99px;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconImage {
+  width: 8px;
+  height: 8px;
+  object-fit: contain;
+}
+
+.title {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--sps-color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'claude clone';
+}
+
+.more {
+  .title {
+    font-weight: 500;
+  }
+}
+
+.description {
+  color: var(--sps-color-text-secondary);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.moreWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.linkIcon {
+  color: var(--sps-color-text);
+}
+
+.rightIcon {
+  color: var(--sps-color-text-secondary);
+}

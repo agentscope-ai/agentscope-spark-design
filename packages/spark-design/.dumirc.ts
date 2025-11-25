@@ -8,9 +8,6 @@ const PROD = env && env !== 'daily';
 
 export default defineConfig({
   history: { type: 'browser' },
-  define: {
-    MOBILE: process.env.ONLY_MOBILE === '1',
-  },
   alias: {
     '@': ['/src'],
     '@dumi': ['/.dumi'],

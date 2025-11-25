@@ -175,6 +175,29 @@ export {
 } from './components/commonComponents/Tooltip';
 export { default as Upload } from './components/commonComponents/Upload';
 export { default as Video } from './components/commonComponents/Video';
+export {
+  FileCard,
+  default as FileIcon,
+  type SparkFileCardProps,
+  type SparkFileIconProps,
+} from './components/commonComponents/FileIcon';
+
+/**
+ * 移动端组件
+ */
+export { 
+  default as MobileModal,
+  type SparkMobileModalProps as MobileModalProps 
+} from './components/mobileComponents/MobileModal';
+export { 
+  default as MobileDrawer,
+  type SparkMobileDrawerProps as MobileDrawerProps 
+} from './components/mobileComponents/MobileDrawer';
+export { 
+  default as MobileAlertDialog,
+  type MobileAlertDialogProps 
+} from './components/mobileComponents/MobileAlertDialog';
+
 
 /**
  * hooks
@@ -200,12 +223,14 @@ export {
   type SseResponse,
 } from './libs/requestPopSse';
 export { default as requestSse } from './libs/requestSse';
+
 /**
  * Spark的ConfigProvider
  */
 export { default as ConfigProvider } from './components/commonComponents/ConfigProvider';
 export { getCommonConfig, setCommonConfig, useCommonConfig } from './config';
 export { base64Decoder, base64Encoder, parseJsonSafely } from './libs/string';
+
 /**
  * 主题
  */
@@ -224,12 +249,6 @@ const carbonDarkTheme = generateThemeByToken(
   true,
 );
 
-export {
-  FileCard,
-  default as FileIcon,
-  type SparkFileCardProps,
-  type SparkFileIconProps,
-} from './components/commonComponents/FileIcon';
 export {
   bailianDarkTheme,
   bailianTheme,

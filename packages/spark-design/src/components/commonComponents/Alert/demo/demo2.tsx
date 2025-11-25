@@ -24,6 +24,12 @@ export default () => {
         message="I am a description of a component."
         showIcon
       ></Alert>
+      <Alert
+        type="error"
+        message="I am a description of a component."
+        description="I am a description of a component."
+        showIcon
+      ></Alert>
     </Flex>
   );
 };

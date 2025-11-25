@@ -5,6 +5,12 @@ export const useSelectStyle = createGlobalStyle`
   border: 1px solid var(--${(p) => p.antPrefix}-color-border-secondary);
   box-shadow: 0px 4px 6px 0px rgba(0, 0, 0, 0.08);
   border-radius: var(--${(p) => p.antPrefix}-border-radius);
+
+  .${(p) => p.antPrefix}-select-item-option-active,
+  .${(p) => p.antPrefix}-select-item-option-active:not(.${(p) =>
+  p.antPrefix}-select-item-option-disabled) {
+    background-color: var(--${(p) => p.antPrefix}-color-fill-tertiary);
+  }
 }
 
 .${(p) => p.antPrefix}-select-outlined:not(.${(p) =>
