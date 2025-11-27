@@ -111,7 +111,115 @@ export default forwardRef(function (_, ref) {
   const submitFileList = attachedFiles.map(files => files.filter(file => file.status === 'done'));
   const fileLoading = attachedFiles.some(files => files.some(file => file.status === 'uploading'));
 
+  const handlePasteFile = (file: File) => {
+    if (!onUpload?.length) return;
 
+    const fileType = file.type || '';
+    const fileName = file.name || '';
+
+    // Match file type with accept pattern
+    const matchAcceptType = (accept?: string) => {
+      if (!accept) return true;
+
+      return accept.split(',').some(type => {
+        const trimmed = type.trim();
+        if (!trimmed) return false;
+
+        // Extension: .jpg, .png
+        if (trimmed.startsWith('.')) {
+          return fileName.toLowerCase().endsWith(trimmed.toLowerCase());
+        }
+        
+        // Wildcard: image/*, */*
+        if (trimmed.includes('*')) {
+          if (trimmed === '*/*') return true;
+          const [acceptMain] = trimmed.split('/');
+          const [fileMain] = fileType.split('/');
+          return acceptMain === fileMain;
+        }
+        
+        // Exact: image/jpeg
+        return fileType === trimmed;
+      });
+    };
+
+    // Find matching upload config
+    const uploadIndex = onUpload.findIndex(config => matchAcceptType(config.accept));
+    if (uploadIndex === -1) return;
+
+    const uploadConfig = onUpload[uploadIndex];
+
+    // Validate before upload
+    if (uploadConfig.beforeUpload) {
+      const result = uploadConfig.beforeUpload(file as any, [file as any]);
+      if (result === false) return;
+    }
+
+    // Extract extension from filename or MIME type
+    const getExtension = () => {
+      const nameMatch = fileName.match(/\.([^.]+)$/);
+      if (nameMatch) return nameMatch[1].toLowerCase();
+      
+      const typeMatch = fileType.match(/\/([^/+]+)/);
+      return typeMatch ? typeMatch[1].toLowerCase() : 'bin';
+    };
+
+    // Create upload file object
+    const timestamp = Date.now();
+    const uploadFile: any = {
+      uid: `paste_${timestamp}_${Math.random().toString(36).slice(2, 11)}`,
+      name: fileName || `pasted-${timestamp}.${getExtension()}`,
+      size: file.size,
+      type: fileType,
+      status: 'uploading',
+      percent: 0,
+      originFileObj: file,
+    };
+
+    // Update file in list
+    const updateFile = (updates: any) => {
+      setAttachedFiles(prev => {
+        const updated = [...prev];
+        updated[uploadIndex] = (updated[uploadIndex] || []).map(f =>
+          f.uid === uploadFile.uid ? { ...f, ...updates } as any : f
+        );
+        return updated;
+      });
+    };
+
+    // Add file to list first
+    setAttachedFiles(prev => {
+      const updated = [...prev];
+      updated[uploadIndex] = [...(updated[uploadIndex] || []), uploadFile];
+      return updated;
+    });
+
+    // Handle image preview (async, don't block upload)
+    if (fileType && fileType.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          updateFile({ thumbUrl: result, url: result });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Trigger upload via customRequest
+    uploadConfig.customRequest({
+      file: file as any,
+      onSuccess: (response: any) => {
+        updateFile({ status: 'done', response, percent: 100 });
+      },
+      onError: (error: any) => {
+        updateFile({ status: 'error', error });
+      },
+      onProgress: (event: any) => {
+        updateFile({ percent: event.percent });
+      },
+    } as any);
+  };
 
   return <>
     <Style />
@@ -149,6 +257,8 @@ export default forwardRef(function (_, ref) {
           onStop?.();
           inputContext.setLoading(false);
         }}
+        // @ts-ignore
+        onPasteFile={handlePasteFile}
         loading={inputContext.loading}
       />
       {

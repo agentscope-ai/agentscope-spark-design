@@ -333,14 +333,26 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   };
 
   const onInternalPaste: React.ClipboardEventHandler<HTMLElement> = (e) => {
-    // Get file
-    const file = e.clipboardData?.files[0];
-    if (file && onPasteFile) {
-      onPasteFile(file);
-      e.preventDefault();
+    if (!onPasteFile) {
+      onPaste?.(e);
+      return;
     }
 
-    onPaste?.(e);
+    // Try to get files from clipboardData.files
+    let files = Array.from(e.clipboardData?.files || []);
+    if (files.length === 0) {
+      const items = Array.from(e.clipboardData?.items || []);
+      files = items
+        .filter(item => item.kind === 'file')
+        .map(item => item.getAsFile())
+        .filter((file): file is File => file !== null);
+    } 
+    if (files.length > 0) {
+      files.forEach(file => onPasteFile(file));
+      e.preventDefault();
+    } else {
+      onPaste?.(e);
+    }
   };
 
   // ============================ Focus =============================
