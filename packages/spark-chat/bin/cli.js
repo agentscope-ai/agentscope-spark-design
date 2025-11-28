@@ -12,20 +12,16 @@ program
 
 const options = program.opts();
 
-
 async function startServer() {
   console.log('\n🚀 Starting AgentScope Runtime WebUI...\n');
 
   try {
-
-    
-    execSync('rm -rf agentscope-runtime')
-    execSync('git clone https://github.com/lishengzxc/agentscope-runtime.git -b dev', {
-      stdio: 'inherit',
-    })
+    execSync(`unzip ${__dirname}/starter_webui.zip -d ${__dirname}`);
 
     execSync(
-      `cd agentscope-runtime/web/starter_webui && npm install && BASE_URL=${options.url || 'BASE_URL'} TOKEN=${options.token || 'TOKEN'} npm run dev`,
+      `cd ${__dirname}/starter_webui && npm install && BASE_URL=${
+        options.url || 'BASE_URL'
+      } TOKEN=${options.token || 'TOKEN'} npm run dev`,
       {
         stdio: 'inherit',
       },
