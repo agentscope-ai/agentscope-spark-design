@@ -17,7 +17,7 @@ const SparkTabs = (props: SparkTabsProps) => {
   const { type, centered, ...restProps } = props;
   const { sparkPrefix } = getCommonConfig();
   const [mergedActiveKey, setMergedActiveKey] = useMergedState<string>(
-    () => restProps.items[0]?.key,
+    () => restProps.items?.[0]?.key,
     {
       value: restProps.activeKey,
       defaultValue: restProps.defaultActiveKey,

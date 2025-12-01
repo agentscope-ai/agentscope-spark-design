@@ -45,7 +45,7 @@ export interface SparkButtonProps extends ButtonProps {
 
 const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
   const token = theme.useToken();
-  const { iconSize, loading, ...restProps } = props;
+  const { iconSize, loading, iconType, tooltipContent, ...restProps } = props;
 
   const buttonType = React.useMemo(() => {
     // @ts-ignore
@@ -77,16 +77,16 @@ const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
     if (loading && typeof loading === 'object' && loading.icon) {
       return loading?.icon;
     }
-    if (restProps.iconType)
+    if (iconType)
       return (
-        <IconFont type={restProps.iconType} size={iconSize ?? restProps.size} />
+        <IconFont type={iconType} size={iconSize ?? restProps.size} />
       ); // 注意 size 也需要传入下去
     if (restProps.icon)
       return React.cloneElement(restProps.icon as React.ReactElement, {
         size: iconSize ?? restProps.size, // 注意 size 也需要传入下去
       });
     return null;
-  }, [restProps.iconType, restProps.icon]);
+  }, [iconType, restProps.icon]);
 
   const button = (
     <AntdButton
@@ -118,13 +118,13 @@ const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
           },
         }}
       >
-        <Tooltip title={restProps.tooltipContent}>{button}</Tooltip>
+        <Tooltip title={tooltipContent}>{button}</Tooltip>
       </ConfigProvider>
     );
     // @ts-ignore
   } else if (restProps.type === 'textCompact') {
     return (
-      <Tooltip title={restProps.tooltipContent}>
+      <Tooltip title={tooltipContent}>
         {/* @ts-ignore */}
         <AntdButton
           {...restProps}
@@ -144,7 +144,7 @@ const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
       </Tooltip>
     );
   } else {
-    return <Tooltip title={restProps.tooltipContent}>{button}</Tooltip>;
+    return <Tooltip title={tooltipContent}>{button}</Tooltip>;
   }
 });
 
