@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/chat",
-  "version": "1.1.39",
+  "version": "1.1.40",
   "description": "a free and open-source chat framework for building excellent LLM-powered chat experiences",
   "license": "Apache-2.0",
   "sideEffects": [
