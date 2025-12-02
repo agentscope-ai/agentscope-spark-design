@@ -13,20 +13,24 @@ class AgentScopeRuntimeResponseBuilder {
       if (AgentScopeRuntimeResponseBuilder.maybeToolInput(c) && c.content?.length) {
         const content = c.content[0] as IDataContent<{
           name: string;
+          call_id?: string;
         }>;
-        bufferMessagesMap.set(content.data.name, content);
+        const key = content.data.call_id || content.data.name;
+        bufferMessagesMap.set(key, content);
         return p;
       }
 
       if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(c)) {
         const content = c.content[0] as IDataContent<{
           name: string;
+          call_id?: string;
         }>;
-
-        const bufferContent = bufferMessagesMap.get(content.data.name);
+        
+        const key = content.data.call_id || content.data.name;
+        const bufferContent = bufferMessagesMap.get(key);
 
         if (bufferContent) {
-          bufferMessagesMap.delete(content.data.name);
+          bufferMessagesMap.delete(key);
           return [...p, { ...c, content: [bufferContent, ...c.content] }];
         } else {
           return p;
