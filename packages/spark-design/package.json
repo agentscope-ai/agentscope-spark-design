@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/design",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "AgentScope Spark Design - UI Library for AgentScope AI",
   "repository": {
     "type": "git",
@@ -18,7 +18,9 @@
   "bin": "scripts/index.js",
   "files": [
     "lib",
-    "scripts/index.js"
+    "scripts/index.js",
+    "scripts/mcp-docs-server.js",
+    "llms"
   ],
   "scripts": {
     "build": "father build",

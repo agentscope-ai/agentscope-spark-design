@@ -1,10 +1,6 @@
 import { defineConfig } from 'dumi';
 import path from 'path';
 import pkg from './package.json';
-const buildArgv = require('yargs-parser')(process.env.BUILD_ARGV_STR || '');
-const env = buildArgv['def_publish_env'];
-const version = buildArgv['def_publish_version'];
-const PROD = env && env !== 'daily';
 
 export default defineConfig({
   history: { type: 'browser' },
@@ -23,11 +19,8 @@ export default defineConfig({
   hash: false,
   themeConfig: {
     demoTitle: {
-      llmTxtBase: `https://${
-        PROD ? '' : 'dev.'
-      }g.alicdn.com/code/npm/@ali/agentscope-ai-design/${
-        version || pkg.version
-      }/docs-dist/llms/components/commonComponents`,
+      llmTxtBase: `https://unpkg.com/browse/@agentscope-ai/design@${pkg.version
+      }/llms/components/commonComponents`,
     },
     hd: { rules: [] },
     logo: 'https://img.alicdn.com/imgextra/i1/O1CN01ipemFb1EzmZI9LiTe_!!6000000000423-55-tps-28-28.svg',
@@ -114,8 +107,7 @@ export default defineConfig({
       );
     },
     /** 是否禁用，假如禁用则不会执行解析 */
-    disabled: !env,
-    // disabled: false,
+    disabled: false,
     /** 自定义json处理方法，可以在将树转换成markdown前做自定义处理, 注意返回新的tree对象，不要对原始tree进行修改，并保持原始tree结构 */
     // transformTree?: (tree: HastRoot, filename: string) => HastRoot;
     /** 自定义转换成markdown的方法, 可以对处理后的md进行转换，例如：将md中的图片转换为base64 */

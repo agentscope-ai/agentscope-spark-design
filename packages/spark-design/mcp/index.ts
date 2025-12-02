@@ -46,7 +46,7 @@ function readComponents() {
 
 function startMcpServer() {
   const server = new McpServer({
-    name: "@ali/agentscope-ai-design/mcp-docs-server",
+    name: "@agentscope-ai/design/mcp-docs-server",
     version: config.version,
   });
 

@@ -2,11 +2,7 @@ const yargsParser = require('yargs-parser');
 const fs = require('fs');
 const path = require('path');
 
-const buildArgv = yargsParser(process.env.BUILD_ARGV_STR || ''); // 云构建环境变量
-const env = buildArgv['def_publish_env'];
-const version =
-  buildArgv['def_publish_version'] || require('../package.json').version; // 回退到 package.json 中的版本
-const PROD = buildArgv.def_publish_env !== 'daily';
+const version = require('../package.json').version; // 回退到 package.json 中的版本
 
 /**
  * 生成组件的 CDN URL
@@ -14,9 +10,7 @@ const PROD = buildArgv.def_publish_env !== 'daily';
  * @returns {string} CDN URL
  */
 function generateComponentUrl(componentName) {
-  return `https://${
-    PROD ? '' : 'dev.'
-  }g.alicdn.com/code/npm/@ali/agentscope-ai-design/${version}/docs-dist/llms/components/commonComponents/${componentName}/index.zh-CN.llms.txt`;
+  return `https://unpkg.com/browse/@agentscope-ai/design@${version}/llms/components/commonComponents/${componentName}/index.zh-CN.llms.txt`;
 }
 
 /**
@@ -64,12 +58,6 @@ function buildIndexFile() {
     'llms/components/commonComponents',
   );
   const indexFilePath = path.join(projectRoot, 'llms/index.llms.txt');
-
-  console.log('开始构建索引文件...');
-  console.log('组件目录:', componentsDir);
-  console.log('索引文件路径:', indexFilePath);
-  console.log('环境:', PROD ? 'production' : 'daily');
-  console.log('版本:', version);
 
   // 扫描组件
   const componentNames = scanComponents(componentsDir);
