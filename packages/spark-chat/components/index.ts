@@ -2,8 +2,6 @@ export { ConfigProvider } from 'antd';
 
 export { default as version } from './Version';
 
-export * from '@copilotkit/react-core';
-export * from './AGUI';
 
 export {
   CustomCardsContext,
@@ -85,4 +83,4 @@ export {
   default as Markdown,
   type MarkdownProps as IMarkdownProps,
   type MarkdownProps,
-} from './MarkdownX';
+} from './Markdown';
