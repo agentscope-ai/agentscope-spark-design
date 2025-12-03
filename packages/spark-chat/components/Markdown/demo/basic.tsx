@@ -1,4 +1,7 @@
 import { Markdown } from '@agentscope-ai/chat';
+import { SparkEditLine } from '@agentscope-ai/icons';
+import { IconButton, Input, Modal } from '@agentscope-ai/design';
+import { useState } from 'react';
 
 
 const content = `# 这是一个一级标题
@@ -89,5 +92,16 @@ sequenceDiagram
 `;
 
 export default function () {
-  return <Markdown content={content} />;
+  const [value, setValue] = useState(content);
+  const [open, setOpen] = useState(false);
+
+  return <>
+    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+      <IconButton icon={<SparkEditLine />} onClick={() => setOpen(true)} />
+      <Modal open={open} onCancel={() => setOpen(false)} title="markdown editor" footer={null} centered>
+        <Input.TextArea value={value} onChange={(e) => setValue(e.target.value)} autoSize={{ minRows: 30, maxRows: 30 }} />
+      </Modal>
+    </div>
+    <Markdown content={value} />
+  </>;
 }
