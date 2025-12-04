@@ -38,7 +38,7 @@ export type ActionsRender = (
   },
 ) => React.ReactNode;
 
-export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyPress'> {
+export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyPress' | 'onFocus' | 'onBlur'> {
   /**
    * @description 输入框的默认初始值，仅在非受控模式下生效
    * @descriptionEn Default initial value for the input field, only effective in uncontrolled mode
@@ -198,6 +198,8 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     loading,
     onCancel,
     onChange,
+    onFocus,
+    onBlur,
     // @ts-ignore
     actions,
     onKeyPress,
@@ -430,6 +432,8 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
           onPressEnter={onInternalKeyPress}
           onCompositionStart={onInternalCompositionStart}
           onCompositionEnd={onInternalCompositionEnd}
+          onFocus={onFocus}
+          onBlur={onBlur}
           onKeyDown={onKeyDown}
           onPaste={onInternalPaste}
           variant="borderless"

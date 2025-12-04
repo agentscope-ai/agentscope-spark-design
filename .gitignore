@@ -26,3 +26,5 @@ packages/spark-design/lib
 # Test coverage
 coverage
 .nyc_output
+
+.cursor
