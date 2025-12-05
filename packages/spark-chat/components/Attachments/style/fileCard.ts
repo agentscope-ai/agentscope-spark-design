@@ -119,6 +119,7 @@ export default createGlobalStyle`
     align-items: center;
     justify-content: center;
     transition: all 0.3s;
+    z-index: 1;
 
     &:dir(rtl) {
       transform: translate(-50%, -50%);
@@ -156,8 +157,22 @@ export default createGlobalStyle`
 }
 
 .${(p) => p.theme.prefixCls}-attachment-list-card-hoverable {
+  position: relative;
+
   &:hover {
     border-color: ${(p) => p.theme.colorPrimary};
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      border-radius: 5px;
+      height: 54px;
+      background-color: rgba(0, 0, 0, 0.45);
+    }
   }
+
 }
 `;

@@ -4,7 +4,7 @@ import { useProviderContext } from '../Provider';
 import { ConfigProvider, Image } from 'antd';
 import { Locale } from 'antd/es/locale';
 import { SparkCheckCircleFill } from '@agentscope-ai/icons';
-import Dot from '../Markdown/plugins/cursor/Dot';
+import Dot from '../Markdown/core/plugins/cursor/Dot';
 
 export interface IImageGeneratorProps {
   /**

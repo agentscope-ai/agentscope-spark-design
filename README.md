@@ -154,4 +154,3 @@ agentscope-spark-design/
 - [GitHub 仓库](https://github.com/agentscope-ai/agentscope-spark-design)
 - [问题反馈](https://github.com/agentscope-ai/agentscope-spark-design/issues)
 - [阿里云百炼](https://bailian.console.aliyun.com/)
-- [Alibaba Cloud Spark Design](https://design.aliyun.com/)

@@ -3,6 +3,13 @@
 const { program } = require('commander');
 const { execSync } = require('child_process');
 
+function execSyncSafe(command) {
+  try {
+    execSync(command, { stdio: 'ignore' });
+  } catch (error) {
+  }
+}
+
 program
   .name('agentscope-runtime-webui')
   .description('启动 AgentScope Runtime WebUI 服务')
@@ -16,7 +23,9 @@ async function startServer() {
   console.log('\n🚀 Starting AgentScope Runtime WebUI...\n');
 
   try {
-    execSync(`unzip ${__dirname}/starter_webui.zip -d ${__dirname}`);
+    execSyncSafe(`rm ${__dirname}/starter_webui`);
+    execSyncSafe(`rm ${__dirname}/__MACOSX`);
+    execSyncSafe(`unzip ${__dirname}/starter_webui.zip -d ${__dirname}`);
 
     execSync(
       `cd ${__dirname}/starter_webui && npm install && BASE_URL=${

@@ -19,9 +19,8 @@ import { Markdown } from '@agentscope-ai/chat';
 <code src="./demo/latex.tsx" height="600">Latex</code>
 <code src="./demo/citations.tsx" height="auto">Citations</code>
 <code src="./demo/cursor.tsx" height="auto">Cursor</code>
-<code src="./demo/typing.tsx" height="300">Typing</code>
 
 
 #### API
 
-<ApiParser source="./Markdown/index.tsx" id="MarkdownProps"></ApiParser>
+<ApiParser source="./types.tsx" id="MarkdownProps"></ApiParser>

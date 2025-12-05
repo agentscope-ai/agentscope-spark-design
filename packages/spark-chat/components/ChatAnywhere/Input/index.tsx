@@ -6,15 +6,19 @@ import { useInput } from '../hooks/useInput';
 import { Button, GetProp, Space, Upload } from 'antd';
 import Style from './style';
 import { IconButton } from '@agentscope-ai/design';
+import SenderHeader from '@agentscope-ai/chat/AIGC/components/SenderHeader';
+import { useClickAway, useFocusWithin } from 'ahooks';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
 
 export default forwardRef(function (_, ref) {
   const [content, setContent] = React.useState('');
+  const [focus, setFocus] = React.useState(false);
   const onUpload = useChatAnywhere(v => v.onUpload);
   const resetData = new Array(onUpload?.length || 0).fill([]);
   const [attachedFiles, setAttachedFiles] = React.useState<AttachedFiles[]>(resetData);
   const attachedFilesRef = useRef<AttachedFiles[]>(resetData);
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setAttachedFiles(resetData);
   }, [resetData.length]);
@@ -37,6 +41,8 @@ export default forwardRef(function (_, ref) {
       zoomable: true,
       beforeSubmit: () => Promise.resolve(true),
       header: [],
+      enableHeaderFocusVisible: false,
+      variant: 'default',
       hide: false,
     };
 
@@ -58,6 +64,12 @@ export default forwardRef(function (_, ref) {
     inputContext.setDisabled(onInput.disabled);
   }, [onInput.disabled])
 
+  useFocusWithin(containerRef, {
+    onFocus: () => setFocus(true),
+  });
+
+  useClickAway(() => setFocus(false), [containerRef]);
+
 
   if (onInput.hide) return null;
 
@@ -72,7 +84,7 @@ export default forwardRef(function (_, ref) {
     })
   }
 
-  const prefixNodes = onUpload?.length ?
+  const prefixNodes = onInput.variant !== 'aigc' && onUpload?.length ?
     onUpload.map((item, index) => {
       return <Upload
         {...item}
@@ -97,7 +109,19 @@ export default forwardRef(function (_, ref) {
     }) : [];
 
 
-  const senderHeader = (
+  // aigc 模式下的 header
+  const aigcSenderHeader = (
+    <SenderHeader 
+      focus={focus} 
+      enableFocusVisible={onInput.enableHeaderFocusVisible} 
+      onUpload={onUpload} 
+      attachedFiles={attachedFiles} 
+      onFileChange={handleFileChange} 
+    />
+  );
+
+  // 默认模式下的 header
+  const defaultSenderHeader = (
     <Sender.Header
       closable={false}
       open={attachedFiles?.some(item => item.length)}
@@ -115,6 +139,9 @@ export default forwardRef(function (_, ref) {
     </Sender.Header>
   );
 
+  // 根据 variant 选择 header
+  const senderHeader = onInput.variant === 'aigc' ? aigcSenderHeader : defaultSenderHeader;
+
   const submitFileList = attachedFiles.map(files => files.filter(file => file.status === 'done'));
   const fileLoading = attachedFiles.some(files => files.some(file => file.status === 'uploading'));
 
@@ -124,6 +151,7 @@ export default forwardRef(function (_, ref) {
     <Style />
     <div
       className={cls(`${prefixCls}-wrapper`)}
+      ref={containerRef}
     >
       {
         uiConfig.quickInput && <div className={cls(`${prefixCls}-wrapper-header`)}>{uiConfig.quickInput}</div>

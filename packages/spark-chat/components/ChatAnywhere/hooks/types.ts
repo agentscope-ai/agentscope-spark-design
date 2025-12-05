@@ -111,6 +111,11 @@ export interface IChatAnywhereConfigUIConfig {
 
 export interface IChatAnywhereConfigOnInput {
   /**
+   * @description 设置输入框的变体
+   * @descriptionEn Set the variant of the input field
+   */
+  variant?: 'default' | 'aigc';
+  /**
    * @description 输入框前的UI组件
    * @descriptionEn UI component before the input field
    */
@@ -135,6 +140,11 @@ export interface IChatAnywhereConfigOnInput {
    * @descriptionEn Input field header components
    */
   header?: React.ReactElement | React.ReactElement[];
+  /**
+   * @description 是否启用上传组件的焦点可见性。仅未上传文件时有效，果已经上传文件了，则一定会展示
+   * @descriptionEn Whether to enable the focus visibility of the upload component
+   */
+  enableHeaderFocusVisible?: boolean;
   /**
    * @description 提交消息时的回调函数
    * @descriptionEn Callback function when submitting messages
@@ -209,6 +219,16 @@ export interface IChatAnywhereConfigOnUpload {
    * @descriptionEn Whether to disable the upload component
    */
   disabled?: boolean;
+  /**
+   * @description 上传组件的标题
+   * @descriptionEn Title for the upload component
+   */
+  title?: string | React.ReactElement;
+  /**
+   * @description 上传组件的描述
+   * @descriptionEn Description for the upload component
+   */
+  description?: string | React.ReactElement;
 }
 
 export interface IChatAnywhereConfig {
