@@ -84,7 +84,7 @@ export default memo(function (props: MarkdownProps) {
     extensions,
   }), [extensions]);
 
-  const fallback = <Raw content={content} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
+  const fallback = <Raw content={content || ''} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
 
   if (raw || !isSupportsLookbehindAssertions) return fallback;
 
@@ -97,7 +97,7 @@ export default memo(function (props: MarkdownProps) {
       style={{ fontSize: baseFontSize, lineHeight: baseLineHeight }}
       openLinksInNewTab={true}
       className={classNames(prefixCls, props.className)}
-      content={content}
+      content={content || ''}
       config={config}
     />
   </ErrorBoundary>
