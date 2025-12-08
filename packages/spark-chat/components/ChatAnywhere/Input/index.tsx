@@ -6,7 +6,7 @@ import { useInput } from '../hooks/useInput';
 import { Button, GetProp, Space, Upload } from 'antd';
 import Style from './style';
 import { IconButton } from '@agentscope-ai/design';
-import SenderHeader from '@agentscope-ai/chat/AIGC/components/SenderHeader';
+import SenderHeader from '@agentscope-ai/chat/AIGC/core/SenderHeader';
 import { useClickAway, useFocusWithin } from 'ahooks';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
