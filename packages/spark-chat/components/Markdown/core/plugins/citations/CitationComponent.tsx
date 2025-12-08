@@ -69,6 +69,7 @@ function DefaultRender(props: DefaultRenderProps) {
 
 
 export default function CitationComponent(props: DefaultRenderProps & { citationsData: Record<string, any> }) {
-  const Render = props.citationsData[props.text]?.render || DefaultRender;
+  const Render = props.citationsData[props['data-text']]?.render || DefaultRender;
+
   return <Render {...props} />
 }
