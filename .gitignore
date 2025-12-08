@@ -25,3 +25,6 @@ docs-dist
 # Test coverage
 coverage
 .nyc_output
+
+# Inner files
+packages/spark-flow/publish/**
