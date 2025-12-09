@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { UploadFile } from 'antd';
 import { useProviderContext, ChatInput, uuid, Sender, Attachments } from '@agentscope-ai/chat';
 import cls from 'classnames';
@@ -8,18 +8,16 @@ import { Button, GetProp, Space, Upload } from 'antd';
 import Style from './style';
 import { IconButton } from '@agentscope-ai/design';
 import { AIGC } from '@agentscope-ai/chat';
-import { useClickAway, useFocusWithin } from 'ahooks';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
 
 export default forwardRef(function (_, ref) {
   const [content, setContent] = React.useState('');
-  const [focus, setFocus] = React.useState(false);
   const onUpload = useChatAnywhere(v => v.onUpload);
   const resetData = new Array(onUpload?.length || 0).fill([]);
+  const [focus, setFocus] = useState(false);
   const [attachedFiles, setAttachedFiles] = React.useState<AttachedFiles[]>(resetData);
   const attachedFilesRef = useRef<AttachedFiles[]>(resetData);
-  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     setAttachedFiles(resetData);
   }, [resetData.length]);
@@ -42,7 +40,7 @@ export default forwardRef(function (_, ref) {
       zoomable: true,
       beforeSubmit: () => Promise.resolve(true),
       header: [],
-      enableHeaderFocusVisible: false,
+      enableFocusExpand: false,
       variant: 'default',
       hide: false,
     };
@@ -67,12 +65,6 @@ export default forwardRef(function (_, ref) {
   useEffect(() => {
     inputContext.setDisabled(onInput.disabled);
   }, [onInput.disabled])
-
-  useFocusWithin(containerRef, {
-    onFocus: () => setFocus(true),
-  });
-
-  useClickAway(() => setFocus(false), [containerRef]);
 
 
   if (onInput.hide) return null;
@@ -116,8 +108,6 @@ export default forwardRef(function (_, ref) {
   // aigc 模式下的 header
   const aigcSenderHeader = (
     <AIGC.SenderHeader
-      focus={focus}
-      enableFocusVisible={onInput.enableHeaderFocusVisible}
       onUpload={onUpload}
       attachedFiles={attachedFiles}
       onFileChange={handleFileChange}
@@ -154,8 +144,10 @@ export default forwardRef(function (_, ref) {
   return <>
     <Style />
     <div
-      className={cls(`${prefixCls}-wrapper`)}
-      ref={containerRef}
+      className={cls(`${prefixCls}-wrapper`, {
+        [`${prefixCls}-wrapper-focus`]: focus && onInput.enableFocusExpand,
+        [`${prefixCls}-wrapper-blur`]: !focus && onInput.enableFocusExpand,
+      })}
     >
       {
         uiConfig.quickInput && <div className={cls(`${prefixCls}-wrapper-header`)}>{uiConfig.quickInput}</div>
@@ -166,6 +158,7 @@ export default forwardRef(function (_, ref) {
       }
       <ChatInput
         placeholder={onInput.placeholder}
+        enableFocusExpand={onInput.enableFocusExpand}
         value={content}
         onChange={setContent}
         maxLength={onInput.maxLength}
@@ -188,6 +181,8 @@ export default forwardRef(function (_, ref) {
           onStop?.();
           inputContext.setLoading(false);
         }}
+        onFocus={() => setFocus(true)}
+        onBlur={() => setFocus(false)}
         loading={inputContext.loading}
       />
       {

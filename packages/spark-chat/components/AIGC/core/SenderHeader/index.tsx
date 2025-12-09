@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useContext } from 'react';
 import cls from 'classnames';
 import { IChatAnywhereConfigOnUpload } from '@agentscope-ai/chat/ChatAnywhere/hooks/types';
 import { Attachments, Sender, useProviderContext } from '@agentscope-ai/chat';
+import { SendHeaderContext } from '@agentscope-ai/chat/Sender/SenderHeader';
 import MediaUpload from '../Upload';
 import MediaInfo from '../Info';
 import { GetProp } from 'antd';
@@ -14,13 +15,12 @@ export interface SenderHeaderProps {
   onUpload?: IChatAnywhereConfigOnUpload[];
   attachedFiles?: AttachedFiles[];
   onFileChange?: (index: number, fileList: AttachedFiles) => void;
-  enableFocusVisible?: boolean;
-  focus?: boolean;
 }
 
 const SenderHeader: React.FC<SenderHeaderProps> = (props) => {
-  const { className, onUpload = [], attachedFiles = [[]], onFileChange, enableFocusVisible = false, focus = false } = props;
+  const { className, onUpload = [], attachedFiles = [[]], onFileChange } = props;
   const { getPrefixCls } = useProviderContext();
+  const { focus, enableFocusExpand } = useContext(SendHeaderContext);
   const prefixCls = getPrefixCls('aigc-sender-header');
 
   const open = useMemo(() => {
@@ -35,12 +35,12 @@ const SenderHeader: React.FC<SenderHeaderProps> = (props) => {
       return true;
     }
 
-    if (!enableFocusVisible) {
+    if (!enableFocusExpand) {
       return true;
     }
 
     return false;
-  }, [onUpload, attachedFiles, enableFocusVisible, focus]);
+  }, [onUpload, attachedFiles, enableFocusExpand, focus]);
 
   return (
     <>
@@ -49,9 +49,7 @@ const SenderHeader: React.FC<SenderHeaderProps> = (props) => {
         closable={false}
         open={open}
       >
-        <div className={cls(prefixCls, className, {
-          [`${prefixCls}-focus`]: focus,
-        })}>
+        <div className={cls(prefixCls, className)}>
           {onUpload?.map((item, index) => {
             const { title, description, maxCount = 1, ...restProps } = item;
             const fileList = attachedFiles[index] || [];

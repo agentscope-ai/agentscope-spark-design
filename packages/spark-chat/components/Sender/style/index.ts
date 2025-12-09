@@ -45,6 +45,13 @@ const IndexStyle = createGlobalStyle`
     }
   }
 
+  &-blur {
+    .${(p) => p.theme.prefixCls}-sender-input {
+      height: 22px !important;
+      min-height: 22px !important;
+    }
+  }
+
   &.${(p) => p.theme.prefixCls}-sender-rtl {
     direction: rtl;
   }
