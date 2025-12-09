@@ -15,6 +15,7 @@ export default function AgentScopeRuntimeRequestCard(props: {
           code: 'Text',
           data: {
             content: c.text,
+            raw: true,
           },
         });
       }

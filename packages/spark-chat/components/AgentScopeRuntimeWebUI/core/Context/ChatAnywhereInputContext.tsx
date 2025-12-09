@@ -22,6 +22,6 @@ export function ChatAnywhereInputContextProvider(props: {
   </ChatAnywhereInputContext.Provider>;
 }
 
-export const useChatAnywhereInput = (selector: (v: IAgentScopeRuntimeWebUIInputContext) => IAgentScopeRuntimeWebUIInputContext) => {
+export const useChatAnywhereInput = (selector: (v: Partial<IAgentScopeRuntimeWebUIInputContext>) => Partial<IAgentScopeRuntimeWebUIInputContext>) => {
   return useContextSelector(ChatAnywhereInputContext, selector);
 }

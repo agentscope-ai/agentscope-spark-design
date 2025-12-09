@@ -6,40 +6,54 @@ import { uuid } from "@agentscope-ai/chat";
 class AgentScopeRuntimeResponseBuilder {
 
   static mergeToolMessages(messages: IAgentScopeRuntimeMessage[]) {
-
     const bufferMessagesMap = new Map<string, IDataContent>();
-    return messages.reduce<IAgentScopeRuntimeMessage[]>((p, c) => {
+    let resMessages: IAgentScopeRuntimeMessage[] = [];
 
-      if (AgentScopeRuntimeResponseBuilder.maybeToolInput(c) && c.content?.length) {
-        const content = c.content[0] as IDataContent<{
+    for (const message of messages) {
+
+      if (AgentScopeRuntimeResponseBuilder.maybeToolInput(message) && message.content?.length) {
+        const content = message.content[0] as IDataContent<{
           name: string;
           call_id?: string;
         }>;
         const key = content.data.call_id || content.data.name;
         bufferMessagesMap.set(key, content);
-        return p;
-      }
+        resMessages.push(message);
 
-      if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(c)) {
-        const content = c.content[0] as IDataContent<{
+      } else if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(message)) {
+        const content = message.content[0] as IDataContent<{
           name: string;
           call_id?: string;
         }>;
-        
         const key = content.data.call_id || content.data.name;
         const bufferContent = bufferMessagesMap.get(key);
 
         if (bufferContent) {
-          bufferMessagesMap.delete(key);
-          return [...p, { ...c, content: [bufferContent, ...c.content] }];
-        } else {
-          return p;
+
+          resMessages = resMessages.map(i => {
+            if (!AgentScopeRuntimeResponseBuilder.maybeToolInput(i)) return i;
+            const preContent = i.content[0] as IDataContent<{
+              name: string;
+              call_id?: string;
+            }>;
+
+            const preKey = preContent.data.call_id || preContent.data.name;
+
+            if (preKey === key) {
+              return { ...message, content: [...i.content, content] };
+            } else {
+              return i;
+            }
+          });
         }
+      } else {
+        resMessages.push(message);
       }
 
+    }
 
-      return [...p, c]
-    }, []);
+    return resMessages;
+
   }
 
 

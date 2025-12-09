@@ -1,4 +1,4 @@
-import { Stream } from "@agentscope-ai/chat";
+import { sleep, Stream } from "@agentscope-ai/chat";
 import { useCallback, useRef, useEffect } from "react";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import AgentScopeRuntimeResponseBuilder from "../../AgentScopeRuntime/Response/Builder";
@@ -30,6 +30,35 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     apiOptionsRef.current = apiOptions;
   }, [apiOptions]);
 
+
+  const mockRequest = useCallback(async (mockdata) => {
+    const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
+      id: '',
+      status: AgentScopeRuntimeRunStatus.Created,
+      created_at: 0,
+    });
+
+    for await (const chunk of mockdata) {
+
+      const res = agentScopeRuntimeResponseBuilder.handle(chunk);
+      currentQARef.current.response.cards = [
+        {
+          code: 'AgentScopeRuntimeResponseCard',
+          data: res,
+        }
+      ];
+
+      updateMessage(currentQARef.current.response);
+
+      await sleep(100);
+      // if (chunk?.type?.startsWith('plugin_')) {
+      //   debugger
+      // }
+
+    }
+  }, [])
+
+
   const request = useCallback(async (historyMessages: any[]) => {
     // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
@@ -50,7 +79,6 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         }),
       });
     } catch (error) {
-      
 
     }
 
@@ -112,6 +140,6 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     }
   }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
 
-  return { request };
+  return { request, mockRequest };
 }
 

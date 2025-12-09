@@ -1,6 +1,6 @@
 
 import { OperateCard, useProviderContext } from '@agentscope-ai/chat';
-import { SparkCopyLine, SparkToolLine, SparkTrueLine } from '@agentscope-ai/icons';
+import { SparkCopyLine, SparkLoadingLine, SparkToolLine, SparkTrueLine } from '@agentscope-ai/icons';
 import { CodeBlock, CollapsePanel, IconButton } from '@agentscope-ai/design';
 import { useRef, useState } from 'react';
 
@@ -73,16 +73,22 @@ export interface IToolCallProps {
    * @descriptionEn Default Open
    */
   defaultOpen?: boolean;
+  /**
+   * @description 是否正在生成
+   * @descriptionEn Whether is generating
+   * @default false
+   */
+  loading?: boolean;
 }
 
 export default function (props: IToolCallProps) {
 
-  const { title = 'Call Tool', subTitle, defaultOpen = true } = props;
+  const { title = 'Call Tool', subTitle, defaultOpen = true, loading = false } = props;
 
   return <OperateCard
 
     header={{
-      icon: <SparkToolLine />,
+      icon: loading ? <SparkLoadingLine spin /> : <SparkToolLine />,
       title: title,
       description: subTitle,
     }}
