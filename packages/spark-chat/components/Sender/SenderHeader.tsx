@@ -10,6 +10,16 @@ export interface SendHeaderContextProps {
    * @descriptionEn Custom CSS class name prefix for style isolation and theme customization
    */
   prefixCls: string;
+  /**
+   * @description 用户是否focus
+   * @descriptionEn Whether the user is focused
+   */
+  focus?: boolean;
+  /**
+   * @description 是否启用用户focus时展开输入框组件
+   * @descriptionEn Whether to enable the user focus to expand the input box component
+   */
+  enableFocusExpand?: boolean;
 }
 
 export const SendHeaderContext = React.createContext<SendHeaderContextProps>({} as any);

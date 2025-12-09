@@ -141,10 +141,10 @@ export interface IChatAnywhereConfigOnInput {
    */
   header?: React.ReactElement | React.ReactElement[];
   /**
-   * @description 是否启用上传组件的焦点可见性。仅未上传文件时有效，如果已经上传文件了，则一定会展示
-   * @descriptionEn Whether to enable the focus visibility of the upload component
+   * @description 是否启用用户focus时展开输入框组件
+   * @descriptionEn Whether to enable the user focus to expand the input box component
    */
-  enableHeaderFocusVisible?: boolean;
+  enableFocusExpand?: boolean;
   /**
    * @description 提交消息时的回调函数
    * @descriptionEn Callback function when submitting messages
