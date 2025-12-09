@@ -169,7 +169,7 @@ export default createGlobalStyle`
       top: 0;
       width: 100%;
       border-radius: 5px;
-      height: 54px;
+      height: 100%;
       background-color: rgba(0, 0, 0, 0.45);
     }
   }

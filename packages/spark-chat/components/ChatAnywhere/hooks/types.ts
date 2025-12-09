@@ -141,7 +141,7 @@ export interface IChatAnywhereConfigOnInput {
    */
   header?: React.ReactElement | React.ReactElement[];
   /**
-   * @description 是否启用上传组件的焦点可见性。仅未上传文件时有效，果已经上传文件了，则一定会展示
+   * @description 是否启用上传组件的焦点可见性。仅未上传文件时有效，如果已经上传文件了，则一定会展示
    * @descriptionEn Whether to enable the focus visibility of the upload component
    */
   enableHeaderFocusVisible?: boolean;
@@ -276,7 +276,7 @@ export interface IChatAnywhereRef extends IChatAnywhereContext {
    * @description 设置输入框内容的方法
    * @descriptionEn Method to set input field content
    */
-  setInputContent: (content: string) => void;
+  setInputContent: (content: string, fileList?: UploadFile[][]) => void;
   /**
    * @description 滚动到底部的方法
    * @descriptionEn Method to scroll to bottom

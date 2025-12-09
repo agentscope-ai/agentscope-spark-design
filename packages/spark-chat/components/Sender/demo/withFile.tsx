@@ -29,6 +29,7 @@ export default function () {
   ]);
 
   const handleFileChange: GetProp<typeof Attachments, 'onChange'> = async ({ fileList }) => {
+    console.log('fileList: ', fileList);
     setAttachedFiles(fileList);
   }
 

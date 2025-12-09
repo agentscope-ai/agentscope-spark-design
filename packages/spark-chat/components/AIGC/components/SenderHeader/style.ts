@@ -9,6 +9,10 @@ export default createGlobalStyle`
   padding: 12px;
   border-bottom: 1px dashed ${(p) => p.theme.colorBorderSecondary};
 
+  .${(p) => p.theme.prefixCls}-aigc-sender-header-upload-hidden {
+    display: none;
+  }
+
   .${(p) => p.theme.prefixCls}-attachment {
     width: fit-content;
   }

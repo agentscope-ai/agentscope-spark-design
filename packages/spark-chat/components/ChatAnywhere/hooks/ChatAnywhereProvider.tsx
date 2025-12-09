@@ -1,4 +1,5 @@
 import React from 'react';
+import { UploadFile } from 'antd';
 import { TMessage, TSession, IChatAnywhereConfig } from './types';
 import { useGetState } from 'ahooks';
 import { useSessionList } from './useSessionList';
@@ -213,7 +214,7 @@ export type ChatAnywhereRef =
   ReturnType<typeof useInput> &
   ReturnType<typeof useSessionList> &
   {
-    setInputContent: (content: string) => void;
+    setInputContent: (content: string, fileList?: UploadFile[][]) => void;
     scrollToBottom: (options?: ScrollToBottomOptions) => void;
     reload: () => void;
   };

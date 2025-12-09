@@ -1,6 +1,6 @@
 import React, { forwardRef, useEffect, useState, useRef } from 'react';
 import classNames from 'classnames';
-import VideoPlayerController from './Control';
+import MediaPlayerController from '../Audio/Control';
 import { useControllableValue } from 'ahooks';
 import { getCommonConfig } from '@/config';
 import { useStyle } from './index.style';
@@ -10,11 +10,7 @@ type NativeVideoProps = React.DetailedHTMLProps<
   HTMLVideoElement
 >;
 
-interface IProps extends NativeVideoProps {
-  /**
-   * @description 视频地址
-   */
-  src?: string;
+export interface VideoProps extends NativeVideoProps {
   /**
    * @description 鼠标进入时是否自动播放
    */
@@ -25,7 +21,7 @@ interface IProps extends NativeVideoProps {
   children?: React.ReactNode;
 }
 
-const Video = forwardRef<HTMLVideoElement, IProps>((props, ref) => {
+const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
   const { controls, mouseEnterAutoPlay = false, children, className, style, ...videoProps } = props;
   const commonConfig = getCommonConfig();
   const { sparkPrefix } = commonConfig;
@@ -38,7 +34,7 @@ const Video = forwardRef<HTMLVideoElement, IProps>((props, ref) => {
     trigger: 'onMutedChange',
     defaultValue: true,
   });
-  const [enableAudio, setEnableAudio] = useState<boolean>(false);
+  const [enableVolume, setEnableVolume] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lockMouseEnterAutoPlayRef = useRef<boolean>(false);
 
@@ -82,17 +78,17 @@ const Video = forwardRef<HTMLVideoElement, IProps>((props, ref) => {
       // 方法1: 检查mozHasAudio属性 (Firefox)
       if ('mozHasAudio' in videoRef.current) {
         // @ts-ignore
-        setEnableAudio(videoRef.current.mozHasAudio);
+        setEnableVolume(videoRef.current.mozHasAudio);
         return true;
       }
       // 方法2: 检查webkitAudioDecodedByteCount属性 (WebKit)
       if ('webkitAudioDecodedByteCount' in videoRef.current) {
         // @ts-ignore
-        setEnableAudio(videoRef.current.webkitAudioDecodedByteCount > 0);
+        setEnableVolume(videoRef.current.webkitAudioDecodedByteCount > 0);
         return true;
       }
 
-      setEnableAudio(false);
+      setEnableVolume(false);
       return false;
     }
     return false;
@@ -188,12 +184,12 @@ const Video = forwardRef<HTMLVideoElement, IProps>((props, ref) => {
             onEnded={handleEnded}
           />
           {controls && (
-            <VideoPlayerController
+            <MediaPlayerController
               className={`${sparkPrefix}-video-controller-wrapper`}
               isPlaying={isPlaying}
               currentTime={currentTime}
               duration={duration}
-              enableAudio={enableAudio}
+              enableVolume={enableVolume}
               muted={muted}
               onMute={() => setMuted(!muted)}
               onPlayPause={handlePlayPause}
