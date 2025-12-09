@@ -2,23 +2,27 @@ import { SparkCopyLine, SparkReplaceLine } from "@agentscope-ai/icons";
 import { IAgentScopeRuntimeResponse } from "../types";
 import AgentScopeRuntimeResponseBuilder from "./Builder";
 import { Bubble } from "@agentscope-ai/chat";
-import { copy, message } from "@agentscope-ai/design";
+import { copy } from "@agentscope-ai/design";
 import compact from 'lodash/compact';
 import { emit } from "../../Context/useChatAnywhereEventEmitter";
+import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 
 
 export default function Tools(props: {
   data: IAgentScopeRuntimeResponse
   isLast?: boolean;
 }) {
-
-  const actions = compact([
+  const actionsOptionsList = useChatAnywhereOptions(v => v.actions?.list) || [
     {
       icon: <SparkCopyLine />,
       onClick: () => {
         copy(JSON.stringify(props.data));
       }
-    },
+    }
+  ];
+
+  const actions = compact([
+    ...actionsOptionsList,
     props.isLast ? {
       icon: <SparkReplaceLine />,
       onClick: () => {
