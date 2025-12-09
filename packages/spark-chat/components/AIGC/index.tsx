@@ -1,1 +1,1 @@
-export { default as AIGCSenderHeader } from "./components/SenderHeader";
+export { default as AIGCSenderHeader } from "./core/SenderHeader";
