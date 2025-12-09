@@ -58,7 +58,6 @@
     ]
   },
   "dependencies": {
-    "@agentscope-ai/design": "^1.0.0",
     "@agentscope-ai/icons": "^1.0.32",
     "@agentscope-ai/icons-override-antd": "^6.0.0",
     "@agentscope-ai/icons-svg-override-antd": "^4.4.2",
@@ -83,6 +82,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@agentscope-ai/design": "^1.0.0",
     "@agentscope-ai/dumi-theme-spark": "0.0.98",
     "@alibot/dumi-plugin-api-parser": "1.0.3",
     "@alibot/dumi-plugin-llms": "1.0.4",

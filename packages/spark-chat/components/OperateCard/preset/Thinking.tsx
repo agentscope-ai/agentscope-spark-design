@@ -1,5 +1,5 @@
 import { OperateCard, useProviderContext } from '@agentscope-ai/chat';
-import { SparkMemoryLine } from '@agentscope-ai/icons';
+import { SparkLoadingLine, SparkMemoryLine } from '@agentscope-ai/icons';
 
 export interface IThinkingProps {
   /**
@@ -26,17 +26,23 @@ export interface IThinkingProps {
    * @default true
    */
   defaultOpen?: boolean;
+  /**
+   * @description 是否正在生成
+   * @descriptionEn Whether is generating
+   * @default false
+   */
+  loading?: boolean;
 }
 export default function (props: IThinkingProps) {
   const { getPrefixCls } = useProviderContext();
-  const { defaultOpen = true } = props;
+  const { defaultOpen = true, loading = false } = props;
   const prefixCls = getPrefixCls('operate-card');
 
 
   return <OperateCard
 
     header={{
-      icon: <SparkMemoryLine />,
+      icon: loading ? <SparkLoadingLine spin /> : <SparkMemoryLine />,
       title: props.title,
       description: props.subTitle,
     }}

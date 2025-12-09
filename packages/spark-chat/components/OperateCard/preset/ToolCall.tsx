@@ -1,7 +1,7 @@
 
 import { OperateCard, useProviderContext } from '@agentscope-ai/chat';
 import { SparkCopyLine, SparkToolLine, SparkTrueLine } from '@agentscope-ai/icons';
-import { CodeBlock, CollapsePanel, IconButton, message } from '@agentscope-ai/design';
+import { CodeBlock, CollapsePanel, IconButton } from '@agentscope-ai/design';
 import { useRef, useState } from 'react';
 
 
@@ -20,11 +20,11 @@ function Block(props: {
       title={
         props.title
       }
-      collapsedHeight={120}
-      expandedHeight={240}
+      collapsedHeight={100}
       expandOnPanelClick={true}
       extra={
         <IconButton
+          size="small"
           style={{ marginRight: '-6px' }}
           icon={copied ? <SparkTrueLine /> : <SparkCopyLine />}
           bordered={false}
