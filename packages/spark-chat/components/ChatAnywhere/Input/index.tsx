@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { UploadFile } from 'antd';
 import { useProviderContext, ChatInput, uuid, Sender, Attachments } from '@agentscope-ai/chat';
 import cls from 'classnames';
 import { useChatAnywhere } from '../hooks/ChatAnywhereProvider';
@@ -6,7 +7,7 @@ import { useInput } from '../hooks/useInput';
 import { Button, GetProp, Space, Upload } from 'antd';
 import Style from './style';
 import { IconButton } from '@agentscope-ai/design';
-import SenderHeader from '@agentscope-ai/chat/AIGC/core/SenderHeader';
+import { AIGCSenderHeader } from '@agentscope-ai/chat/AIGC';
 import { useClickAway, useFocusWithin } from 'ahooks';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
@@ -54,7 +55,10 @@ export default forwardRef(function (_, ref) {
 
   React.useImperativeHandle(ref, () => {
     return {
-      setInputContent: setContent,
+      setInputContent: (content: string, fileList?: UploadFile[][]) => {
+        setContent(content);
+        setAttachedFiles(fileList || [[]]);
+      },
       getAttachedFiles: () => attachedFilesRef.current,
 
     };
@@ -111,7 +115,7 @@ export default forwardRef(function (_, ref) {
 
   // aigc 模式下的 header
   const aigcSenderHeader = (
-    <SenderHeader 
+    <AIGCSenderHeader 
       focus={focus} 
       enableFocusVisible={onInput.enableHeaderFocusVisible} 
       onUpload={onUpload} 

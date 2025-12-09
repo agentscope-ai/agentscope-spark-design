@@ -1,0 +1,1 @@
+export { default as AIGCSenderHeader } from "./components/SenderHeader";

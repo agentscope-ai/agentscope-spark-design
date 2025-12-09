@@ -42,8 +42,6 @@ const SenderHeader: React.FC<SenderHeaderProps> = (props) => {
     return false;
   }, [onUpload, attachedFiles, enableFocusVisible, focus]);
 
-  console.log('open', open, attachedFiles.flat().length, onUpload.length, focus, enableFocusVisible);
-
   return (
     <>
       <Style />
@@ -61,24 +59,25 @@ const SenderHeader: React.FC<SenderHeaderProps> = (props) => {
             return (
               <>
                 {
-                  fileList.length < maxCount && (
-                    <MediaUpload
-                      key={`upload-${index}`}
-                      maxCount={maxCount}
-                      fileList={fileList}
-                      onChange={(info) => {
-                        if (item.beforeUpload && info.file.status) {
-                          onFileChange(index, info.fileList)
-                        }
+                  <MediaUpload
+                    key={`upload-${index}`}
+                    className={cls({
+                      [`${prefixCls}-upload-hidden`]: fileList.length >= maxCount,
+                    })}
+                    maxCount={maxCount}
+                    fileList={fileList}
+                    onChange={(info) => {
+                      if (item.beforeUpload && info.file.status) {
+                        onFileChange(index, info.fileList)
+                      }
 
-                        if (!item.beforeUpload) {
-                          onFileChange(index, info.fileList)
-                        }
-                      }}
-                      showUploadList={false}
-                      {...restProps}
-                    />
-                  )
+                      if (!item.beforeUpload) {
+                        onFileChange(index, info.fileList)
+                      }
+                    }}
+                    showUploadList={false}
+                    {...restProps}
+                  />
                 }
                 {
                   fileList.length > 0 && (

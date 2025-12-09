@@ -8,17 +8,52 @@ import {
   SparkVolumeLine,
 } from '@agentscope-ai/icons';
 import React, { useMemo } from 'react';
+import { useStyle } from './Control.style';
 
-interface VideoPlayerControllerProps {
+interface MediaPlayerControllerProps {
+  /**
+   * @description 是否正在播放
+   */
   isPlaying: boolean;
+  /**
+   * @description 类名
+   */
   className?: string;
+  /**
+   * @description 当前时间，单位为秒
+   */
   currentTime?: number; // 当前时间，单位为秒
+  /**
+   * @description 总时间，单位为秒
+   */
   duration?: number; // 总时间，单位为秒
-  enableAudio?: boolean;
+  /**
+   * @description 是否启用音量控制
+   */
+  enableVolume?: boolean;
+  /**
+   * @description 是否启用全屏控制
+   */
+  enableFullscreen?: boolean;
+  /**
+   * @description 是否静音
+   */
   muted?: boolean;
+  /**
+   * @description 静音回调
+   */
   onMute?: () => void;
+  /**
+   * @description 播放/暂停回调
+   */
   onPlayPause?: () => void; // 播放/暂停回调
+  /**
+   * @description 全屏回调
+   */
   onFullscreen?: () => void; // 全屏回调
+  /**
+   * @description 点击进度条回调，参数为目标时间
+   */
   onProgressClick?: (time: number) => void; // 点击进度条回调，参数为目标时间
 }
 
@@ -39,17 +74,19 @@ const formatTime = (seconds: number): string => {
  * 视频播放器控制器组件
  * 包含播放/暂停、音量控制、进度条、时间显示和全屏按钮
  */
-const VideoPlayerController: React.FC<VideoPlayerControllerProps> = (props) => {
+const MediaPlayerController: React.FC<MediaPlayerControllerProps> = (props) => {
   const {
     className,
     isPlaying,
     onPlayPause,
     onFullscreen,
     onProgressClick,
-    enableAudio = false,
+    enableVolume = false,
+    enableFullscreen,
     muted = true,
     onMute,
   } = props;
+  const Style = useStyle();
   const commonConfig = getCommonConfig();
   const { sparkPrefix } = commonConfig;
 
@@ -88,8 +125,9 @@ const VideoPlayerController: React.FC<VideoPlayerControllerProps> = (props) => {
 
   return (
     <>
+      <Style />
       <div
-        className={`${sparkPrefix}-video-player-controller ${className || ''}`}
+        className={`${sparkPrefix}-media-player-controller ${className || ''}`}
       >
         <IconButton
           bordered={false}
@@ -104,37 +142,40 @@ const VideoPlayerController: React.FC<VideoPlayerControllerProps> = (props) => {
           bordered={false}
           size="small"
           shape="default"
-          disabled={!enableAudio}
-          icon={enableAudio && muted ? <SparkMuteLine /> : <SparkVolumeLine />}
+          disabled={!enableVolume}
+          icon={enableVolume && muted ? <SparkMuteLine /> : <SparkVolumeLine />}
           onClick={onMute}
         />
 
-        <span className={`${sparkPrefix}-video-time-text`}>{currentTime}</span>
+        <span className={`${sparkPrefix}-media-time-text`}>{currentTime}</span>
 
         <div
-          className={`${sparkPrefix}-video-progress-container`}
+          className={`${sparkPrefix}-media-progress-container`}
           onClick={handleProgressClick}
         >
           <Progress
-            className={`${sparkPrefix}-video-progress-bar`}
+            className={`${sparkPrefix}-media-progress-bar`}
             percent={progress}
             showInfo={false}
           />
         </div>
 
-        <span className={`${sparkPrefix}-video-time-text`}>{duration}</span>
-
-        <IconButton
-          bordered={false}
-          size="small"
-          shape="default"
-          disabled={false}
-          icon={<SparkEnlargeLine />}
-          onClick={onFullscreen}
-        />
+        <span className={`${sparkPrefix}-media-time-text`}>{duration}</span>
+        {
+          enableFullscreen && (
+            <IconButton
+              bordered={false}
+              size="small"
+              shape="default"
+              disabled={false}
+              icon={<SparkEnlargeLine />}
+              onClick={onFullscreen}
+            />
+          )
+        }
       </div>
     </>
   );
 };
 
-export default VideoPlayerController;
+export default MediaPlayerController;

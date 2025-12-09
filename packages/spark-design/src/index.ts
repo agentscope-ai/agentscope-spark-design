@@ -174,7 +174,8 @@ export {
   type SparkTooltipProps as TooltipProps,
 } from './components/commonComponents/Tooltip';
 export { default as Upload } from './components/commonComponents/Upload';
-export { default as Video } from './components/commonComponents/Video';
+export { default as Video, type VideoProps } from './components/commonComponents/Video';
+export { default as Audio, type AudioProps } from './components/commonComponents/Audio';
 export {
   FileCard,
   default as FileIcon,
