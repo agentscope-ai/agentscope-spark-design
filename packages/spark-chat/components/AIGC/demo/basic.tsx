@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { GetProp } from 'antd';
 import { SparkAttachmentLine } from '@agentscope-ai/icons';
 import { ChatInput, Attachments } from '@agentscope-ai/chat';
-import AIGC from '@agentscope-ai/chat/AIGC';
+import { AIGC } from '@agentscope-ai/chat';
 import { useClickAway, useFocusWithin } from 'ahooks';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
