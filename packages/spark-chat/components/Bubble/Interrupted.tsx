@@ -12,7 +12,6 @@ const Style = createGlobalStyle`
   letter-spacing: 0px;
   background-color: ${p => p.theme.colorFillSecondary};
   padding: 10px 12px;
-  line-height: 1;
   border-radius: 8px;
   gap: 8px;
 }

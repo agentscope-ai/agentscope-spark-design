@@ -315,6 +315,11 @@ export interface IAgentScopeRuntimeWebUIOptions {
    * @descriptionEn Custom cards configuration
    */
   cards?: IAgentScopeRuntimeWebUICardsOptions;
+  /**
+   * @description 自定义工具渲染
+   * @descriptionEn Custom tool render
+   */
+  customToolRenderConfig?: IAgentScopeRuntimeWebUICardsOptions;
 
   /**
    * @description 操作按钮配置

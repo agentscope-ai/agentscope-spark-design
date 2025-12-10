@@ -90,6 +90,12 @@ export interface IAgentScopeRuntimeResponse {
   completed_at?: number;
   output: IAgentScopeRuntimeMessage[];
   usage?: Record<string, any>;
+  error?: IAgentScopeRuntimeError;
+}
+
+export interface IAgentScopeRuntimeError {
+  code: string;
+  message: string;
 }
 
 export interface IAgentScopeRuntimeRequest {

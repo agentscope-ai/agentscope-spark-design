@@ -41,6 +41,9 @@ export default function AgentScopeRuntimeResponseCard(props: {
       }
     })
   }
+    {
+      props.data.error && <Error data={props.data.error} />
+    }
     <Actions {...props} />
   </>
 }

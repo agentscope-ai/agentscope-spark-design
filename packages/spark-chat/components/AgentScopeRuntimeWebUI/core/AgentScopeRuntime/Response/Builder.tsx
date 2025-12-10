@@ -20,7 +20,7 @@ class AgentScopeRuntimeResponseBuilder {
         bufferMessagesMap.set(key, content);
         resMessages.push(message);
 
-      } else if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(message)) {
+      } else if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(message) && message.content?.length) {
         const content = message.content[0] as IDataContent<{
           name: string;
           call_id?: string;
