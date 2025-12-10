@@ -10,7 +10,11 @@ export default createGlobalStyle`
   border-bottom: 1px dashed ${(p) => p.theme.colorBorderSecondary};
 
   .${(p) => p.theme.prefixCls}-aigc-sender-header-upload-hidden {
-    display: none;
+    overflow: hidden;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin-left: -8px;
   }
 
   .${(p) => p.theme.prefixCls}-attachment {

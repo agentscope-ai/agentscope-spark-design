@@ -262,6 +262,12 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     onFocus: (e) => {
       setFocus(true);
       onFocus?.();
+    },
+    onBlur: () => {
+      if (!containerRef.current.contains(document.activeElement)) {
+        setFocus(false);
+        onBlur?.();
+      }
     }
   });
 
@@ -271,13 +277,6 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   }, {
     target: containerRef,
   });
-
-  useClickAway(() => {
-    if (!containerRef.current.contains(document.activeElement)) {
-      setFocus(false);
-      onBlur?.();
-    }
-  }, [containerRef]);
 
   const inputCls = `${prefixCls}-input`;
 

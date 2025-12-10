@@ -49,7 +49,7 @@ const SenderHeader: React.FC<SenderHeaderProps> = (props) => {
         closable={false}
         open={open}
       >
-        <div className={cls(prefixCls, className)}>
+        <div className={cls(prefixCls, className)} tabIndex={0}>
           {onUpload?.map((item, index) => {
             const { title, description, maxCount = 1, ...restProps } = item;
             const fileList = attachedFiles[index] || [];
