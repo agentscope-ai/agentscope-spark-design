@@ -8,6 +8,17 @@ import { emit } from "../../Context/useChatAnywhereEventEmitter";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 
 
+function Usage(props: {
+  input_tokens: string;
+  output_tokens: string;
+}) {
+  if (!props.input_tokens || !props.output_tokens) return null;
+  return <Bubble.Footer.Count data={[
+    ['Input', props.input_tokens],
+    ['Output', props.output_tokens],
+  ]} />
+}
+
 export default function Tools(props: {
   data: IAgentScopeRuntimeResponse
   isLast?: boolean;
@@ -45,6 +56,7 @@ export default function Tools(props: {
   if (!AgentScopeRuntimeResponseBuilder.maybeDone(props.data)) return null;
   return <Bubble.Footer
     left={<Bubble.Footer.Actions data={actions} />}
+    right={<Usage input_tokens={props.data.usage?.input_tokens} output_tokens={props.data.usage?.output_tokens} />}
   />
 }
 
