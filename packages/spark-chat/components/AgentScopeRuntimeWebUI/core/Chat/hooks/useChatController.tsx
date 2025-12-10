@@ -93,6 +93,8 @@ export default function useChatController() {
    * 处理重新生成
    */
   const handleRegenerate = useCallback(async (messageId: string) => {
+    setLoading(true);
+
     // 1. 移除旧消息
     messageHandler.removeMessageById(messageId);
 

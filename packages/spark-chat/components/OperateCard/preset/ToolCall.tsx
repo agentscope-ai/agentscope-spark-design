@@ -20,8 +20,8 @@ function Block(props: {
       title={
         props.title
       }
-      collapsedHeight={100}
-      expandOnPanelClick={true}
+      // collapsedHeight={100}
+      // expandOnPanelClick={true}
       extra={
         <IconButton
           size="small"

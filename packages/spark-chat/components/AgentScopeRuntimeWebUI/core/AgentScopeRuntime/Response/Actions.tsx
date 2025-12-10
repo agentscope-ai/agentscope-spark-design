@@ -22,7 +22,14 @@ export default function Tools(props: {
   ];
 
   const actions = compact([
-    ...actionsOptionsList,
+    ...actionsOptionsList.map(i => {
+      return {
+        ...i,
+        onClick: () => {
+          i.onClick(props);
+        }
+      }
+    }),
     props.isLast ? {
       icon: <SparkReplaceLine />,
       onClick: () => {

@@ -1,4 +1,5 @@
 import { UploadProps } from 'antd';
+import { IAgentScopeRuntimeResponse } from '../AgentScopeRuntime/types';
 import { IAgentScopeRuntimeWebUISession } from './ISessions';
 
 /**
@@ -327,7 +328,10 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    * @description 操作按钮列表
    * @descriptionEn Actions button list
    */
-  list: { icon: React.ReactElement; onClick: () => void }[];
+  list: {
+    icon: React.ReactElement;
+    onClick: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+  }[];
 }
 
 /**
