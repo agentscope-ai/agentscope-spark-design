@@ -206,7 +206,15 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
  * @descriptionEn Attachments configuration options
  */
 export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
-  extends UploadProps {}
+  extends UploadProps {
+  /**
+   * @description 触发器
+   * @descriptionEn Trigger
+   */
+  trigger?: React.FC<{
+    disabled?: boolean;
+  }>;
+}
 
 /**
  * @description 会话 API 接口

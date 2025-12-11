@@ -4,6 +4,7 @@ import { IconButton } from "@agentscope-ai/design";
 import { SparkAttachmentLine } from "@agentscope-ai/icons";
 import { Sender, Attachments } from '@agentscope-ai/chat';
 import { useGetState } from "ahooks";
+import React from "react";
 
 export default function useAttachments(
   attachments: IAgentScopeRuntimeWebUISenderAttachmentsOptions,
@@ -12,23 +13,25 @@ export default function useAttachments(
   }
 ) {
   const [fileList, setFileList, getFileList] = useGetState([]);
+  const { trigger, ...rest } = attachments;
 
-
-  if (attachments?.customRequest) {
+  if (rest?.customRequest) {
     const uploadIconButton = <Upload
       fileList={fileList}
       showUploadList={false}
       onChange={(info) => {
         setFileList(info.fileList);
       }}
-      {...attachments}
+      {...rest}
       disabled={options?.disabled}
     >
-      <IconButton
-        disabled={options?.disabled}
-        icon={<SparkAttachmentLine />}
-        bordered={false}
-      />
+      {
+        React.createElement(trigger, { disabled: options?.disabled }) || <IconButton
+          disabled={options?.disabled}
+          icon={<SparkAttachmentLine />}
+          bordered={false}
+        />
+      }
     </Upload>
 
 
