@@ -205,13 +205,8 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
  * @description 附件配置选项
  * @descriptionEn Attachments configuration options
  */
-export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions {
-  /**
-   * @description 自定义上传请求
-   * @descriptionEn Custom upload request
-   */
-  customRequest?: UploadProps['customRequest'];
-}
+export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
+  extends UploadProps {}
 
 /**
  * @description 会话 API 接口
@@ -335,7 +330,11 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    */
   list: {
     icon: React.ReactElement;
-    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
+    render?: ({
+      data,
+    }: {
+      data: IAgentScopeRuntimeResponse;
+    }) => React.ReactElement;
     onClick: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
 }

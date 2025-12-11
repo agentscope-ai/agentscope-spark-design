@@ -6,20 +6,26 @@ import { Sender, Attachments } from '@agentscope-ai/chat';
 import { useGetState } from "ahooks";
 
 export default function useAttachments(
-  attachments: IAgentScopeRuntimeWebUISenderAttachmentsOptions
+  attachments: IAgentScopeRuntimeWebUISenderAttachmentsOptions,
+  options?: {
+    disabled?: boolean;
+  }
 ) {
   const [fileList, setFileList, getFileList] = useGetState([]);
 
+
   if (attachments?.customRequest) {
     const uploadIconButton = <Upload
-      customRequest={attachments.customRequest}
       fileList={fileList}
       showUploadList={false}
       onChange={(info) => {
         setFileList(info.fileList);
       }}
+      {...attachments}
+      disabled={options?.disabled}
     >
       <IconButton
+        disabled={options?.disabled}
         icon={<SparkAttachmentLine />}
         bordered={false}
       />
