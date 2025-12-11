@@ -335,6 +335,7 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    */
   list: {
     icon: React.ReactElement;
+    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
     onClick: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
 }
