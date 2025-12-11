@@ -17,7 +17,7 @@ const SparkTabs = (props: SparkTabsProps) => {
   const { type, centered, ...restProps } = props;
   const { sparkPrefix } = getCommonConfig();
   const [mergedActiveKey, setMergedActiveKey] = useMergedState<string>(
-    () => restProps.items[0]?.key,
+    () => restProps.items?.[0]?.key,
     {
       value: restProps.activeKey,
       defaultValue: restProps.defaultActiveKey,
@@ -26,6 +26,11 @@ const SparkTabs = (props: SparkTabsProps) => {
 
   const Style = useStyle();
   if (type === 'segmented') {
+    const handleChange = (key: string) => {
+      setMergedActiveKey(key);
+      props.onChange?.(key);
+    };
+
     return (
       <>
         <Style />
@@ -44,14 +49,11 @@ const SparkTabs = (props: SparkTabsProps) => {
             return (
               <Segmented
                 options={options}
-                onChange={(value) => {
-                  setMergedActiveKey(value);
-                  props.onChange?.(value);
-                }}
+                onChange={handleChange}
                 className={classNames(`${sparkPrefix}-segmented-tab-bar`, {
                   [`${sparkPrefix}-segmented-tab-bar-centered`]: centered,
                 })}
-                value={tabProps.activeKey}
+                value={mergedActiveKey}
                 size={props.size}
               />
             );

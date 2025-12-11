@@ -13,6 +13,8 @@ group:
 
 <code src="./demo/demo2.tsx" center>Support embedded operations</code>
 
+<code src="./demo/demo3.tsx" center>set maxHeight</code>
+
 #### API
 
 <ApiParser source="./index.tsx" id="SparkTooltipProps"></ApiParser>

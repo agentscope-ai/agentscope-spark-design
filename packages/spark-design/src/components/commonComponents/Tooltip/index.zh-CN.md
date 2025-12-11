@@ -13,6 +13,8 @@ group:
 
 <code src="./demo/demo2.tsx" center>支持内嵌操作</code>
 
+<code src="./demo/demo3.tsx" center>设置最大高度</code>
+
 #### API
 
 <ApiParser source="./index.tsx" id="SparkTooltipProps"></ApiParser>

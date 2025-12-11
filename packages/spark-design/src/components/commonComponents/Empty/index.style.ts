@@ -21,13 +21,13 @@ export const useStyle = createGlobalStyle`
 
 .${(p) => p.sparkPrefix}-empty-image svg {
   margin-top: 16.875%;
-  width: 108px;
-  height: 108px;
+  width: 33.75%;
+  height: 33.75%;
 }
 
 .${(p) => p.sparkPrefix}-empty-texture svg {
-  width: 320px;
-  height: 320px;
+  width: 100%;
+  height: 100%;
 }
 
 .${(p) => p.sparkPrefix}-empty-title {

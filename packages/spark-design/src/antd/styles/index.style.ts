@@ -17,6 +17,7 @@ import { useSelectStyle } from './select.style';
 import { useSliderStyle } from './slider.style';
 import { useTableStyle } from './table.style';
 import { useTooltipStyle } from './tooltip.style';
+import { useTreeStyle } from './tree.style';
 
 // 基础动画样式
 const useBaseStyle = createGlobalStyle`
@@ -59,6 +60,7 @@ export const useIndexStyle = () => {
   const SliderStyle = useSliderStyle();
   const TableStyle = useTableStyle();
   const TooltipStyle = useTooltipStyle();
+  const TreeStyle = useTreeStyle();
 
   // 返回组合组件
   return function IndexStyleComponent() {
@@ -81,6 +83,7 @@ export const useIndexStyle = () => {
       React.createElement(SliderStyle),
       React.createElement(TableStyle),
       React.createElement(TooltipStyle),
+      React.createElement(TreeStyle),
     );
   };
 };

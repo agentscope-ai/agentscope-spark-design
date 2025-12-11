@@ -6,49 +6,40 @@ import { Flex, Pagination, PaginationProps } from 'antd';
 import classNames from 'classnames';
 import { useStyle } from './index.style';
 
-const DEFAULT_SHOW_SIZE_CHANGE = {
-  options: [
-    {
-      label: `10 ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Items',
-        dm: '条',
-      })} / ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Page',
-        dm: '页',
-      })}`,
-      value: 10,
-    },
-    {
-      label: `20 ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Items',
-        dm: '条',
-      })} / ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Page',
-        dm: '页',
-      })}`,
-      value: 20,
-    },
-    {
-      label: `50 ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Items',
-        dm: '条',
-      })} / ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Page',
-        dm: '页',
-      })}`,
-      value: 50,
-    },
-    {
-      label: `100 ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Items',
-        dm: '条',
-      })} / ${$i18n.get({
-        id: 'components.commonComponents.Pagination.Page',
-        dm: '页',
-      })}`,
-      value: 100,
-    },
-  ],
+/**
+ * 获取默认的分页大小选择器配置
+ * 使用函数形式以支持动态国际化
+ */
+const getDefaultShowSizeChange = () => {
+  const itemsText = $i18n.get({
+    id: 'components.commonComponents.Pagination.Items',
+    dm: '条',
+  });
+  const pageText = $i18n.get({
+    id: 'components.commonComponents.Pagination.Page',
+    dm: '页',
+  });
+
+  return {
+    options: [
+      {
+        label: `10 ${itemsText} / ${pageText}`,
+        value: 10,
+      },
+      {
+        label: `20 ${itemsText} / ${pageText}`,
+        value: 20,
+      },
+      {
+        label: `50 ${itemsText} / ${pageText}`,
+        value: 50,
+      },
+      {
+        label: `100 ${itemsText} / ${pageText}`,
+        value: 100,
+      },
+    ],
+  };
 };
 
 export interface SparkPaginationProps extends PaginationProps {
@@ -127,8 +118,8 @@ export default (props: SparkPaginationProps) => {
   }
   const getMergedShowSizeChange = () => {
     if (props.showSizeChanger === true) {
-      // 用户手动设置为 true，使用预置选项
-      return DEFAULT_SHOW_SIZE_CHANGE;
+      // 用户手动设置为 true，使用预置选项（动态获取以支持国际化）
+      return getDefaultShowSizeChange();
     }
     if (props.showSizeChanger === false) {
       // 用户手动设为 false
@@ -139,8 +130,8 @@ export default (props: SparkPaginationProps) => {
       return props.showSizeChanger;
     }
     if (restProps.total && restProps.total > 50) {
-      // 数据量大于 50，使用预置选项
-      return DEFAULT_SHOW_SIZE_CHANGE;
+      // 数据量大于 50，使用预置选项（动态获取以支持国际化）
+      return getDefaultShowSizeChange();
     }
     return false;
   };

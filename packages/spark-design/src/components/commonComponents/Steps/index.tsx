@@ -1,9 +1,9 @@
 import { getCommonConfig } from '@/config';
 import { SparkTrueLine } from '@agentscope-ai/icons';
 import { Steps, StepsProps } from 'antd';
+import classNames from 'classnames';
 import { useMemo } from 'react';
 import { useStyle } from './index.style';
-import classNames from 'classnames';
 
 const SparkSteps = (props: StepsProps) => {
   const { sparkPrefix } = getCommonConfig();
@@ -40,7 +40,11 @@ const SparkSteps = (props: StepsProps) => {
   return (
     <>
       <Style />
-      <Steps {...props} items={items} className={classNames(`${sparkPrefix}-steps`, props.className)} />
+      <Steps
+        {...props}
+        items={items}
+        className={classNames(`${sparkPrefix}-steps`, props.className)}
+      />
     </>
   );
 };
