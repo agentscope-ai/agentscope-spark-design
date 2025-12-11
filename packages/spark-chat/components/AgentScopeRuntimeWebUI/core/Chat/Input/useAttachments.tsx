@@ -26,7 +26,7 @@ export default function useAttachments(
       disabled={options?.disabled}
     >
       {
-        React.createElement(trigger, { disabled: options?.disabled }) || <IconButton
+        trigger ? React.createElement(trigger, { disabled: options?.disabled }) : <IconButton
           disabled={options?.disabled}
           icon={<SparkAttachmentLine />}
           bordered={false}
