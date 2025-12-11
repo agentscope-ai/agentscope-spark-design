@@ -83,7 +83,7 @@ const ResultContent = (props: {
 
 const NodeResultPanel = (props: INodeResultPanelProps) => {
   const [expand, setExpand] = useState(false);
-  const isBatch = props.data.is_batch && !!props.data.batches;
+  const isBatch = props.data.isBatch && !!props.data.batches;
   const [batchIndex, setBatchIndex] = useState(1);
 
   const inputContent = useMemo(() => {
@@ -102,9 +102,9 @@ const NodeResultPanel = (props: INodeResultPanelProps) => {
 
   const errorInfoContent = useMemo(() => {
     if (isBatch) {
-      return props.data.batches[batchIndex - 1]?.error_info;
+      return props.data.batches[batchIndex - 1]?.errorInfo;
     }
-    return props.data.error_info;
+    return props.data.errorInfo;
   }, [props.data, batchIndex]);
 
   return (
@@ -113,7 +113,7 @@ const NodeResultPanel = (props: INodeResultPanelProps) => {
         e.stopPropagation();
       }}
       className={classNames(
-        `spark-flow-node-result-panel nodrag spark-flow-node-result-panel-${props.data.node_status}`,
+        `spark-flow-node-result-panel nodrag spark-flow-node-result-panel-${props.data.nodeStatus}`,
         {
           ['spark-flow-node-result-panel-hidden']: !expand,
         },
@@ -133,13 +133,13 @@ const NodeResultPanel = (props: INodeResultPanelProps) => {
         >
           <div className="flex-center gap-[8px]">
             <span className="spark-flow-node-result-status">
-              {statusNameMap[props.data.node_status]}
+              {statusNameMap[props.data.nodeStatus]}
             </span>
             <span className="spark-flow-node-result-time">
-              {props.data.node_exec_time}
+              {props.data.nodeExecTime}
             </span>
           </div>
-          {props.data.node_status !== 'skip' && (
+          {props.data.nodeStatus !== 'skip' && (
             <SparkUpLine className="text-base spark-flow-node-result-expand-icon" />
           )}
         </div>
@@ -158,7 +158,7 @@ const NodeResultPanel = (props: INodeResultPanelProps) => {
             }
           />
         )}
-        {expand && props.data.node_status === 'fail' && (
+        {expand && props.data.nodeStatus === 'fail' && (
           <Typography.Text
             ellipsis={{
               tooltip: {

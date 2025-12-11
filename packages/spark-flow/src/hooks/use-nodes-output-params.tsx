@@ -221,9 +221,9 @@ export const useNodesOutputParams = () => {
       const outputParams: Array<IVarTreeItem> = [];
       Object.keys(nodesMap).forEach((nodeId) => {
         const node = nodesMap[nodeId];
-        if (node.data.output_params?.length > 0) {
+        if (node.data.outputParams?.length > 0) {
           const varItems = buildOutputParamsTree({
-            outputParams: node.data.output_params,
+            outputParams: node.data.outputParams,
             nodeId,
             ...options,
           });
@@ -259,8 +259,8 @@ export const useNodesOutputParams = () => {
             type: 'String',
           },
           {
-            label: 'history_list',
-            value: '${sys.history_list}',
+            label: 'historyList',
+            value: '${sys.historyList}',
             type: 'Array<String>',
           },
         ],

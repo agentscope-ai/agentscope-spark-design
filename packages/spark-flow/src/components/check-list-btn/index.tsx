@@ -31,13 +31,13 @@ export default memo(function CheckListBtn() {
     nodes.forEach((item) => {
       const nodeInfo = nodeSchemaMap[item.type as string];
       if (!nodeInfo?.checkValid) return;
-      const error_msgs = nodeInfo.checkValid(item.data);
-      if (error_msgs.length > 0) {
+      const errorMsgs = nodeInfo.checkValid(item.data);
+      if (errorMsgs.length > 0) {
         list.push({
-          node_id: item.id,
-          error_msgs,
-          node_type: item.type,
-          node_name: item.data.label,
+          nodeId: item.id,
+          errorMsgs,
+          nodeType: item.type,
+          nodeName: item.data.label,
         });
       }
     });
@@ -92,23 +92,23 @@ export default memo(function CheckListBtn() {
             {checkList.map((item) => (
               <div
                 onClick={() => {
-                  handleNodeClickByNodeId(item.node_id);
+                  handleNodeClickByNodeId(item.nodeId);
                   setShowCheckList(false);
                 }}
-                key={item.node_id}
+                key={item.nodeId}
                 className="spark-flow-node-check-container"
               >
                 <div className="spark-flow-node-check-container-header">
-                  <FlowIcon size="small" nodeType={item.node_type} />
+                  <FlowIcon size="small" nodeType={item.nodeType} />
                   <Typography.Text
-                    ellipsis={{ tooltip: item.node_name }}
+                    ellipsis={{ tooltip: item.nodeName }}
                     className="spark-flow-node-check-container-header-title"
                   >
-                    {item.node_name}
+                    {item.nodeName}
                   </Typography.Text>
                 </div>
                 <div className="spark-flow-node-check-container-content">
-                  {item.error_msgs.map((msg, index) => (
+                  {item.errorMsgs.map((msg, index) => (
                     <div
                       className="spark-flow-node-check-container-content-item"
                       key={index}

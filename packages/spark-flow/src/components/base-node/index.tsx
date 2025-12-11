@@ -115,7 +115,7 @@ function BaseNode(props: IProps) {
   const nodeResult = useMemo(() => {
     if (!taskStore) return null;
     return (
-      taskStore.node_results?.find((item) => item.node_id === props.id) || null
+      taskStore.nodeResults?.find((item) => item.nodeId === props.id) || null
     );
   }, [props.id, taskStore]);
 
@@ -206,7 +206,7 @@ function BaseNode(props: IProps) {
       <div
         ref={containerRef}
         className={classNames('spark-flow-node-container', props.className, {
-          [`spark-flow-node-container-${nodeResult?.node_status}`]:
+          [`spark-flow-node-container-${nodeResult?.nodeStatus}`]:
             !!nodeResult && showResults,
         })}
       >
@@ -221,7 +221,7 @@ function BaseNode(props: IProps) {
             </Typography.Text>
           </div>
           {!!nodeResult && showResults ? (
-            <NodeStatusIcon status={nodeResult.node_status} />
+            <NodeStatusIcon status={nodeResult.nodeStatus} />
           ) : props.disableAction ? null : (
             <div
               onClick={(e) => {

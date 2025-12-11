@@ -10,7 +10,7 @@ export const useFlowDebugInteraction = () => {
   const updateTaskStore = useCallback(
     (val: IWorkFlowTaskProcess) => {
       setTaskStore(val);
-      updateEdgeByNodeResults(val.node_results);
+      updateEdgeByNodeResults(val.nodeResults);
     },
     [setTaskStore, updateEdgeByNodeResults],
   );

@@ -220,10 +220,10 @@ export const layoutFlow = async ({
 };
 
 export const getParentInputParams = (node: IWorkFlowNode) => {
-  const { input_params } = node.data;
+  const { inputParams } = node.data;
   const list: IVarItem[] = [];
 
-  input_params.forEach((item) => {
+  inputParams.forEach((item) => {
     if (item.type?.includes('Array') && !!item.value) {
       const arrayType = item.type.replace(/^Array<(.+)>$/, '$1') as IValueType;
       list.push({

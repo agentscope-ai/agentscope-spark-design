@@ -62,10 +62,10 @@ export default memo(function FlowBaseEdge({
   const { antPrefix } = getCommonConfig();
 
   const colorList: ILinearGradientSvgProps['colorList'] = useMemo(() => {
-    if (edgeData._source_node_status && edgeData._target_node_status) {
+    if (edgeData._sourceNodeStatus && edgeData._targetNodeStatus) {
       if (
-        edgeData._source_node_status === 'success' &&
-        edgeData._target_node_status === 'success'
+        edgeData._sourceNodeStatus === 'success' &&
+        edgeData._targetNodeStatus === 'success'
       ) {
         return [
           { color: '#30A46C', opacity: 0.5, offset: 0 },
@@ -73,8 +73,8 @@ export default memo(function FlowBaseEdge({
         ];
       }
       if (
-        edgeData._source_node_status === 'success' &&
-        edgeData._target_node_status === 'fail'
+        edgeData._sourceNodeStatus === 'success' &&
+        edgeData._targetNodeStatus === 'fail'
       ) {
         return [
           { color: '#30A46C', opacity: 1, offset: 0 },
@@ -84,9 +84,9 @@ export default memo(function FlowBaseEdge({
       }
 
       if (
-        edgeData._source_node_status === 'success' ||
-        (edgeData._source_node_status === 'executing' &&
-          edgeData._target_node_status === 'executing')
+        edgeData._sourceNodeStatus === 'success' ||
+        (edgeData._sourceNodeStatus === 'executing' &&
+          edgeData._targetNodeStatus === 'executing')
       ) {
         return [
           { color: '#30A46C', opacity: 1, offset: 0 },
@@ -117,36 +117,36 @@ export default memo(function FlowBaseEdge({
 
   const isAnimated = useMemo(() => {
     if (
-      edgeData._source_node_status === 'executing' &&
-      edgeData._target_node_status === 'executing'
+      edgeData._sourceNodeStatus === 'executing' &&
+      edgeData._targetNodeStatus === 'executing'
     )
       return true;
     return (
-      edgeData._source_node_status === 'success' &&
-      !['fail', 'success']?.includes(edgeData._target_node_status || '')
+      edgeData._sourceNodeStatus === 'success' &&
+      !['fail', 'success']?.includes(edgeData._targetNodeStatus || '')
     );
   }, [edgeData]);
 
   const markerEndColor = useMemo(() => {
-    if (edgeData._source_node_status && edgeData._target_node_status) {
+    if (edgeData._sourceNodeStatus && edgeData._targetNodeStatus) {
       if (
-        edgeData._source_node_status === 'success' &&
-        edgeData._target_node_status === 'success'
+        edgeData._sourceNodeStatus === 'success' &&
+        edgeData._targetNodeStatus === 'success'
       ) {
         return {
           stroke: '#30A46C',
         };
       }
       if (
-        edgeData._source_node_status === 'success' &&
-        edgeData._target_node_status === 'fail'
+        edgeData._sourceNodeStatus === 'success' &&
+        edgeData._targetNodeStatus === 'fail'
       ) {
         return {
           stroke: '#F23139',
         };
       }
 
-      if (edgeData._source_node_status === 'success') {
+      if (edgeData._sourceNodeStatus === 'success') {
         return {
           stroke: '#615CED',
         };
@@ -171,8 +171,8 @@ export default memo(function FlowBaseEdge({
     edgeData._hover,
     selected,
     getCommonConfig,
-    edgeData._source_node_status,
-    edgeData._target_node_status,
+    edgeData._sourceNodeStatus,
+    edgeData._targetNodeStatus,
     antPrefix,
   ]);
 

@@ -12,7 +12,7 @@ export const useNodesReadOnly = () => {
 
     return (
       [WorkflowRunningStatus.Running, WorkflowRunningStatus.Paused].includes(
-        taskStore?.task_status || '',
+        taskStore?.taskStatus || '',
       ) || readyOnly
     );
   }, [workflowStore, readyOnly]);
@@ -20,7 +20,7 @@ export const useNodesReadOnly = () => {
   return {
     nodesReadOnly:
       [WorkflowRunningStatus.Running, WorkflowRunningStatus.Paused].includes(
-        taskStore?.task_status || '',
+        taskStore?.taskStatus || '',
       ) || readyOnly,
     getNodesReadOnly,
   };

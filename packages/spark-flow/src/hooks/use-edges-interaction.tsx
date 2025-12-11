@@ -22,9 +22,9 @@ export const useEdgesInteraction = () => {
       const newEdges: Edge[] = edges.map((item) => {
         const { source, target } = item;
         const sourceNodeResult =
-          cacheNodeResult[source] || val.find((v) => v.node_id === source);
+          cacheNodeResult[source] || val.find((v) => v.nodeId === source);
         const targetNodeResult =
-          cacheNodeResult[target] || val.find((v) => v.node_id === target);
+          cacheNodeResult[target] || val.find((v) => v.nodeId === target);
         if (!cacheNodeResult[source]) {
           cacheNodeResult[source] = sourceNodeResult;
         }
@@ -34,11 +34,11 @@ export const useEdgesInteraction = () => {
         if (!!sourceNodeResult && !!targetNodeResult)
           return {
             ...item,
-            animated: targetNodeResult.node_status === 'executing',
+            animated: targetNodeResult.nodeStatus === 'executing',
             data: {
               ...item.data,
-              _source_node_status: sourceNodeResult.node_status,
-              _target_node_status: targetNodeResult.node_status,
+              _sourceNodeStatus: sourceNodeResult.nodeStatus,
+              _targetNodeStatus: targetNodeResult.nodeStatus,
             },
           };
         return {
@@ -46,8 +46,8 @@ export const useEdgesInteraction = () => {
           animated: false,
           data: {
             ...item.data,
-            _source_node_status: undefined,
-            _target_node_status: undefined,
+            _sourceNodeStatus: undefined,
+            _targetNodeStatus: undefined,
           },
         };
       });
@@ -64,8 +64,8 @@ export const useEdgesInteraction = () => {
         animated: false,
         data: {
           ...item.data,
-          _source_node_status: undefined,
-          _target_node_status: undefined,
+          _sourceNodeStatus: undefined,
+          _targetNodeStatus: undefined,
         },
       };
     });

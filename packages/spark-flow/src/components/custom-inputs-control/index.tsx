@@ -72,7 +72,7 @@ export const variableLabelRender = ({
       </>
     );
   }
-  if (value.value_from !== 'refer' || !value.value || !nodeInfo) {
+  if (value.valueFrom !== 'refer' || !value.value || !nodeInfo) {
     return null;
   }
 
@@ -252,7 +252,7 @@ export const VariableSelector = memo(
 );
 
 export const VariableFormComp = memo((props: IVariableFormCompProps) => {
-  if (props.data.value_from === 'clear')
+  if (props.data.valueFrom === 'clear')
     return (
       <Input
         className="flex-1"
@@ -263,7 +263,7 @@ export const VariableFormComp = memo((props: IVariableFormCompProps) => {
         })}
       />
     );
-  if (props.data.value_from === 'refer')
+  if (props.data.valueFrom === 'refer')
     return (
       <VariableSelector
         disabled={props.disabled}
@@ -275,7 +275,7 @@ export const VariableFormComp = memo((props: IVariableFormCompProps) => {
       />
     );
 
-  if (props.data.value_from === 'input') {
+  if (props.data.valueFrom === 'input') {
     if (props.typeSwitchDisabled) {
       return (
         <div className="flex-1">
@@ -349,7 +349,7 @@ export default memo(function CustomInputsControl(
     (ind: number, payload: Partial<INodeDataInputParamItem>) => {
       const newVal = value.map((item, index) => {
         if (index === ind) {
-          if (payload.value_from === 'input' && !payload.type) {
+          if (payload.valueFrom === 'input' && !payload.type) {
             payload.type = 'String';
           }
           return { ...item, ...payload };
@@ -364,7 +364,7 @@ export default memo(function CustomInputsControl(
   const handleAddVar = useCallback(() => {
     props.onChange([
       ...value,
-      { key: '', value_from: 'refer', type: props.defaultType || 'String' },
+      { key: '', valueFrom: 'refer', type: props.defaultType || 'String' },
     ]);
   }, [props.defaultType, props.onChange, value]);
 
@@ -431,9 +431,9 @@ export default memo(function CustomInputsControl(
             <Select
               style={{ width: 60 }}
               className="flex-shrink-0 spark-flow-variable-from-select"
-              value={item.value_from}
+              value={item.valueFrom}
               onChange={(val) =>
-                changeRowValue(index, { value_from: val, value: void 0 })
+                changeRowValue(index, { valueFrom: val, value: void 0 })
               }
               disabled={props.disabled}
               options={VALUE_FROM_OPTIONS}

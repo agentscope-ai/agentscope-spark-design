@@ -65,8 +65,8 @@ export interface IPointItem {
 
 export interface IEdgeData {
   _hover?: boolean;
-  _source_node_status?: IWorkFlowStatus;
-  _target_node_status?: IWorkFlowStatus;
+  _sourceNodeStatus?: IWorkFlowStatus;
+  _targetNodeStatus?: IWorkFlowStatus;
 }
 
 /* Node output parameter */
@@ -81,7 +81,7 @@ export interface INodeDataOutputParamItem {
   desc?: string;
   /* When defining input parameters for the start node, it is necessary to specify whether it is required */
   required?: boolean;
-  value_from?: 'refer' | 'input' | 'clear';
+  valueFrom?: 'refer' | 'input' | 'clear';
   /* If the type is Object, sub-parameters need to be defined */
   properties?: INodeDataOutputParamItem[];
 }
@@ -96,8 +96,8 @@ export interface INodeDataInputParamItem {
   type?: IValueType;
   /* Parameter value */
   value?: string;
-  /* Value source type, refer: reference; input: input; clear: clear, when value_from is clear, value is invalid */
-  value_from?: 'refer' | 'input' | 'clear';
+  /* Value source type, refer: reference; input: input; clear: clear, when valueFrom is clear, value is invalid */
+  valueFrom?: 'refer' | 'input' | 'clear';
   /** Whether the parameter is required */
   required?: boolean;
 }
@@ -106,11 +106,11 @@ export type IWorkFlowNodeData<T = any> = {
   /* Node name */
   label: string;
   /* Node input parameters */
-  input_params: INodeDataInputParamItem[];
+  inputParams: INodeDataInputParamItem[];
   /* Node output parameters */
-  output_params: INodeDataOutputParamItem[];
+  outputParams: INodeDataOutputParamItem[];
   /* Node business parameters */
-  node_param: T;
+  nodeParam: T;
   /* Node description */
   desc?: string;
 };
@@ -129,10 +129,10 @@ export interface IBranchItem {
 }
 
 export interface ICheckListItem {
-  node_id: string;
-  node_type: string;
-  node_name: string;
-  error_msgs: { label: string; error: string }[];
+  nodeId: string;
+  nodeType: string;
+  nodeName: string;
+  errorMsgs: { label: string; error: string }[];
 }
 
 export interface IWorkFlowNode extends Node<IWorkFlowNodeData> {
@@ -174,51 +174,51 @@ export interface IUserInputItem {
   required?: boolean;
 }
 export interface IWorkFlowTaskResultItem {
-  node_type: string;
-  node_name: string;
-  node_id: string;
-  node_content: string | IUserInputItem[];
-  node_status: IWorkFlowStatus;
-  parent_node_id?: string;
+  nodeType: string;
+  nodeName: string;
+  nodeId: string;
+  nodeContent: string | IUserInputItem[];
+  nodeStatus: IWorkFlowStatus;
+  parentNodeId?: string;
 }
 
 export interface IWorkFlowNodeResultItem {
-  is_batch: boolean;
+  isBatch: boolean;
   retry?: {
     happened: boolean;
-    retry_times: number;
+    retryTimes: number;
   };
   input?: string;
   output?: string;
   usages?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
   }[];
   batches: IWorkFlowNodeResultItem[];
-  is_multi_branch: boolean;
-  multi_branch_results?: {
-    condition_id: string;
-    target_ids: string[];
+  isMultiBranch: boolean;
+  multiBranchResults?: {
+    conditionId: string;
+    targetIds: string[];
   }[];
-  node_id: string;
-  node_name: string;
-  node_type: string;
-  node_status: IWorkFlowStatus;
-  parent_node_id?: string;
-  output_type: 'json' | 'text';
-  node_exec_time: string;
-  try_catch?: {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  nodeStatus: IWorkFlowStatus;
+  parentNodeId?: string;
+  outputType: 'json' | 'text';
+  nodeExecTime: string;
+  tryCatch?: {
     happened: boolean;
     strategy: string;
   };
-  short_memory?: {
+  shortMemory?: {
     round: number;
-    current_self_chat_messages: {
+    currentSelfChatMessages: {
       role?: string;
       content?: any;
       name?: string;
-      tool_calls?: Array<{
+      toolCalls?: Array<{
         id: string;
         type: string;
         index: number;
@@ -231,22 +231,22 @@ export interface IWorkFlowNodeResultItem {
       audio?: {
         id: string;
         data: string;
-        expires_at: number;
+        expiresAt: number;
         transcript: string;
       };
     }[];
   };
-  error_info?: string;
+  errorInfo?: string;
 }
 
 export interface IWorkFlowTaskProcess {
-  task_id: string;
-  conversation_id?: string;
-  request_id: string;
-  task_status: IWorkFlowStatus;
-  task_results: IWorkFlowTaskResultItem[];
-  error_code?: string;
-  error_info?: string;
-  task_exec_time: string;
-  node_results: IWorkFlowNodeResultItem[];
+  taskId: string;
+  conversationId?: string;
+  requestId: string;
+  taskStatus: IWorkFlowStatus;
+  taskResults: IWorkFlowTaskResultItem[];
+  errorCode?: string;
+  errorInfo?: string;
+  taskExecTime: string;
+  nodeResults: IWorkFlowNodeResultItem[];
 }

@@ -62,12 +62,12 @@ export default memo(function JudgeForm(props: {
         conditions: [
           {
             left: {
-              value_from: 'refer',
+              valueFrom: 'refer',
               type: 'String',
               value: void 0,
             },
             right: {
-              value_from: 'input',
+              valueFrom: 'input',
               type: 'String',
               value: void 0,
             },
@@ -87,12 +87,12 @@ export default memo(function JudgeForm(props: {
           ...(targetBranch.conditions || []),
           {
             left: {
-              value_from: 'refer',
+              valueFrom: 'refer',
               type: 'String',
               value: void 0,
             },
             right: {
-              value_from: 'input',
+              valueFrom: 'input',
               type: 'String',
               value: void 0,
             },

@@ -154,7 +154,7 @@ export const useNodesInteraction = () => {
               ),
           ...((nodeInfo.defaultParams || {}) as Pick<
             IWorkFlowNodeData,
-            'input_params' | 'output_params' | 'node_param'
+            'inputParams' | 'outputParams' | 'nodeParam'
           >),
         },
       };
@@ -550,10 +550,10 @@ export const useNodesInteraction = () => {
 
         let sourceHandle = newNode.id;
         if (newNode.type === 'Classifier') {
-          sourceHandle = `${newNode.id}_${newNode.data.node_param.conditions[0].id}`;
+          sourceHandle = `${newNode.id}_${newNode.data.nodeParam.conditions[0].id}`;
         }
         if (newNode.type === 'Judge') {
-          sourceHandle = `${newNode.id}_${newNode.data.node_param.branches[0].id}`;
+          sourceHandle = `${newNode.id}_${newNode.data.nodeParam.branches[0].id}`;
         }
 
         newEdges.push(

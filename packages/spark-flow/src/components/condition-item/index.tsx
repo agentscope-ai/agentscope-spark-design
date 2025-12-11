@@ -102,12 +102,12 @@ export default function ConditionItem(props: IConditionItemProps) {
               variant="borderless"
               style={{ width: 60 }}
               options={VALUE_FROM_OPTIONS}
-              value={props.value.right.value_from}
+              value={props.value.right.valueFrom}
               onChange={(val) =>
                 props.onChange({
                   right: {
                     ...props.value.right,
-                    value_from: val,
+                    valueFrom: val,
                     value: void 0,
                   },
                 })
@@ -123,7 +123,7 @@ export default function ConditionItem(props: IConditionItemProps) {
               className="spark-flow-condition-item-divider"
               type="vertical"
             />
-            {props.value.right.value_from === 'refer' && (
+            {props.value.right.valueFrom === 'refer' && (
               <div className="flex-1">
                 <VariableSelector
                   disabled={props.disabled}
@@ -137,7 +137,7 @@ export default function ConditionItem(props: IConditionItemProps) {
                 />
               </div>
             )}
-            {props.value.right.value_from === 'input' && (
+            {props.value.right.valueFrom === 'input' && (
               <div className="flex-1">
                 <VariableBaseInput
                   disabled={props.disabled}
@@ -172,7 +172,7 @@ export default function ConditionItem(props: IConditionItemProps) {
                   props.value.left.type === val.type
                     ? props.value.right
                     : {
-                        value_from: props.value.right.value_from,
+                        valueFrom: props.value.right.valueFrom,
                         value: void 0,
                         type: getRightType(val.type as IValueType),
                       },

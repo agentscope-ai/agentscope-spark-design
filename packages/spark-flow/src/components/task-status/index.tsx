@@ -60,40 +60,40 @@ function TaskStatus() {
 
   const copyRequestId = useCallback(() => {
     if (!taskStore) return;
-    copy(taskStore.request_id);
+    copy(taskStore.requestId);
     message.success(
       $i18n.get({
         id: 'spark-flow.components.TaskStatus.index.requestIdCopied',
         dm: 'Request ID 已复制',
       }),
     );
-  }, [taskStore?.request_id]);
+  }, [taskStore?.requestId]);
 
   const dataSource = useMemo(() => {
     const list: ITokenDetail[] = [];
 
-    taskStore.node_results.forEach((item) => {
+    taskStore.nodeResults.forEach((item) => {
       if (item.usages?.length) {
         const tokenMap = item.usages?.reduce(
           (acc, cur) => {
-            acc.input += cur.prompt_tokens;
-            acc.output += cur.completion_tokens;
+            acc.input += cur.promptTokens;
+            acc.output += cur.completionTokens;
             return acc;
           },
           { input: 0, output: 0 },
         ) || { input: 0, output: 0 };
 
         list.push({
-          id: item.node_id,
-          name: item.node_name,
-          type: item.node_type,
+          id: item.nodeId,
+          name: item.nodeName,
+          type: item.nodeType,
           ...tokenMap,
         });
       }
     });
 
     return list;
-  }, [taskStore.node_results]);
+  }, [taskStore.nodeResults]);
 
   const columns = useMemo(() => {
     return [
@@ -147,7 +147,7 @@ function TaskStatus() {
     <>
       <div
         className={classNames(
-          `spark-flow-task-status flex-justify-between spark-flow-task-status-${taskStore.task_status}`,
+          `spark-flow-task-status flex-justify-between spark-flow-task-status-${taskStore.taskStatus}`,
           {
             'spark-flow-task-status-hidden-results': !showResults,
           },
@@ -155,9 +155,9 @@ function TaskStatus() {
       >
         <div className="gap-[16px] flex items-center">
           <div className="flex items-center gap-[8px]">
-            <NodeStatusIcon status={taskStore.task_status} />
-            <span>{statusNameMap[taskStore.task_status]}</span>
-            <span>{taskStore.task_exec_time}</span>
+            <NodeStatusIcon status={taskStore.taskStatus} />
+            <span>{statusNameMap[taskStore.taskStatus]}</span>
+            <span>{taskStore.taskExecTime}</span>
           </div>
           <div className="flex items-center gap-[4px]">
             <Popover
@@ -193,7 +193,7 @@ function TaskStatus() {
                 <>
                   <div className="font-medium">Request ID</div>
                   <div className="flex gap-[4px] items-center">
-                    {taskStore.request_id}
+                    {taskStore.requestId}
                     <SparkCopyLine
                       className="cursor-pointer"
                       onClick={copyRequestId}
