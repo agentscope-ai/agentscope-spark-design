@@ -224,6 +224,9 @@ export default createGlobalStyle`
       color: ${(p) => p.theme.colorText};
       line-height: 20px;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     &-content {
