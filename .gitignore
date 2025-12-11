@@ -3,6 +3,7 @@ node_modules
 pnpm-lock.yaml
 
 # Build output
+dist
 docs-dist
 *.log
 packages/spark-chat/lib
