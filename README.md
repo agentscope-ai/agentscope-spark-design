@@ -8,7 +8,7 @@ Alibaba Cloud Feitian Lab UI Component Library - Monorepo Version
 
 ## 📚 Documentation
 
-Online Documentation: **https://agentscope-ai.github.io/agentscope-spark-design/**
+Online Documentation: **https://sparkdesign.agentscope.io/**
 
 ## 📦 Packages
 
