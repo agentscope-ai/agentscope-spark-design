@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { UploadFile } from 'antd';
 import { useProviderContext, ChatInput, uuid, Sender, Attachments } from '@agentscope-ai/chat';
 import cls from 'classnames';
@@ -138,8 +138,19 @@ export default forwardRef(function (_, ref) {
 
   const submitFileList = attachedFiles.map(files => files.filter(file => file.status === 'done'));
   const fileLoading = attachedFiles.some(files => files.some(file => file.status === 'uploading'));
-
-
+  
+  // 检查是否有必需的上传项没有文件
+  const requiredFileMissing = useMemo(() => {
+    return onUpload?.some((item, index) => {
+      if (item.required) {
+        const files = attachedFiles[index] || [];
+        return files.length === 0;
+      }
+      return false;
+    }) ?? false;
+  }, [onUpload, attachedFiles]);
+  
+  const sendDisabled = requiredFileMissing;
 
   return <>
     <Style />
@@ -163,6 +174,7 @@ export default forwardRef(function (_, ref) {
         onChange={setContent}
         maxLength={onInput.maxLength}
         disabled={fileLoading || inputContext.disabled}
+        sendDisabled={sendDisabled}
         scalable={onInput?.zoomable}
         header={senderHeader}
         prefix={<>

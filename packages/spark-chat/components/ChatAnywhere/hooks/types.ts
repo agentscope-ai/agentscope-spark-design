@@ -195,6 +195,11 @@ export interface IChatAnywhereConfigOnUpload {
    */
   beforeUpload?: GetProp<typeof Upload, 'beforeUpload'>;
   /**
+   * @description 是否必传
+   * @descriptionEn Whether to required
+   */
+  required?: boolean;
+  /**
    * @description 自定义上传请求函数
    * @descriptionEn Custom upload request function
    */

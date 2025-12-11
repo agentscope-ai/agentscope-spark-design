@@ -77,6 +77,12 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
   disabled?: boolean;
 
   /**
+   * @description 是否禁用发送按钮
+   * @descriptionEn Whether to disable the send button
+   */
+  sendDisabled?: boolean;
+
+  /**
    * @description 是否启用用户focus时展开输入框组件
    * @descriptionEn Whether to enable the user focus to expand the input box component
    */
@@ -211,6 +217,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     value,
     readOnly,
     enableFocusExpand = false,
+    sendDisabled = false,
     submitType = 'enter',
     onSubmit,
     loading,
@@ -326,7 +333,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   // ============================ Events ============================
   const triggerSend = () => {
-    if (innerValue && onSubmit && !loading) {
+    if (!contextValue.onSendDisabled && onSubmit && !loading) {
       onSubmit(innerValue);
     }
   };
@@ -431,7 +438,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const contextValue = {
     prefixCls: actionBtnCls,
     onSend: triggerSend,
-    onSendDisabled: !innerValue,
+    onSendDisabled: !innerValue || sendDisabled,
     onClear: triggerClear,
     onClearDisabled: !innerValue,
     onCancel,
