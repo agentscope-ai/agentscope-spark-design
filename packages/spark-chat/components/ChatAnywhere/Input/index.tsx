@@ -13,7 +13,13 @@ type AttachedFiles = GetProp<typeof Attachments, 'items'>;
 
 export default forwardRef(function (_, ref) {
   const [content, setContent] = React.useState('');
-  const onUpload = useChatAnywhere(v => v.onUpload);
+  const inputContext = useInput();
+  const onUpload = useChatAnywhere(v => {
+    return v.onUpload.map(d => ({
+      ...d,
+      disabled: d.disabled || inputContext.disabled,
+    }))
+  });
   const resetData = new Array(onUpload?.length || 0).fill([]);
   const [focus, setFocus] = useState(false);
   const [attachedFiles, setAttachedFiles] = React.useState<AttachedFiles[]>(resetData);
@@ -25,8 +31,7 @@ export default forwardRef(function (_, ref) {
   useEffect(() => {
     attachedFilesRef.current = attachedFiles;
   }, [attachedFiles]);
-
-  const inputContext = useInput();
+  
   const uiConfig = useChatAnywhere(v => v.uiConfig);
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('chat-anywhere-sender');
