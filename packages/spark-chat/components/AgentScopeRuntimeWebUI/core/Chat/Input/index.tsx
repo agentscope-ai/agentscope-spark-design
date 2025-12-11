@@ -40,7 +40,7 @@ export default function Input(props: InputProps) {
     const next = await beforeSubmit();
     if (!next) return;
 
-    props.onSubmit({ query: getContent(), fileList: getFileList?.() || [] });
+    props.onSubmit({ query: getContent(), fileList: (getFileList?.() || []).filter(i => i.url) });
     setContent('');
     setFileList && setFileList([]);
   }, []);

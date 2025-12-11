@@ -337,13 +337,13 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    * @descriptionEn Actions button list
    */
   list: {
-    icon: React.ReactElement;
+    icon?: React.ReactElement;
     render?: ({
       data,
     }: {
       data: IAgentScopeRuntimeResponse;
     }) => React.ReactElement;
-    onClick: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+    onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
 }
 
