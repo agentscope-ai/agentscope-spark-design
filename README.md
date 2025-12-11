@@ -2,7 +2,7 @@
 
 Alibaba Cloud Feitian Lab UI Component Library - Monorepo Version
 
-[![Deploy Docs](https://github.com/agentscope-ai/agentscope-spark-design/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/agentscope-ai/agentscope-spark-design/actions/workflows/deploy-docs.yml)
+[Deploy Docs](https://github.com/agentscope-ai/agentscope-spark-design/actions/workflows/deploy-docs.yml)
 
 [简体中文](./README.zh-CN.md) | English
 

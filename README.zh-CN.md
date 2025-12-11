@@ -2,7 +2,7 @@
 
 阿里云飞天实验室 UI 组件库 - Monorepo 版本
 
-[![Deploy Docs](https://github.com/agentscope-ai/agentscope-spark-design/actions/workflows/deploy-docs.yml/badge.svg)](https://github.com/agentscope-ai/agentscope-spark-design/actions/workflows/deploy-docs.yml)
+[Deploy Docs](https://github.com/agentscope-ai/agentscope-spark-design/actions/workflows/deploy-docs.yml)
 
 简体中文 | [English](./README.md)
 
