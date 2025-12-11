@@ -1,8 +1,9 @@
 import { OperateCard, useProviderContext, Markdown } from '@agentscope-ai/chat';
-import { Tag } from '@agentscope-ai/design';
-import { SparkBookLine } from '@agentscope-ai/icons';
+import { IconButton, Tag } from '@agentscope-ai/design';
+import { SparkBookLine, SparkDownLine, SparkUpLine } from '@agentscope-ai/icons';
 import { ConfigProvider, Image } from 'antd';
 import { Locale } from "antd/es/locale";
+import { useState } from 'react';
 
 export interface IRagProps {
   /**
@@ -50,7 +51,7 @@ function Images({ images }: { images: string[] }) {
   >
     <Image.PreviewGroup>
       <div className={`${prefixCls}-rag-item-images`}>
-        {images.map((image, index) => <Image src={image} key={index} />)}
+        {images.map((image, index) => <Image src={image} key={index} width={44} height={44} />)}
       </div>
     </Image.PreviewGroup>
   </ConfigProvider>
@@ -58,10 +59,52 @@ function Images({ images }: { images: string[] }) {
 
 }
 
-
-export default function (props: IRagProps) {
+function Item({ item }) {
+  const [open, setOpen] = useState(false);
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('operate-card');
+
+  return <div className={`${prefixCls}-rag-item`}>
+    <div className={`${prefixCls}-rag-item-title`} onClick={() => {
+      setOpen(!open);
+    }}>
+      <span>
+        {item.title}
+      </span>
+      <span style={{ flex: 1 }}></span>
+      {
+        item.score && <Tag color="blue">{item.score}</Tag>
+      }
+
+      <IconButton
+        bordered={false}
+        size="small"
+        icon={open ? <SparkUpLine /> : <SparkDownLine />}
+
+      />
+    </div>
+    {
+      open && <div className={`${prefixCls}-rag-item-content`}>
+        <div>{item.content}</div>
+
+        {
+          item.images && <Images images={item.images} />
+        }
+
+        {
+          item.link ? <a onClick={() => {
+            window.open(item.link, '_blank');
+          }} className={`${prefixCls}-rag-item-footer`} href={item.link} target="_blank">{item.footer}</a> :
+            <div className={`${prefixCls}-rag-item-footer`}>{item.footer}</div>
+        }
+      </div>
+    }
+
+  </div>
+}
+
+
+export default function (props: IRagProps) {
   const { title = '知识库检索', subTitle, defaultOpen = true } = props;
 
   return <OperateCard
@@ -74,30 +117,7 @@ export default function (props: IRagProps) {
       defaultOpen,
       children: <OperateCard.LineBody>
         {props.list.map((item, index) => {
-          return <div key={index} className={`${prefixCls}-rag-item`}>
-            <div className={`${prefixCls}-rag-item-title`}>
-              <span>
-                {item.title}
-              </span>
-              {
-                item.score && <Tag color="blue">{item.score}</Tag>
-              }
-            </div>
-            <div className={`${prefixCls}-rag-item-content`}>
-              <Markdown content={item.content} />
-
-              {
-                item.images && <Images images={item.images} />
-              }
-
-              {
-                item.link ? <a onClick={() => {
-                  window.open(item.link, '_blank');
-                }} className={`${prefixCls}-rag-item-footer`} href={item.link} target="_blank">{item.footer}</a> :
-                  <div className={`${prefixCls}-rag-item-footer`}>{item.footer}</div>
-              }
-            </div>
-          </div>
+          return <Item key={index} item={item} />
         })}
       </OperateCard.LineBody>
     }}

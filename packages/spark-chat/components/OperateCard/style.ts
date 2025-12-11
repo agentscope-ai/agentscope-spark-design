@@ -28,7 +28,7 @@ export default createGlobalStyle`
     }
 
     &-description {
-    overflow: hidden;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: 12px;
@@ -226,7 +226,7 @@ export default createGlobalStyle`
       margin-bottom: 4px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      cursor: pointer;
     }
 
     &-content {
