@@ -15,7 +15,7 @@ export default defineConfig({
   },
   base: process.env.GITHUB_PAGES ? '/sd-doc/' : '/',
   publicPath: process.env.GITHUB_PAGES ? '/sd-doc/' : '/',
-  outputPath: 'dist',
+  outputPath: '../../dist/spark-design',
   hash: false,
   themeConfig: {
     demoTitle: {

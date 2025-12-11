@@ -107,7 +107,7 @@ export default defineConfig({
         buildArgv['def_publish_env'] === 'daily' ? 'dev.' : ''
       }g.alicdn.com/code/npm/@ali/agentscope-ai-chat/${pkg.version}/docs/`
     : '/',
-  outputPath: 'dist/docs',
+  outputPath: '../../dist/spark-chat',
   mfsu: false,
   crossorigin: {},
   themeConfig: {

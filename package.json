@@ -11,6 +11,7 @@
     "build": "cd packages/spark-design && pnpm install && pnpm run build && cd packages/spark-chat && pnpm install && pnpm run build",
     "build:spark-design": "cd packages/spark-design && pnpm install && pnpm run build",
     "build:spark-chat": "cd packages/spark-chat && pnpm install && pnpm run build",
+    "docs:build": "cd packages/spark-design && pnpm install && pnpm run docs:build && cd packages/spark-chat && pnpm install && pnpm run docs:build",
     "lint": "npm run lint:es && npm run lint:css",
     "lint:css": "stylelint --fix \"**/{src,test}/**/*.{css,less}\"",
     "lint:es": "eslint --fix \"**/{src,test}/**/*.{js,jsx,ts,tsx}\"",
