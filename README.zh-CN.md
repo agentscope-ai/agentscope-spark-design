@@ -135,7 +135,7 @@ agentscope-spark-design/
 参见 `.cursor/rules/` 目录下的规则文件：
 
 - `mastergo.mdc` - masterGo 数据处理规则
-- `标准组件列表.mdc` - 标准组件识别规则
+- `commonComponents.mdc` - 标准组件识别规则
 
 ## 🤝 贡献
 

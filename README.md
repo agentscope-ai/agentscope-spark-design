@@ -135,7 +135,7 @@ agentscope-spark-design/
 See rule files in `.cursor/rules/` directory:
 
 - `mastergo.mdc` - MasterGo data processing rules
-- `标准组件列表.mdc` - Standard component identification rules
+- `commonComponents.mdc` - Standard component identification rules
 
 ## 🤝 Contributing
 
