@@ -6257,7 +6257,7 @@ module.exports = __toCommonJS(mcp_exports);
 // package.json
 var package_default = {
   name: "@agentscope-ai/design",
-  version: "1.0.15-rc.0",
+  version: "1.0.17",
   description: "AgentScope Spark Design - UI Library for AgentScope AI",
   repository: {
     type: "git",
@@ -6324,7 +6324,7 @@ var package_default = {
     ahooks: "^3.7.8",
     "antd-style": "^3.7.1",
     dayjs: "^1.11.7",
-    dompurify: "^2.3.8",
+    dompurify: "^2.3.12",
     "js-cookie": "^3.0.5",
     "lodash-es": "^4.17.21",
     "query-string": "^7.1.3",
@@ -6354,7 +6354,7 @@ var package_default = {
     "@vitejs/plugin-react": "^4.3.3",
     "@vitejs/plugin-react-swc": "^3.7.1",
     "@vitest/coverage-istanbul": "2.1.4",
-    "@vitest/ui": "2.1.4",
+    "@vitest/ui": "2.1.9",
     ahooks: "^3.8.1",
     antd: "^5.23.0",
     classnames: "^2.5.1",
