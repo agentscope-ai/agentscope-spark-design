@@ -34,13 +34,14 @@ export default function Input(props: InputProps) {
     uploadIconButton,
     uploadFileListHeader
   } = useAttachments(attachments, { disabled: inputContext.disabled });
-  
+
 
   const handleSubmit = useCallback(async () => {
     const next = await beforeSubmit();
     if (!next) return;
 
-    props.onSubmit({ query: getContent(), fileList: (getFileList?.() || []).filter(i => i.url) });
+    const fileList = (getFileList?.() || []).filter(i => i.response?.url);
+    props.onSubmit({ query: getContent(), fileList });
     setContent('');
     setFileList && setFileList([]);
   }, []);
