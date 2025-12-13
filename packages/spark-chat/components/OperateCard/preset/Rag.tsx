@@ -1,7 +1,7 @@
 import { OperateCard, useProviderContext, Markdown } from '@agentscope-ai/chat';
-import { IconButton, Tag } from '@agentscope-ai/design';
+import { Empty, IconButton, Tag } from '@agentscope-ai/design';
 import { SparkBookLine, SparkDownLine, SparkUpLine } from '@agentscope-ai/icons';
-import { ConfigProvider, Image } from 'antd';
+import { ConfigProvider, Flex, Image } from 'antd';
 import { Locale } from "antd/es/locale";
 import { useState } from 'react';
 
@@ -37,6 +37,12 @@ export interface IRagProps {
    * @default true
    */
   defaultOpen?: boolean;
+  /**
+   * @description 空状态占位内容
+   * @descriptionEn Empty Placeholder
+   * @default '暂无数据'
+   */
+  placeholder?: string;
 }
 
 function Images({ images }: { images: string[] }) {
@@ -105,7 +111,9 @@ function Item({ item }) {
 
 
 export default function (props: IRagProps) {
-  const { title = '知识库检索', subTitle, defaultOpen = true } = props;
+  const { title = '知识库检索', subTitle, defaultOpen = true, placeholder = '未查询到与提问相关知识库' } = props;
+  const { getPrefixCls } = useProviderContext();
+  const prefixCls = getPrefixCls('operate-card');
 
   return <OperateCard
     header={{
@@ -116,9 +124,14 @@ export default function (props: IRagProps) {
     body={{
       defaultOpen,
       children: <OperateCard.LineBody>
-        {props.list.map((item, index) => {
-          return <Item key={index} item={item} />
-        })}
+        {
+          props.list.length ? props.list.map((item, index) => {
+            return <Item key={index} item={item} />
+          }) : <Flex vertical align="center" justify="center">
+            <Empty type="noData" size={160} />
+            {placeholder && <div className={`${prefixCls}-rag-empty-placeholder`}>{placeholder}</div>}
+          </Flex>
+        }
       </OperateCard.LineBody>
     }}
   />

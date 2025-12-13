@@ -216,6 +216,14 @@ export default createGlobalStyle`
     
   }
 
+  &-rag-empty-placeholder {
+    margin-top: -24px;
+    font-size: 12px;
+    line-height: 20px;
+    color: ${(p) => p.theme.colorTextTertiary};
+    padding-bottom: 16px;
+  }
+
   &-rag-item {
     margin-left: 16px;
 

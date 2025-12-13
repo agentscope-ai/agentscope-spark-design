@@ -1,7 +1,8 @@
 import { Rag } from '@agentscope-ai/chat';
+import { Flex } from 'antd';
 
 export default function () {
-  return <Rag
+  return <Flex vertical gap={16}><Rag
     subTitle="GPT-5技术博客、行业分析、技术特性"
     list={[
       {
@@ -16,4 +17,10 @@ export default function () {
       { title: '【文档库】GPT-5 技术特性', content: 'Aliyun Bailianis a product offered by Alibaba Cloud, which is the cloud computing arm of Alibaba Group. Bailian is a high-performance AI development platform designed to help users build, deploy, and manage machine learning models and AI applications more efficiently.', footer: '来源文档：（真）拟定稿。GPT 的制度研究' },
     ]}
   />
+
+    <Rag
+      subTitle="GPT-5技术博客、行业分析、技术特性"
+      list={[]}
+    />
+  </Flex>
 }
