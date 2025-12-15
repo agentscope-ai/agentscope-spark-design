@@ -15,7 +15,7 @@ class PlaceholderWidget extends WidgetType {
   }
 
   eq(other: PlaceholderWidget) {
-    return other.name == this.name;
+    return other.name === this.name;
   }
 
   toDOM() {

@@ -1,0 +1,87 @@
+name: publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_design:
+        description: "是否发布 @agentscope-ai/design"
+        required: true
+        type: boolean
+        default: true
+      publish_chat:
+        description: "是否发布 @agentscope-ai/chat"
+        required: true
+        type: boolean
+        default: true
+      dry_run:
+        description: "是否仅 dry-run（不真正发布到 npm）"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish @agentscope-ai/design if needed
+        if: ${{ inputs.publish_design }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME="$(node -p "require('./packages/spark-design/package.json').name")"
+          VERSION="$(node -p "require('./packages/spark-design/package.json').version")"
+          echo "checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "skip: $NAME@$VERSION already exists on npm"
+          else
+            cd packages/spark-design
+            npm install -g pnpm@9
+            pnpm install --frozen-lockfile
+            pnpm run build
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              npm publish --access public --dry-run
+            else
+              npm publish --access public
+            fi
+          fi
+
+      - name: Publish @agentscope-ai/chat if needed
+        if: ${{ inputs.publish_chat }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME="$(node -p "require('./packages/spark-chat/package.json').name")"
+          VERSION="$(node -p "require('./packages/spark-chat/package.json').version")"
+          echo "checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "skip: $NAME@$VERSION already exists on npm"
+          else
+            cd packages/spark-chat
+            npm ci
+            npm run src:build
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              npm publish --access public --dry-run
+            else
+              npm publish --access public
+            fi
+          fi
+
+
