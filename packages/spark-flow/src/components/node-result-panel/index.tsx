@@ -83,25 +83,25 @@ const ResultContent = (props: {
 
 const NodeResultPanel = (props: INodeResultPanelProps) => {
   const [expand, setExpand] = useState(false);
-  const isBatch = props.data.isBatch && !!props.data.batches;
+  const batch = props.data.batch && !!props.data.batches;
   const [batchIndex, setBatchIndex] = useState(1);
 
   const inputContent = useMemo(() => {
-    if (isBatch) {
+    if (batch) {
       return props.data.batches[batchIndex - 1]?.input;
     }
     return props.data.input;
   }, [props.data, batchIndex]);
 
   const outputContent = useMemo(() => {
-    if (isBatch) {
+    if (batch) {
       return props.data.batches[batchIndex - 1]?.output;
     }
     return props.data.output;
   }, [props.data, batchIndex]);
 
   const errorInfoContent = useMemo(() => {
-    if (isBatch) {
+    if (batch) {
       return props.data.batches[batchIndex - 1]?.errorInfo;
     }
     return props.data.errorInfo;
@@ -143,7 +143,7 @@ const NodeResultPanel = (props: INodeResultPanelProps) => {
             <SparkUpLine className="text-base spark-flow-node-result-expand-icon" />
           )}
         </div>
-        {expand && isBatch && (
+        {expand && batch && (
           <Pagination
             current={batchIndex}
             total={props.data.batches.length}

@@ -183,7 +183,7 @@ export interface IWorkFlowTaskResultItem {
 }
 
 export interface IWorkFlowNodeResultItem {
-  isBatch: boolean;
+  batch: boolean;
   retry?: {
     happened: boolean;
     retryTimes: number;
@@ -196,7 +196,7 @@ export interface IWorkFlowNodeResultItem {
     totalTokens: number;
   }[];
   batches: IWorkFlowNodeResultItem[];
-  isMultiBranch: boolean;
+  multiBranch: boolean;
   multiBranchResults?: {
     conditionId: string;
     targetIds: string[];
