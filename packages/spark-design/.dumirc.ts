@@ -15,7 +15,7 @@ export default defineConfig({
   },
   base: process.env.GITHUB_PAGES ? '/agentscope-spark-design/' : '/',
   publicPath: process.env.GITHUB_PAGES ? '/agentscope-spark-design/' : '/',
-  outputPath: process.env.GITHUB_PAGES ? '../../dist' : '../../dist/spark-design',
+  outputPath: '../../dist/spark-design',
   hash: false,
   themeConfig: {
     demoTitle: {

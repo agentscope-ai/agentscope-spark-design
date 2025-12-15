@@ -42,6 +42,9 @@ jobs:
           npm ci
           GITHUB_PAGES=true npm run docs:build
 
+      - name: Generate root index.html redirect
+        run: node scripts/generate-docs-index.js
+
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
