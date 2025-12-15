@@ -88,10 +88,6 @@ const createCompletionSource = (inputParams: INodeDataInputParamItem[]) => {
       return null;
     }
 
-    // 恢复原来的匹配逻辑：匹配任意单词字符
-    const word = context.matchBefore(/\w*/);
-    if (!word) return null;
-
     const completions = [
       ...inputParams.map((param) => ({
         label: `params.${param.key}`,
@@ -99,6 +95,19 @@ const createCompletionSource = (inputParams: INodeDataInputParamItem[]) => {
         info: `Params parameter: ${param.key} (${param.type})`,
       })),
     ];
+
+    // 检查是否是 / 触发的补全
+    const slashMatch = context.matchBefore(/\/\w*/);
+    if (slashMatch) {
+      return {
+        from: slashMatch.from + 1, // 从 / 后面开始替换，保留 /
+        options: completions,
+      };
+    }
+
+    // 正常的单词补全：使用 \w+ 确保至少有一个字符，避免特殊字符触发
+    const word = context.matchBefore(/\w+/);
+    if (!word) return null;
 
     return {
       from: word.from,

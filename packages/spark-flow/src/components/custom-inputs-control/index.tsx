@@ -3,6 +3,7 @@ import { INodeDataInputParamItem, IValueType } from '@/types/work-flow';
 import { extractVariables, matchVariableFromVarItem } from '@/utils';
 import {
   Button,
+  Form,
   getCommonConfig,
   Input,
   Select,
@@ -17,7 +18,7 @@ import {
 } from '@agentscope-ai/icons';
 import { theme, Typography } from 'antd';
 import classNames from 'classnames';
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo } from 'react';
 import FlowIcon from '../flow-icon';
 import VariableInput, { VariableBaseInput } from '../variable-input';
 import VariableTreeSelect, {
@@ -339,11 +340,81 @@ export const VALUE_FROM_OPTIONS = [
   },
 ];
 
+/**
+ * 创建变量名验证规则
+ * @param allValues 所有变量的值数组，用于检查重复
+ * @param currentIndex 当前编辑的变量索引
+ */
+const createVariableNameRules = (
+  allValues: INodeDataInputParamItem[],
+  currentIndex: number,
+) => [
+  {
+    validator: (_: any, value: string) => {
+      if (!value || value.trim() === '') {
+        return Promise.resolve();
+      }
+
+      // 检查是否以数字开头
+      if (/^\d/.test(value)) {
+        return Promise.reject(
+          new Error(
+            $i18n.get({
+              id: 'spark-flow.components.CustomInputsControl.index.variableNameCannotStartWithNumber',
+              dm: '变量名不能以数字开头',
+            }),
+          ),
+        );
+      }
+
+      // 检查是否包含非法字符
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+        return Promise.reject(
+          new Error(
+            $i18n.get({
+              id: 'spark-flow.components.CustomInputsControl.index.variableNameOnlyAllowLettersNumbersUnderscores',
+              dm: '变量名只能包含字母、数字和下划线',
+            }),
+          ),
+        );
+      }
+
+      // 检查是否重复
+      const isDuplicate = allValues.some(
+        (item, index) =>
+          index !== currentIndex && item.key === value && item.key !== '',
+      );
+      if (isDuplicate) {
+        return Promise.reject(
+          new Error(
+            $i18n.get({
+              id: 'spark-flow.components.CustomInputsControl.index.variableNameDuplicate',
+              dm: '变量名不能重复',
+            }),
+          ),
+        );
+      }
+
+      return Promise.resolve();
+    },
+  },
+];
+
 export default memo(function CustomInputsControl(
   props: ICustomInputsControlProps,
 ) {
   const { value = [] as INodeDataInputParamItem[] } = props;
   const { token } = theme.useToken();
+  const [form] = Form.useForm();
+
+  // 同步 value 到 form
+  useEffect(() => {
+    const formValues: Record<string, string> = {};
+    value.forEach((item, index) => {
+      formValues[`var_${index}`] = item.key;
+    });
+    form.setFieldsValue(formValues);
+  }, [value, form]);
 
   const changeRowValue = useCallback(
     (ind: number, payload: Partial<INodeDataInputParamItem>) => {
@@ -378,7 +449,7 @@ export default memo(function CustomInputsControl(
   const { antPrefix } = getCommonConfig();
 
   return (
-    <>
+    <Form form={form} component={false}>
       <div className="spark-flow-inputs-form-label flex gap-[8px]">
         <div style={{ width: props.disabledValueFrom ? 146 : 84 }}>
           {$i18n.get({
@@ -406,27 +477,31 @@ export default memo(function CustomInputsControl(
           key={index}
           className="spark-flow-inputs-form-item flex gap-[8px] items-stretch w-full"
         >
-          <Input
-            style={{ width: props.disabledValueFrom ? 146 : 84 }}
-            className="flex-shrink-0"
-            value={item.key}
-            placeholder={$i18n.get({
-              id: 'spark-flow.components.CustomInputsControl.index.enterVariableName',
-              dm: '请输入变量名',
-            })}
-            onChange={(e) => changeRowValue(index, { key: e.target.value })}
-            disabled={props.disabled || props.disabledKey}
-            suffix={
-              item.required ? (
-                <span
-                  className="text-[14px]"
-                  style={{ color: token.colorError }}
-                >
-                  *
-                </span>
-              ) : null
-            }
-          />
+          <Form.Item
+            name={`var_${index}`}
+            style={{ width: props.disabledValueFrom ? 146 : 84, marginBottom: 0, flexShrink: 0 }}
+            validateTrigger={['onChange', 'onBlur']}
+            rules={createVariableNameRules(value, index)}
+          >
+            <Input
+              placeholder={$i18n.get({
+                id: 'spark-flow.components.CustomInputsControl.index.enterVariableName',
+                dm: '请输入变量名',
+              })}
+              onChange={(e) => changeRowValue(index, { key: e.target.value })}
+              disabled={props.disabled || props.disabledKey}
+              suffix={
+                item.required ? (
+                  <span
+                    className="text-[14px]"
+                    style={{ color: token.colorError }}
+                  >
+                    *
+                  </span>
+                ) : null
+              }
+            />
+          </Form.Item>
           {!props.disabledValueFrom && (
             <Select
               style={{ width: 60 }}
@@ -483,6 +558,6 @@ export default memo(function CustomInputsControl(
           })}
         </Button>
       )}
-    </>
+    </Form>
   );
 });
