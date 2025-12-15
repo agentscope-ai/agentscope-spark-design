@@ -438,7 +438,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const contextValue = {
     prefixCls: actionBtnCls,
     onSend: triggerSend,
-    onSendDisabled: !innerValue || sendDisabled,
+    onSendDisabled: !innerValue || !innerValue.trim() || sendDisabled,
     onClear: triggerClear,
     onClearDisabled: !innerValue,
     onCancel,
