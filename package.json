@@ -11,7 +11,7 @@
     "build": "cd packages/spark-design && pnpm install && pnpm run build && pnpm run build:mcp && cd ../spark-chat && npm ci && npm run build",
     "build:spark-design": "cd packages/spark-design && pnpm install && pnpm run build",
     "build:spark-chat": "cd packages/spark-chat && npm ci && npm run build",
-    "docs:build": "cd packages/spark-design && pnpm install && pnpm run docs:build && cd ../spark-chat && npm ci && npm run docs:build",
+    "docs:build": "cd packages/spark-design && pnpm install && pnpm run docs:build && cd ../spark-chat && npm ci && npm run docs:build && cd ../.. && node scripts/generate-docs-index.js",
     "test": "cd packages/spark-design && pnpm install && pnpm run test && cd ../spark-chat && npm ci && npm run test",
     "lint": "npm run lint:es && npm run lint:css",
     "lint:css": "stylelint --fix --allow-empty-input \"**/{src,test}/**/*.{css,less}\"",
