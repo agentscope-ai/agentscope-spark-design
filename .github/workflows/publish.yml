@@ -1,10 +1,23 @@
 name: publish
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish_design:
+        description: "是否发布 @agentscope-ai/design"
+        required: true
+        type: boolean
+        default: true
+      publish_chat:
+        description: "是否发布 @agentscope-ai/chat"
+        required: true
+        type: boolean
+        default: true
+      dry_run:
+        description: "是否仅 dry-run（不真正发布到 npm）"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,6 +40,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Publish @agentscope-ai/design if needed
+        if: ${{ inputs.publish_design }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -41,10 +55,15 @@ jobs:
             npm install -g pnpm@9
             pnpm install --frozen-lockfile
             pnpm run build
-            npm publish --access public
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              npm publish --access public --dry-run
+            else
+              npm publish --access public
+            fi
           fi
 
       - name: Publish @agentscope-ai/chat if needed
+        if: ${{ inputs.publish_chat }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -58,7 +77,11 @@ jobs:
             cd packages/spark-chat
             npm ci
             npm run src:build
-            npm publish --access public
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              npm publish --access public --dry-run
+            else
+              npm publish --access public
+            fi
           fi
 
 

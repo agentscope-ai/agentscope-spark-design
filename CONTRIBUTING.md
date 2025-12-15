@@ -101,7 +101,7 @@ PR 必须满足：
 
 当发版 PR 合并到 `main` 后：
 - CI 自动构建
-- CI 自动发布 npm（见 `.github/workflows/publish.yml`）
+- 由维护者 **手动触发** npm 发布（见 `.github/workflows/publish.yml` 的 `workflow_dispatch`）
 - CI 自动部署文档到 `gh-pages`（见 `.github/workflows/deploy-docs.yml`）
 
 ### 3.3 回灌到 dev
