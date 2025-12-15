@@ -13,9 +13,9 @@ export default defineConfig({
     '@ant-design/icons': ['@agentscope-ai/icons-override-antd'],
     '@ant-design/icons-svg': ['@agentscope-ai/icons-svg-override-antd'],
   },
-  base: process.env.GITHUB_PAGES ? '/sd-doc/' : '/',
-  publicPath: process.env.GITHUB_PAGES ? '/sd-doc/' : '/',
-  outputPath: '../../dist/spark-design',
+  base: process.env.GITHUB_PAGES ? '/agentscope-spark-design/' : '/',
+  publicPath: process.env.GITHUB_PAGES ? '/agentscope-spark-design/' : '/',
+  outputPath: process.env.GITHUB_PAGES ? '../../dist' : '../../dist/spark-design',
   hash: false,
   themeConfig: {
     demoTitle: {

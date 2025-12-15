@@ -1,0 +1,64 @@
+name: publish
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish @agentscope-ai/design if needed
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME="$(node -p "require('./packages/spark-design/package.json').name")"
+          VERSION="$(node -p "require('./packages/spark-design/package.json').version")"
+          echo "checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "skip: $NAME@$VERSION already exists on npm"
+          else
+            cd packages/spark-design
+            npm install -g pnpm@9
+            pnpm install --frozen-lockfile
+            pnpm run build
+            npm publish --access public
+          fi
+
+      - name: Publish @agentscope-ai/chat if needed
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          NAME="$(node -p "require('./packages/spark-chat/package.json').name")"
+          VERSION="$(node -p "require('./packages/spark-chat/package.json').version")"
+          echo "checking $NAME@$VERSION"
+
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "skip: $NAME@$VERSION already exists on npm"
+          else
+            cd packages/spark-chat
+            npm ci
+            npm run src:build
+            npm publish --access public
+          fi
+
+
