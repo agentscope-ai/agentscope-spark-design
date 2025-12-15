@@ -87,7 +87,7 @@ export default defineConfig({
   },
   metas: [{ name: 'aplus-core', content: 'aplus.js' }],
   history: {
-    type: 'hash',
+    type: isGhPages ? 'browser' : 'hash',
   },
   base: isGhPages ? ghPagesChatBase : '/',
   headScripts: [
