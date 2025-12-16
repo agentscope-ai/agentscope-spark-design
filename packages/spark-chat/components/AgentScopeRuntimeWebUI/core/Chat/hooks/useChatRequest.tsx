@@ -73,7 +73,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           'Authorization': `Bearer ${currentApiOptions.token || ''}`,
         },
         body: JSON.stringify({
-          input: historyMessages,
+          input: historyMessages.slice(-1),
           session_id: getCurrentSessionId(),
           stream: true,
         }),
