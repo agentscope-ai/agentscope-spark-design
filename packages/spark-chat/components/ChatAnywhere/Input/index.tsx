@@ -143,6 +143,163 @@ export default forwardRef(function (_, ref) {
 
   const submitFileList = attachedFiles.map(files => files.filter(file => file.status === 'done'));
   const fileLoading = attachedFiles.some(files => files.some(file => file.status === 'uploading'));
+
+  const handlePasteFile = (file: File) => {
+    if (!onUpload?.length) return;
+
+    const fileType = file.type || '';
+    const fileName = file.name || '';
+
+    // Match file type with accept pattern
+    const matchAcceptType = (accept?: string) => {
+      if (!accept) return true;
+
+      return accept.split(',').some(type => {
+        const trimmed = type.trim();
+        if (!trimmed) return false;
+
+        // Extension: .jpg, .png
+        if (trimmed.startsWith('.')) {
+          return fileName.toLowerCase().endsWith(trimmed.toLowerCase());
+        }
+        
+        // Wildcard: image/*, */*
+        if (trimmed.includes('*')) {
+          if (trimmed === '*/*') return true;
+          const [acceptMain] = trimmed.split('/');
+          const [fileMain] = fileType.split('/');
+          return acceptMain === fileMain;
+        }
+        
+        // Exact: image/jpeg
+        return fileType === trimmed;
+      });
+    };
+
+    // Find matching upload config
+    const uploadIndex = onUpload.findIndex(config => matchAcceptType(config.accept));
+    if (uploadIndex === -1) {
+      return;
+    }
+
+    const uploadConfig = onUpload[uploadIndex];
+    const currentFiles = attachedFiles[uploadIndex] || [];
+
+    // Check maxCount limit
+    if (uploadConfig.maxCount && currentFiles.length >= uploadConfig.maxCount) {
+      return;
+    }
+
+    // Check multiple support
+    if (!uploadConfig.multiple && currentFiles.length > 0) {
+      return;
+    }
+
+    // Validate before upload
+    if (uploadConfig.beforeUpload) {
+      const result = uploadConfig.beforeUpload(file as any, [file as any]);
+      if (result === false) {
+        return;
+      }
+      // Handle Promise return from beforeUpload
+      if (result instanceof Promise) {
+        result.then((processedFile) => {
+          if (processedFile === false) {
+            return;
+          }
+          // Continue with processed file or original file
+          // processedFile could be File, Blob, or true
+          const fileToProcess = (processedFile && typeof processedFile === 'object') ? processedFile as File : file;
+          continueUpload(fileToProcess);
+        }).catch((error) => {
+          console.error('beforeUpload promise rejected:', error);
+        });
+        return;
+      }
+    }
+
+    continueUpload(file);
+
+    function continueUpload(fileToUpload: File) {
+      // Extract extension from filename or MIME type
+      const getExtension = () => {
+        const nameMatch = fileName.match(/\.([^.]+)$/);
+        if (nameMatch) return nameMatch[1].toLowerCase();
+        
+        const typeMatch = fileType.match(/\/([^/+]+)/);
+        return typeMatch ? typeMatch[1].toLowerCase() : 'bin';
+      };
+
+      // Create upload file object
+      const timestamp = Date.now();
+      const uploadFile: any = {
+        uid: `paste_${timestamp}_${Math.random().toString(36).slice(2, 11)}`,
+        name: fileName || `pasted-${timestamp}.${getExtension()}`,
+        size: fileToUpload.size,
+        type: fileType,
+        status: 'uploading',
+        percent: 0,
+        originFileObj: fileToUpload,
+      };
+
+      // Update file in list
+      const updateFile = (updates: any) => {
+        setAttachedFiles(prev => {
+          const updated = [...prev];
+          updated[uploadIndex] = (updated[uploadIndex] || []).map(f =>
+            f.uid === uploadFile.uid ? { ...f, ...updates } as any : f
+          );
+          return updated;
+        });
+      };
+
+      // Add file to list first
+      setAttachedFiles(prev => {
+        const updated = [...prev];
+        const currentList = updated[uploadIndex] || [];
+        
+        // If not multiple, replace existing files
+        if (!uploadConfig.multiple) {
+          updated[uploadIndex] = [uploadFile];
+        } else {
+          // If multiple, check maxCount
+          if (uploadConfig.maxCount && currentList.length >= uploadConfig.maxCount) {
+            return prev;
+          }
+          updated[uploadIndex] = [...currentList, uploadFile];
+        }
+        return updated;
+      });
+
+      // Handle image preview (async, don't block upload)
+      if (fileType && fileType.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const result = e.target?.result;
+          if (typeof result === 'string') {
+            updateFile({ thumbUrl: result, url: result });
+          }
+        };
+        reader.readAsDataURL(fileToUpload);
+      }
+
+      // Trigger upload via customRequest
+      uploadConfig.customRequest({
+        file: fileToUpload as any,
+        onSuccess: (response: any) => {
+          updateFile({ status: 'done', response, percent: 100 });
+        },
+        onError: (error: any) => {
+          updateFile({ status: 'error', error });
+        },
+        onProgress: (event: any) => {
+          updateFile({ percent: event.percent });
+        },
+      } as any, {
+        defaultRequest: () => {}
+      });
+    }
+  };
   
   // 检查是否有必需的上传项没有文件
   const requiredFileMissing = useMemo(() => {
@@ -200,6 +357,7 @@ export default forwardRef(function (_, ref) {
         }}
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
+        onPasteFile={handlePasteFile}
         loading={inputContext.loading}
       />
       {
