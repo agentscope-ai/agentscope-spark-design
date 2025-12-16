@@ -1,6 +1,6 @@
 import { OperateCard, useProviderContext, Markdown } from '@agentscope-ai/chat';
 import { Empty, IconButton, Tag } from '@agentscope-ai/design';
-import { SparkBookLine, SparkDownLine, SparkUpLine } from '@agentscope-ai/icons';
+import { SparkBookLine, SparkDownLine, SparkUpLine, SparkWarningCircleFill } from '@agentscope-ai/icons';
 import { ConfigProvider, Flex, Image } from 'antd';
 import { Locale } from "antd/es/locale";
 import { useState } from 'react';
@@ -19,12 +19,24 @@ export interface IRagProps {
    */
   subTitle?: string;
   /**
+   * @description 检索词
+   * @descriptionEn Query
+   */
+  query: string;
+
+  /**
+   * @description 检索词前缀
+   * @descriptionEn Query Title
+   * @default '检索 Query：'
+   */
+  queryTitle?: string;
+  /**
    * @description 召回知识列表
    * @descriptionEn RAG List
    * @default []
    */
   list: {
-    score?: number;
+    score?: number | string;
     title: string;
     content: string;
     footer: string;
@@ -111,9 +123,27 @@ function Item({ item }) {
 
 
 export default function (props: IRagProps) {
-  const { title = '知识库检索', subTitle, defaultOpen = true, placeholder = '未查询到与提问相关知识库' } = props;
+  const {
+    title = '知识库检索',
+    subTitle,
+    defaultOpen = true,
+    placeholder = '未查询到与提问相关知识库',
+    query,
+    queryTitle = '检索 Query：',
+  } = props;
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('operate-card');
+
+
+  const children = props.list.length ? <OperateCard.LineBody>
+    {
+      props.list.map((item, index) => {
+        return <Item key={index} item={item} />
+      })
+    }
+  </OperateCard.LineBody> : <Flex align="center" justify="center" gap={8} className={`${prefixCls}-rag-empty-placeholder`}>
+    <SparkWarningCircleFill /><span>{placeholder}</span>
+  </Flex>
 
   return <OperateCard
     header={{
@@ -123,16 +153,13 @@ export default function (props: IRagProps) {
     }}
     body={{
       defaultOpen,
-      children: <OperateCard.LineBody>
-        {
-          props.list.length ? props.list.map((item, index) => {
-            return <Item key={index} item={item} />
-          }) : <Flex vertical align="center" justify="center">
-            <Empty type="noData" size={160} />
-            {placeholder && <div className={`${prefixCls}-rag-empty-placeholder`}>{placeholder}</div>}
-          </Flex>
-        }
-      </OperateCard.LineBody>
+      children: <>
+        {query && <div className={`${prefixCls}-rag-query`}>
+          <span className={`${prefixCls}-rag-query-title`}>{queryTitle}</span>
+
+          {query}</div>}
+        {children}
+      </>
     }}
   />
 }
