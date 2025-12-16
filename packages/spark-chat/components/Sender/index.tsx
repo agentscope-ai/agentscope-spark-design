@@ -188,9 +188,17 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    * @descriptionEn Allow speech input
    */
   allowSpeech?: boolean;
+  /**
+   * @description 粘贴事件处理函数
+   * @descriptionEn Paste event handler
+   */
+  onPaste?: React.ClipboardEventHandler<HTMLElement>;
+  /**
+   * @description 粘贴文件时的回调函数，当用户粘贴文件时触发
+   * @descriptionEn Callback function when user pastes a file
+   */
+  onPasteFile?: (file: File) => void;
   // prefixCls?: string;
-  // onPaste?: React.ClipboardEventHandler<HTMLElement>;
-  // onPasteFile?: (file: File) => void;
   // components?: SenderComponents;
 }
 
@@ -379,14 +387,25 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   };
 
   const onInternalPaste: React.ClipboardEventHandler<HTMLElement> = (e) => {
-    // Get file
-    const file = e.clipboardData?.files[0];
-    if (file && onPasteFile) {
-      onPasteFile(file);
-      e.preventDefault();
+    if (!onPasteFile) {
+      onPaste?.(e);
+      return;
     }
-
-    onPaste?.(e);
+    // Try to get files from clipboardData.files
+    let files = Array.from(e.clipboardData?.files || []);
+    if (files.length === 0) {
+      const items = Array.from(e.clipboardData?.items || []);
+      files = items
+        .filter(item => item.kind === 'file')
+        .map(item => item.getAsFile())
+        .filter((file): file is File => file !== null);
+    } 
+    if (files.length > 0) {
+      files.forEach(file => onPasteFile(file));
+      e.preventDefault();
+    } else {
+      onPaste?.(e);
+    }
   };
 
   // ============================ Focus =============================
