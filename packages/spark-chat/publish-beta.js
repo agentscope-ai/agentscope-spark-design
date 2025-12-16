@@ -4,7 +4,7 @@ const pkg = require('./package.json');
 
 // 发布
 try {
-  execSync('npm run build', { stdio: 'inherit' });
+  execSync('npm run src:build', { stdio: 'inherit' });
 
   const version = `${pkg.version}-beta.${Date.now()}`;
   execSync(`npm version ${version} --no-git-tag-version`, { stdio: 'inherit' });

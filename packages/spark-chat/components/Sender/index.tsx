@@ -271,7 +271,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
       onFocus?.();
     },
     onBlur: () => {
-      if (!containerRef.current.contains(document.activeElement)) {
+      if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
         setFocus(false);
         onBlur?.();
       }
