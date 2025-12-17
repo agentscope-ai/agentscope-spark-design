@@ -39,7 +39,7 @@ const App: React.FC = () => {
           />
         }
       >
-        <CodeBlock language={'javascript'} value={value} theme="dark" />
+        <CodeBlock language={'javascript'} value={value} />
       </CollapsePanel>
     </Flex>
   );
