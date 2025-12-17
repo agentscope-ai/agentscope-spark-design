@@ -23,13 +23,18 @@ export interface IRagProps {
    * @descriptionEn Query
    */
   query: string;
-
   /**
    * @description 检索词前缀
    * @descriptionEn Query Title
    * @default '检索 Query：'
    */
   queryTitle?: string;
+  /**
+   * @description 检索图片列表
+   * @descriptionEn Query Images
+   * @default []
+   */
+  images?: string[];
   /**
    * @description 召回知识列表
    * @descriptionEn RAG List
@@ -68,9 +73,7 @@ function Images({ images }: { images: string[] }) {
     } as Locale}
   >
     <Image.PreviewGroup>
-      <div className={`${prefixCls}-rag-item-images`}>
-        {images.map((image, index) => <Image src={image} key={index} width={44} height={44} />)}
-      </div>
+      {images.map((image, index) => <Image src={image} key={index} width={44} height={44} />)}
     </Image.PreviewGroup>
   </ConfigProvider>
 
@@ -106,7 +109,10 @@ function Item({ item }) {
         <div>{item.content}</div>
 
         {
-          item.images && <Images images={item.images} />
+          item.images &&
+          <div className={`${prefixCls}-rag-item-images`}>
+            <Images images={item.images} />
+          </div>
         }
 
         {
@@ -130,6 +136,7 @@ export default function (props: IRagProps) {
     placeholder = '未查询到与提问相关知识库',
     query,
     queryTitle = '检索 Query：',
+    images,
   } = props;
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('operate-card');
@@ -156,8 +163,13 @@ export default function (props: IRagProps) {
       children: <>
         {query && <div className={`${prefixCls}-rag-query`}>
           <span className={`${prefixCls}-rag-query-title`}>{queryTitle}</span>
-
-          {query}</div>}
+          {query}
+        </div>}
+        {
+          images?.length && <div className={`${prefixCls}-rag-query-images`}>
+            <Images images={images} />
+          </div>
+        }
         {children}
       </>
     }}
