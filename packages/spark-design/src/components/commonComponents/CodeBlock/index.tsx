@@ -1,4 +1,4 @@
-import { getCommonConfig } from '@agentscope-ai/design';
+import { bailianDarkTheme, bailianTheme, getCommonConfig, ConfigProvider } from '@agentscope-ai/design';
 import { cpp } from '@codemirror/lang-cpp';
 import { css } from '@codemirror/lang-css';
 import { go } from '@codemirror/lang-go';
@@ -13,7 +13,7 @@ import { yaml } from '@codemirror/lang-yaml';
 import { linter, lintGutter } from '@codemirror/lint';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import CodeMirror from '@uiw/react-codemirror';
-import { ConfigProvider, theme } from 'antd';
+import { theme } from 'antd';
 import cls from 'classnames';
 import { omit } from 'lodash-es';
 import React, { useMemo } from 'react';
@@ -93,7 +93,7 @@ const CodeMirrorWrapper = (props: CodeBlockProps) => {
       return vscodeLight;
     }
     return props.theme === 'dark' ? vscodeDark : vscodeLight;
-  }, [isDarkMode]);
+  }, [isDarkMode, props.theme]);
 
   const extensions =
     typeof props.language === 'string'
@@ -108,19 +108,36 @@ const CodeMirrorWrapper = (props: CodeBlockProps) => {
           [],
         );
 
+  const codeMirrorElement = (
+    <div className={cls(`${sparkPrefix}-code-block`, props.className)}>
+      <CodeMirror
+        extensions={extensions}
+        value={
+          props.language === 'json' ? beautifulJson(props.value) : props.value
+        }
+        theme={getTheme}
+        {...omit(props, ['language', 'theme', 'extensions', 'value'])}
+      />
+    </div>
+  );
+
+  if (props.theme !== undefined) {
+    const selectedTheme = props.theme === 'dark' ? bailianDarkTheme : bailianTheme;
+    
+    return (
+      <>
+        <ConfigProvider {...selectedTheme}>
+          <Style />
+          {codeMirrorElement}
+        </ConfigProvider>
+      </>
+    );
+  }
+
   return (
     <>
       <Style />
-      <div className={cls(`${sparkPrefix}-code-block`, props.className)}>
-        <CodeMirror
-          extensions={extensions}
-          value={
-            props.language === 'json' ? beautifulJson(props.value) : props.value
-          }
-          theme={getTheme}
-          {...omit(props, ['language', 'theme', 'extensions', 'value'])}
-        />
-      </div>
+      {codeMirrorElement}
     </>
   );
 };
