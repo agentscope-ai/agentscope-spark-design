@@ -27,7 +27,7 @@ export default function Welcome(props: { onSubmit: (data: { query: string; fileL
     <Style />
     <div className={prefixCls}>
       {
-        avatar && <Avatar src={avatar} shape="square" size={72} />
+        avatar && <Avatar src={avatar} shape="square" size={64} />
       }
       {
         greeting && <div className={`${prefixCls}-greeting`}>{greeting}</div>
@@ -58,7 +58,8 @@ function Prompt(props: { prompt: { label: string; value: string; icon?: React.Re
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-welcome-default');
 
   return <div className={`${prefixCls}-prompt`} onClick={() => props.onSubmit({ query: props.prompt.value })}>
-    <span>
+    <img className={`${prefixCls}-prompt-icon`} src="https://img.alicdn.com/imgextra/i3/O1CN01822qqr1PVyaK7MYtn_!!6000000001847-2-tps-40-40.png" alt=""></img>
+    <span className={`${prefixCls}-prompt-label`}>
       {props.prompt.label}
     </span>
     <SparkRightArrowLine />

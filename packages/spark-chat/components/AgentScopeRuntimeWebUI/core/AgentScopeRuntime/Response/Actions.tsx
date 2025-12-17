@@ -6,6 +6,7 @@ import { copy } from "@agentscope-ai/design";
 import compact from 'lodash/compact';
 import { emit } from "../../Context/useChatAnywhereEventEmitter";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
+import React from "react";
 
 
 function Usage(props: {
@@ -35,15 +36,15 @@ export default function Tools(props: {
   const actions = compact([
     ...actionsOptionsList.map(i => {
       const res = i;
-      if (i.onClick) {
-        res.onClick = () => {
-          i.onClick(props);
+
+      if (i.render) {
+        res.children = React.createElement(i.render, { data: props });
+      }
+      return {
+        ...res, onClick() {
+          i.onClick?.(props);
         }
       }
-      if (i.render) {
-        res.children = i.render(props);
-      }
-      return res
     }),
     props.isLast ? {
       icon: <SparkReplaceLine />,

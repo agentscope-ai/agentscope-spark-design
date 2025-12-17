@@ -4,25 +4,34 @@ import { IconButton } from "@agentscope-ai/design";
 import { SparkAttachmentLine } from "@agentscope-ai/icons";
 import { Sender, Attachments } from '@agentscope-ai/chat';
 import { useGetState } from "ahooks";
+import React from "react";
 
 export default function useAttachments(
-  attachments: IAgentScopeRuntimeWebUISenderAttachmentsOptions
+  attachments: IAgentScopeRuntimeWebUISenderAttachmentsOptions,
+  options?: {
+    disabled?: boolean;
+  }
 ) {
   const [fileList, setFileList, getFileList] = useGetState([]);
+  const { trigger, ...rest } = attachments;
 
-  if (attachments?.customRequest) {
+  if (rest?.customRequest) {
     const uploadIconButton = <Upload
-      customRequest={attachments.customRequest}
       fileList={fileList}
       showUploadList={false}
       onChange={(info) => {
         setFileList(info.fileList);
       }}
+      {...rest}
+      disabled={options?.disabled}
     >
-      <IconButton
-        icon={<SparkAttachmentLine />}
-        bordered={false}
-      />
+      {
+        trigger ? React.createElement(trigger, { disabled: options?.disabled }) : <IconButton
+          disabled={options?.disabled}
+          icon={<SparkAttachmentLine />}
+          bordered={false}
+        />
+      }
     </Upload>
 
 

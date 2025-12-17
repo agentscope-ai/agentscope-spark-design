@@ -28,7 +28,7 @@ export default createGlobalStyle`
     }
 
     &-description {
-    overflow: hidden;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: 12px;
@@ -216,6 +216,28 @@ export default createGlobalStyle`
     
   }
 
+  &-rag-empty-placeholder {
+    padding: 16px 0;
+    border: 1px solid ${(p) => p.theme.colorBorderSecondary};
+    border-radius: 6px;
+    background-color: ${(p) => p.theme.colorBgBase};
+    line-height: 20px;
+    font-size: 12px;
+    color: ${(p) => p.theme.colorTextSecondary};
+    margin: 0 12px 12px 12px;
+  }
+
+  &-rag-query {
+    margin: 0 12px 12px 12px;
+    line-height: 20px;
+    font-size: 12px;
+    color: ${(p) => p.theme.colorTextSecondary};
+
+    &-title {
+      font-weight: 500;
+    }
+  }
+
   &-rag-item {
     margin-left: 16px;
 
@@ -226,7 +248,7 @@ export default createGlobalStyle`
       margin-bottom: 4px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      cursor: pointer;
     }
 
     &-content {

@@ -205,12 +205,15 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
  * @description 附件配置选项
  * @descriptionEn Attachments configuration options
  */
-export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions {
+export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
+  extends UploadProps {
   /**
-   * @description 自定义上传请求
-   * @descriptionEn Custom upload request
+   * @description 触发器
+   * @descriptionEn Trigger
    */
-  customRequest?: UploadProps['customRequest'];
+  trigger?: React.FC<{
+    disabled?: boolean;
+  }>;
 }
 
 /**
@@ -334,9 +337,13 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    * @descriptionEn Actions button list
    */
   list: {
-    icon: React.ReactElement;
-    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
-    onClick: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+    icon?: React.ReactElement;
+    render?: ({
+      data,
+    }: {
+      data: IAgentScopeRuntimeResponse;
+    }) => React.ReactElement;
+    onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
 }
 

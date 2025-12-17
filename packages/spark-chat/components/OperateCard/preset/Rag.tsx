@@ -1,8 +1,9 @@
 import { OperateCard, useProviderContext, Markdown } from '@agentscope-ai/chat';
-import { Tag } from '@agentscope-ai/design';
-import { SparkBookLine } from '@agentscope-ai/icons';
-import { ConfigProvider, Image } from 'antd';
+import { Empty, IconButton, Tag } from '@agentscope-ai/design';
+import { SparkBookLine, SparkDownLine, SparkUpLine, SparkWarningCircleFill } from '@agentscope-ai/icons';
+import { ConfigProvider, Flex, Image } from 'antd';
 import { Locale } from "antd/es/locale";
+import { useState } from 'react';
 
 export interface IRagProps {
   /**
@@ -18,12 +19,24 @@ export interface IRagProps {
    */
   subTitle?: string;
   /**
+   * @description 检索词
+   * @descriptionEn Query
+   */
+  query: string;
+
+  /**
+   * @description 检索词前缀
+   * @descriptionEn Query Title
+   * @default '检索 Query：'
+   */
+  queryTitle?: string;
+  /**
    * @description 召回知识列表
    * @descriptionEn RAG List
    * @default []
    */
   list: {
-    score?: number;
+    score?: number | string;
     title: string;
     content: string;
     footer: string;
@@ -36,6 +49,12 @@ export interface IRagProps {
    * @default true
    */
   defaultOpen?: boolean;
+  /**
+   * @description 空状态占位内容
+   * @descriptionEn Empty Placeholder
+   * @default '暂无数据'
+   */
+  placeholder?: string;
 }
 
 function Images({ images }: { images: string[] }) {
@@ -50,7 +69,7 @@ function Images({ images }: { images: string[] }) {
   >
     <Image.PreviewGroup>
       <div className={`${prefixCls}-rag-item-images`}>
-        {images.map((image, index) => <Image src={image} key={index} />)}
+        {images.map((image, index) => <Image src={image} key={index} width={44} height={44} />)}
       </div>
     </Image.PreviewGroup>
   </ConfigProvider>
@@ -58,11 +77,73 @@ function Images({ images }: { images: string[] }) {
 
 }
 
-
-export default function (props: IRagProps) {
+function Item({ item }) {
+  const [open, setOpen] = useState(false);
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('operate-card');
-  const { title = '知识库检索', subTitle, defaultOpen = true } = props;
+
+  return <div className={`${prefixCls}-rag-item`}>
+    <div className={`${prefixCls}-rag-item-title`} onClick={() => {
+      setOpen(!open);
+    }}>
+      <span>
+        {item.title}
+      </span>
+      <span style={{ flex: 1 }}></span>
+      {
+        item.score && <Tag color="blue">{item.score}</Tag>
+      }
+
+      <IconButton
+        bordered={false}
+        size="small"
+        icon={open ? <SparkUpLine /> : <SparkDownLine />}
+
+      />
+    </div>
+    {
+      open && <div className={`${prefixCls}-rag-item-content`}>
+        <div>{item.content}</div>
+
+        {
+          item.images && <Images images={item.images} />
+        }
+
+        {
+          item.link ? <a onClick={() => {
+            window.open(item.link, '_blank');
+          }} className={`${prefixCls}-rag-item-footer`} href={item.link} target="_blank">{item.footer}</a> :
+            <div className={`${prefixCls}-rag-item-footer`}>{item.footer}</div>
+        }
+      </div>
+    }
+
+  </div>
+}
+
+
+export default function (props: IRagProps) {
+  const {
+    title = '知识库检索',
+    subTitle,
+    defaultOpen = true,
+    placeholder = '未查询到与提问相关知识库',
+    query,
+    queryTitle = '检索 Query：',
+  } = props;
+  const { getPrefixCls } = useProviderContext();
+  const prefixCls = getPrefixCls('operate-card');
+
+
+  const children = props.list.length ? <OperateCard.LineBody>
+    {
+      props.list.map((item, index) => {
+        return <Item key={index} item={item} />
+      })
+    }
+  </OperateCard.LineBody> : <Flex align="center" justify="center" gap={8} className={`${prefixCls}-rag-empty-placeholder`}>
+    <SparkWarningCircleFill /><span>{placeholder}</span>
+  </Flex>
 
   return <OperateCard
     header={{
@@ -72,34 +153,13 @@ export default function (props: IRagProps) {
     }}
     body={{
       defaultOpen,
-      children: <OperateCard.LineBody>
-        {props.list.map((item, index) => {
-          return <div key={index} className={`${prefixCls}-rag-item`}>
-            <div className={`${prefixCls}-rag-item-title`}>
-              <span>
-                {item.title}
-              </span>
-              {
-                item.score && <Tag color="blue">{item.score}</Tag>
-              }
-            </div>
-            <div className={`${prefixCls}-rag-item-content`}>
-              <Markdown content={item.content} />
+      children: <>
+        {query && <div className={`${prefixCls}-rag-query`}>
+          <span className={`${prefixCls}-rag-query-title`}>{queryTitle}</span>
 
-              {
-                item.images && <Images images={item.images} />
-              }
-
-              {
-                item.link ? <a onClick={() => {
-                  window.open(item.link, '_blank');
-                }} className={`${prefixCls}-rag-item-footer`} href={item.link} target="_blank">{item.footer}</a> :
-                  <div className={`${prefixCls}-rag-item-footer`}>{item.footer}</div>
-              }
-            </div>
-          </div>
-        })}
-      </OperateCard.LineBody>
+          {query}</div>}
+        {children}
+      </>
     }}
   />
 }

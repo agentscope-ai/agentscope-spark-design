@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import sessionApi from './sessionApi';
 import defaultConfig from './OptionsPanel/defaultConfig';
 import { useLocalStorageState } from 'ahooks';
+import Weather from './Weather';
 
 export default function () {
 
@@ -26,6 +27,9 @@ export default function () {
 
     return {
       ...optionsConfig,
+      customToolRenderConfig: {
+        // 'weather search mock': Weather,
+      },
       session: {
         multiple: true,
         api: sessionApi,

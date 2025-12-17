@@ -188,9 +188,11 @@ class AgentScopeRuntimeResponseBuilder {
   }
 
   handle(data: IAgentScopeRuntimeResponse | IAgentScopeRuntimeMessage | IContent) {
+
     if (data.object === 'response') {
       this.handleResponse(data);
     } else if (data.object === 'message') {
+      if (data.type === AgentScopeRuntimeMessageType.HEARTBEAT) return this.data;
       this.handleMessage(data);
     } else if (data.object === 'content') {
       this.handleContent(data);
