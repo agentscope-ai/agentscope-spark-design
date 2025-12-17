@@ -38,7 +38,8 @@
     "prepare": "npm run dumi:setup",
     "start": "npm run dev",
     "test": "vitest",
-    "publish:manual": "npm run build && npm publish"
+    "publish": "node scripts/publish.js",
+    "publish:beta": "node scripts/publish-beta.js"
   },
   "dependencies": {
     "@agentscope-ai/icons": "^1.0.35",
