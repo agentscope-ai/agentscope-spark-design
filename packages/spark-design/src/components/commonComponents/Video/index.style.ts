@@ -25,12 +25,23 @@ export const useStyle = createGlobalStyle`
 }
 
 .${(p) => p.sparkPrefix}-video-content {
+  position: relative;
   width: 100%;
   height: 100%;
 }
 
 .${(p) => p.sparkPrefix}-video-element {
+  position: relative;
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.${(p) => p.sparkPrefix}-video-poster {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;

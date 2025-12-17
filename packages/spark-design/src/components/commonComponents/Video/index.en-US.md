@@ -1,13 +1,13 @@
 ---
-title: Video 视频
+title: Video
 group:
-  title: 数据录入
+  title: Data Entry
   order: 3
 ---
 
-<DemoTitle title="Video" desc="视频展示"></DemoTitle>
+<DemoTitle title="Video" desc="Video Display"></DemoTitle>
 
-<code src="./demo/demo1.tsx" center>示例</code>
+<code src="./demo/demo1.tsx" center>Example</code>
 
 <Install>import { Video } from '@agentscope-ai/design'</Install>
 
@@ -16,3 +16,4 @@ group:
 <ApiParser source="./index.tsx" id="VideoProps"></ApiParser>
 
 <div data-embed-hidden></div>
+

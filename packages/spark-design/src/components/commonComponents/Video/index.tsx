@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useState, useRef } from 'react';
+import React, { forwardRef, useEffect, useState, useRef, useMemo } from 'react';
 import classNames from 'classnames';
 import MediaPlayerController from '../Audio/Control';
 import { useControllableValue } from 'ahooks';
@@ -13,10 +13,13 @@ type NativeVideoProps = React.DetailedHTMLProps<
 export interface VideoProps extends NativeVideoProps {
   /**
    * @description 鼠标进入时是否自动播放
+   * @descriptionEn mouse enter auto play
+   * @default false
    */
   mouseEnterAutoPlay?: boolean;
   /**
    * @description video内部设置了按钮在暗色背景下的样式，如果有一些操作按钮想继承这个样式可以在这里传入
+   * @descriptionEn video internal sets the style of the buttons in the dark background, if there are some operation buttons that want to inherit this style can be passed in here
    */
   children?: React.ReactNode;
 }
@@ -171,9 +174,13 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
+          {
+            props.poster && <img src={props.poster} alt="poster" className={`${sparkPrefix}-video-poster`} />
+          }
           <video
             ref={combinedRef}
             {...videoProps}
+            controls={false}
             muted={muted}
             className={`${sparkPrefix}-video-element`}
             crossOrigin="anonymous"

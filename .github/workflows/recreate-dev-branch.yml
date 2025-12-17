@@ -1,0 +1,106 @@
+name: Recreate Dev Branch
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+jobs:
+  recreate-dev:
+    # 仅在 PR 被合并且来源分支是 dev 时运行
+    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev'
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Verify we are on main branch
+        run: |
+          CURRENT_BRANCH=$(git branch --show-current)
+          echo "当前分支: $CURRENT_BRANCH"
+          if [ "$CURRENT_BRANCH" != "main" ]; then
+            echo "❌ 错误：不在 main 分支"
+            exit 1
+          fi
+          echo "✅ 确认在 main 分支"
+      
+      - name: Pull latest main
+        run: |
+          echo "📥 拉取最新的 main 分支..."
+          git pull origin main
+      
+      - name: Check if dev branch exists
+        id: check_dev
+        run: |
+          if git ls-remote --heads origin dev | grep -q dev; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "📌 dev 分支存在，将被删除"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "📌 dev 分支不存在，将直接创建"
+          fi
+      
+      - name: Delete old dev branch
+        if: steps.check_dev.outputs.exists == 'true'
+        run: |
+          echo "🗑️ 删除旧的 dev 分支..."
+          git push origin --delete dev
+          echo "✅ 旧 dev 分支已删除"
+      
+      - name: Wait for branch deletion
+        if: steps.check_dev.outputs.exists == 'true'
+        run: |
+          echo "⏳ 等待 2 秒以确保分支完全删除..."
+          sleep 2
+      
+      - name: Create new dev branch from main
+        run: |
+          echo "🌱 从 main 创建新的 dev 分支..."
+          git checkout -b dev
+          git push origin dev
+          echo "✅ 新 dev 分支已创建"
+      
+      - name: Verify new dev branch
+        run: |
+          if git ls-remote --heads origin dev | grep -q dev; then
+            echo "✅ 验证成功：新 dev 分支已存在于远程仓库"
+            MAIN_COMMIT=$(git rev-parse main)
+            DEV_COMMIT=$(git rev-parse origin/dev)
+            echo "📍 main 分支 commit: $MAIN_COMMIT"
+            echo "📍 dev 分支 commit: $DEV_COMMIT"
+            if [ "$MAIN_COMMIT" = "$DEV_COMMIT" ]; then
+              echo "✅ dev 分支与 main 分支同步"
+            else
+              echo "⚠️ 警告：dev 分支与 main 分支不同步"
+            fi
+          else
+            echo "❌ 错误：新 dev 分支创建失败"
+            exit 1
+          fi
+      
+      - name: Summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ dev 分支重建完成"
+          echo "📝 操作摘要："
+          echo "   • PR #${{ github.event.pull_request.number }} 已合并"
+          echo "   • 旧 dev 分支已删除"
+          echo "   • 新 dev 分支已从 main 创建"
+          echo "   • 新 dev 分支与 main 保持同步"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
