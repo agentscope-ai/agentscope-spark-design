@@ -228,13 +228,19 @@ export default createGlobalStyle`
   }
 
   &-rag-query {
-    margin: 0 12px 12px 12px;
+    margin: 0 12px 8px 12px;
     line-height: 20px;
     font-size: 12px;
     color: ${(p) => p.theme.colorTextSecondary};
 
     &-title {
       font-weight: 500;
+    }
+
+    &-images {
+      margin: 0 12px 8px 12px;
+      display: flex;
+      gap: 8px;
     }
   }
 
