@@ -8,7 +8,7 @@
 
 ## 📚 文档
 
-在线文档：**hhttps://sparkdesign.agentscope.io/**
+在线文档：**https://sparkdesign.agentscope.io/**
 
 ## 📦 包含的子包
 

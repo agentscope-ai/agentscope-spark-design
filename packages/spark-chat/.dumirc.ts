@@ -6,6 +6,9 @@ import pkg from './package.json';
 
 const buildArgv = require('yargs-parser')(process.env.BUILD_ARGV_STR || '');
 const env = buildArgv['def_publish_env'];
+const isGhPages = !!process.env.GITHUB_PAGES;
+const ghPagesBase = '/agentscope-spark-design/';
+const ghPagesChatBase = `${ghPagesBase}spark-chat/`;
 
 export default defineConfig({
   title: 'Spark Chat',
@@ -84,8 +87,9 @@ export default defineConfig({
   },
   metas: [{ name: 'aplus-core', content: 'aplus.js' }],
   history: {
-    type: 'hash',
+    type: isGhPages ? 'browser' : 'hash',
   },
+  base: isGhPages ? ghPagesChatBase : '/',
   headScripts: [
     `
   (function(w, d, s, q) {
@@ -106,7 +110,9 @@ export default defineConfig({
     ? `https://${
         buildArgv['def_publish_env'] === 'daily' ? 'dev.' : ''
       }g.alicdn.com/code/npm/@ali/agentscope-ai-chat/${pkg.version}/docs/`
-    : '/',
+    : isGhPages
+      ? ghPagesChatBase
+      : '/',
   outputPath: '../../dist/spark-chat',
   mfsu: false,
   crossorigin: {},
