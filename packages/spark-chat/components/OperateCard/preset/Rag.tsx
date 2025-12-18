@@ -161,14 +161,16 @@ export default function (props: IRagProps) {
     body={{
       defaultOpen,
       children: <>
-        {query && <div className={`${prefixCls}-rag-query`}>
-          <span className={`${prefixCls}-rag-query-title`}>{queryTitle}</span>
-          {query}
-        </div>}
         {
-          images?.length && <div className={`${prefixCls}-rag-query-images`}>
+          query ? <div className={`${prefixCls}-rag-query`}>
+            <span className={`${prefixCls}-rag-query-title`}>{queryTitle}</span>
+            {query}
+          </div> : null
+        }
+        {
+          images?.length ? <div className={`${prefixCls}-rag-query-images`}>
             <Images images={images} />
-          </div>
+          </div> : null
         }
         {children}
       </>
