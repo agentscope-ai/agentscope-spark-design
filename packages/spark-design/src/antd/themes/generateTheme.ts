@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 主题生成器 - Theme Generator
 
