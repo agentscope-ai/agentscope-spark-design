@@ -41,6 +41,7 @@ export interface ICustomInputsControlProps {
   defaultType?: IValueType;
   hideAdd?: boolean; // 隐藏添加变量按钮
   hideDelete?: boolean; // 隐藏删除变量按钮
+  noValidate?: boolean; // 禁用变量名验证
 }
 
 export interface IVariableFormCompProps {
@@ -481,7 +482,7 @@ export default memo(function CustomInputsControl(
             name={`var_${index}`}
             style={{ width: props.disabledValueFrom ? 146 : 84, marginBottom: 0, flexShrink: 0 }}
             validateTrigger={['onChange', 'onBlur']}
-            rules={createVariableNameRules(value, index)}
+            rules={props.noValidate ? [] : createVariableNameRules(value, index)}
           >
             <Input
               placeholder={$i18n.get({
