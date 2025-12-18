@@ -68,13 +68,14 @@ const ImageGenerator: React.FC<IImageGeneratorProps> = (props) => {
   const skeleton = props.skeleton || <div className={`${prefixCls}-default-skeleton`} style={{ width: '100%', height: '100%' }}>
     <div
       className={`${prefixCls}-default-skeleton-bg`}
-    />
+    >
+      <div className={`${prefixCls}-default-skeleton-bg-animate`} />
+    </div>
     <div className={`${prefixCls}-default-skeleton-content`}>
       <img
         className={`${prefixCls}-default-skeleton-icon`}
         src="https://img.alicdn.com/imgextra/i2/O1CN01M1X8yM1MWUC7u3Go5_!!6000000001442-54-tps-72-72.apng"
       />
-
       {
         skeletonText && <div className={`${prefixCls}-default-skeleton-text`}>{skeletonText}</div>
       }
