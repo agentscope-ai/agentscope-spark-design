@@ -61,9 +61,8 @@ export default memo(function (props: MarkdownProps) {
     img: props.disableImage ? DisabledImage : Media,
     citation: CitationComponent,
     'custom-cursor': CursorComponent,
-    ...components,
+    ...props.components,
   }), [props.disableImage, CitationComponent, props.components]);
-
 
   const dompurifyConfig = useMemo(() =>
     allowHtml ? {
