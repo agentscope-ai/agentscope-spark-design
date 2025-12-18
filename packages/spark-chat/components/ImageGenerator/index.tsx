@@ -66,10 +66,8 @@ const ImageGenerator: React.FC<IImageGeneratorProps> = (props) => {
   const { block, skeletonText, width = 320, height = 320, src, loadingText = 'Painting...', doneText = 'Paint Completed' } = props;
 
   const skeleton = props.skeleton || <div className={`${prefixCls}-default-skeleton`} style={{ width: '100%', height: '100%' }}>
-    <img
+    <div
       className={`${prefixCls}-default-skeleton-bg`}
-      src="https://img.alicdn.com/imgextra/i2/O1CN01jwLfwV1hPiHfJjQXM_!!6000000004270-2-tps-1155-763.png"
-      alt=""
     />
     <div className={`${prefixCls}-default-skeleton-content`}>
       <img
