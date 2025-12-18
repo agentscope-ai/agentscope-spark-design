@@ -53,10 +53,8 @@ export interface MarkdownProps {
    * @descriptionEn CSS class name for the component
    */
   className?: string;
-
-
-
-
+  
+  components?: XMarkdownProps['components'];
   citations?: {
     title?: string;
     url?: string;
