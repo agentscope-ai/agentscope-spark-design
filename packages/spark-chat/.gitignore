@@ -5,3 +5,4 @@ node_modules
 .dumi/tmp-production
 .DS_Store
 cache
+bin/starter_webui
