@@ -2,7 +2,7 @@ import { SparkCopyLine, SparkReplaceLine } from "@agentscope-ai/icons";
 import { IAgentScopeRuntimeResponse } from "../types";
 import AgentScopeRuntimeResponseBuilder from "./Builder";
 import { Bubble } from "@agentscope-ai/chat";
-import { copy } from "@agentscope-ai/design";
+import { copy, Tooltip } from "@agentscope-ai/design";
 import compact from 'lodash/compact';
 import { emit } from "../../Context/useChatAnywhereEventEmitter";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
@@ -47,7 +47,7 @@ export default function Tools(props: {
       }
     }),
     props.isLast ? {
-      icon: <SparkReplaceLine />,
+      icon: <Tooltip title="重新生成"><SparkReplaceLine /></Tooltip>,
       onClick: () => {
         emit({
           type: 'handleReplace',
