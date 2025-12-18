@@ -3,7 +3,7 @@ import { Empty, IconButton, Tag } from '@agentscope-ai/design';
 import { SparkBookLine, SparkDownLine, SparkUpLine, SparkWarningCircleFill } from '@agentscope-ai/icons';
 import { ConfigProvider, Flex, Image } from 'antd';
 import { Locale } from "antd/es/locale";
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 export interface IRagProps {
   /**
@@ -41,7 +41,7 @@ export interface IRagProps {
    * @default []
    */
   list: {
-    score?: number | string;
+    score?: number | string | ReactNode;
     title: string;
     content: string;
     footer: string;
@@ -94,7 +94,7 @@ function Item({ item }) {
       </span>
       <span style={{ flex: 1 }}></span>
       {
-        item.score && <Tag color="blue">{item.score}</Tag>
+        item.score || null
       }
 
       <IconButton
@@ -106,7 +106,7 @@ function Item({ item }) {
     </div>
     {
       open && <div className={`${prefixCls}-rag-item-content`}>
-        <div>{item.content}</div>
+        <div className={`${prefixCls}-rag-item-content-text`}>{item.content}</div>
 
         {
           item.images &&

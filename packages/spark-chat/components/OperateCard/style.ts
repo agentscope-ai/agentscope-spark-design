@@ -261,6 +261,11 @@ export default createGlobalStyle`
       padding: 8px;
       border-radius: 6px;
       background-color: ${(p) => p.theme.colorFillTertiary};
+
+      &-text {
+        font-size: 12px;
+        line-height: 20px;
+      }
     }
 
     &-images {
