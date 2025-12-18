@@ -94,7 +94,7 @@ function Item({ item }) {
       </span>
       <span style={{ flex: 1 }}></span>
       {
-        item.score && <Tag color="blue">{item.score}</Tag>
+        item.score || null
       }
 
       <IconButton
