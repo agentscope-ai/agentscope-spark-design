@@ -13,7 +13,7 @@ export default function useAttachments(
   }
 ) {
   const [fileList, setFileList, getFileList] = useGetState([]);
-  const { trigger, ...rest } = attachments;
+  const { trigger, ...rest } = attachments || {};
 
   if (rest?.customRequest) {
     const uploadIconButton = <Upload
