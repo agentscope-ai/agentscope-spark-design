@@ -86,3 +86,5 @@ export {
 } from './Markdown';
 
 export { default as AIGC } from './AIGC';
+
+export { Sandbox as GenerativeUISandbox } from './GenerativeUI';
