@@ -234,6 +234,7 @@ export interface IChatAnywhereConfigOnUpload {
    * @descriptionEn Description for the upload component
    */
   description?: string | React.ReactElement;
+  trigger?: React.ReactElement;
 }
 
 export interface IChatAnywhereConfig {

@@ -349,6 +349,14 @@ export default function () {
             url: URL.createObjectURL(options.file as Blob)
           });
         }
+      }, {
+        multiple: false,
+        icon: <SparkAttachmentLine />,
+        customRequest(options) {
+          options.onSuccess({
+            url: URL.createObjectURL(options.file as Blob)
+          });
+        }
       }]}
     ></ChatAnywhere>
   </div>
