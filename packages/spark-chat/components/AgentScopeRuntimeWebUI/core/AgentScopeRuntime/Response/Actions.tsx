@@ -33,6 +33,8 @@ export default function Tools(props: {
     }
   ];
 
+  const replace = useChatAnywhereOptions(v => v.actions?.replace) ?? true;
+
   const actions = compact([
     ...actionsOptionsList.map(i => {
       const res = i;
@@ -46,7 +48,7 @@ export default function Tools(props: {
         }
       }
     }),
-    props.isLast ? {
+    replace && props.isLast ? {
       icon: <Tooltip title="重新生成"><SparkReplaceLine /></Tooltip>,
       onClick: () => {
         emit({

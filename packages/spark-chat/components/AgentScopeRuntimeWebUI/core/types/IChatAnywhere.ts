@@ -345,6 +345,12 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
     }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
+  
+  /**
+   * @description 是否显示重新生成按钮
+   * @descriptionEn Whether to show the replace button
+   */
+  replace?: boolean;
 }
 
 /**
