@@ -8,6 +8,7 @@ import { Button, GetProp, Space, Upload } from 'antd';
 import Style from './style';
 import { IconButton } from '@agentscope-ai/design';
 import { AIGC } from '@agentscope-ai/chat';
+import { PlusOutlined } from '@ant-design/icons';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
 
@@ -115,10 +116,13 @@ export default forwardRef(function (_, ref) {
     });
 
     if (nodes.length === 1) return nodes;
-    return <Popover content={nodes} trigger="click">
-      <Flex vertical>
-        {nodes}
-      </Flex>
+    return <Popover content={<Flex vertical>
+      {nodes}
+    </Flex>} trigger="click">
+      <IconButton
+        icon={<PlusOutlined />}
+        bordered={false}
+      />
     </Popover>
 
 

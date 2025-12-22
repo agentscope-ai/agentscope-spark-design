@@ -69,7 +69,9 @@ const IndexStyle = createGlobalStyle`
   }
 
   &-prefix {
+    width: 0;
     flex: 1;
+    overflow: auto;
   }
 
   &-input {
