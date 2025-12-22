@@ -4,9 +4,9 @@ import { useProviderContext, ChatInput, uuid, Sender, Attachments } from '@agent
 import cls from 'classnames';
 import { useChatAnywhere } from '../hooks/ChatAnywhereProvider';
 import { useInput } from '../hooks/useInput';
-import { Button, GetProp, Space, Upload } from 'antd';
+import { GetProp, Space, Upload } from 'antd';
 import Style from './style';
-import { IconButton } from '@agentscope-ai/design';
+import { IconButton, Button } from '@agentscope-ai/design';
 import { AIGC } from '@agentscope-ai/chat';
 import { PlusOutlined } from '@ant-design/icons';
 
@@ -91,6 +91,23 @@ export default forwardRef(function (_, ref) {
       return [];
     }
     const nodes = onUpload.map((item, index) => {
+
+      let trigger;
+
+      if (item.trigger) {
+        trigger = item.trigger;
+      } else if (item.title || item.description) {
+        trigger = <Button type='text' icon={item.icon} >
+          {item.title && <span>{item.title}</span>}
+          {item.description && <span style={{ fontSize: '0.8em', opacity: 0.8 }}>{item.description}</span>}
+        </Button>
+      } else {
+        trigger = <IconButton
+          icon={item.icon}
+          bordered={false}
+        />
+      }
+
       return <Upload
         {...item}
         fileList={attachedFiles[index]}
@@ -107,10 +124,7 @@ export default forwardRef(function (_, ref) {
         showUploadList={false}
       >
         {
-          item.trigger || <IconButton
-            icon={item.icon}
-            bordered={false}
-          />
+          trigger
         }
       </Upload>
     });
@@ -118,7 +132,7 @@ export default forwardRef(function (_, ref) {
     if (nodes.length === 1) return nodes;
     return <Popover content={<Flex vertical>
       {nodes}
-    </Flex>} trigger="click">
+    </Flex>} trigger="click" styles={{ body: { padding: 4 } }}>
       <IconButton
         icon={<PlusOutlined />}
         bordered={false}
