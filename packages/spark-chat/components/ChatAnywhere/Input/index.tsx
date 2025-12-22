@@ -96,7 +96,7 @@ export default forwardRef(function (_, ref) {
 
       if (item.trigger) {
         trigger = item.trigger;
-      } else if (item.title || item.description) {
+      } else if ((item.title || item.description) && onUpload.length > 1) {
         trigger = <Button type='text' icon={item.icon} >
           {item.title && <span>{item.title}</span>}
           {item.description && <span style={{ fontSize: '0.8em', opacity: 0.8 }}>{item.description}</span>}
