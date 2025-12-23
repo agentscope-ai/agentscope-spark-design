@@ -1,4 +1,4 @@
-"use strict";(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[8682],{80994:function(d,i,n){n.r(i),n.d(i,{default:function(){return o}});var r=n(3297),t=n(52676);function o(){return(0,t.jsx)(r.Z,{width:120,src:"https://img.alicdn.com/imgextra/i1/O1CN01Py27NU1re2pgohzqU_!!6000000005655-0-tps-480-480.jpg"})}},3297:function(d,i,n){n.d(i,{Z:function(){return I}});var r=n(26068),t=n.n(r),o=n(1615),l=n(31209),x=n(20695),g=n(17191),P=n(75271),h=n(53649),j=n.n(h),C=n(88974),c,p=(0,C.Z)(c||(c=j()([`
+"use strict";(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[8682],{10963:function(d,i,n){n.r(i),n.d(i,{default:function(){return o}});var r=n(78899),t=n(52676);function o(){return(0,t.jsx)(r.Z,{width:120,src:"https://img.alicdn.com/imgextra/i1/O1CN01Py27NU1re2pgohzqU_!!6000000005655-0-tps-480-480.jpg"})}},78899:function(d,i,n){n.d(i,{Z:function(){return I}});var r=n(26068),t=n.n(r),o=n(25811),l=n(51886),x=n(20695),g=n(17191),P=n(75271),h=n(53649),j=n.n(h),C=n(75469),c,p=(0,C.Z)(c||(c=j()([`
 .`,`-image {
   border-radius: var(--`,`-border-radius);
   overflow: hidden;
