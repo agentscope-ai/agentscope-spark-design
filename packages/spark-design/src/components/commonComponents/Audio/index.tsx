@@ -10,9 +10,7 @@ type NativeAudioProps = React.DetailedHTMLProps<
   HTMLAudioElement
 >;
 
-export interface AudioProps extends NativeAudioProps {
-  
-}
+export type AudioProps = NativeAudioProps
 
 /**
  * 音频播放器组件
