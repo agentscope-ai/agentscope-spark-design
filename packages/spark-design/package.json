@@ -82,7 +82,7 @@
   "devDependencies": {
     "@alibot/dumi-plugin-llms": "1.0.4",
     "@alibot/dumi-plugin-api-parser": "1.0.3",
-    "@agentscope-ai/dumi-theme-spark": "0.0.98",
+    "@agentscope-ai/dumi-theme-spark": "0.0.99",
     "@modelcontextprotocol/sdk": "1.17.3",
     "@rc-component/util": "1.2.1",
     "@react-spring/web": "^9.7.5",
