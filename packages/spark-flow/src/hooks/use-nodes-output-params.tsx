@@ -204,7 +204,9 @@ export const filterVarItemsByType = (
         };
       }
     }
-    filteredItem && filtered.push(filteredItem);
+    if (filteredItem) {
+      filtered.push(filteredItem);
+    }
     return filtered;
   }, []);
 };

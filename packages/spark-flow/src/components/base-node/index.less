@@ -2,6 +2,7 @@
 
 .spark-flow-node-container {
   --angle: 0deg;
+
   border: 1px solid e('var(--@{ant-prefix}-color-border-secondary)');
   background: e('var(--@{ant-prefix}-color-bg-base)');
   display: flex;
@@ -32,7 +33,7 @@
     }
 
     &.spark-flow-node-container-hovered {
-      box-shadow: 0px 2px 8px 0px rgba(38, 36, 76, 0.3);
+      box-shadow: 0 2px 8px 0 rgba(38, 36, 76, 30%);
       border-color: e('var(--@{ant-prefix}-color-primary)');
     }
   }
@@ -99,7 +100,8 @@
   }
 
   &:hover {
-    box-shadow: 0px 4px 36px 0px rgba(60, 52, 197, 0.08);
+    box-shadow: 0 4px 36px 0 rgba(60, 52, 197, 8%);
+
     .spark-flow-target-handle {
       box-shadow: 0 0 0 2px rgb(105 83 245 / 15%);
       width: 16px;
@@ -227,6 +229,7 @@
 
 .spark-flow-status-icon {
   font-size: 20px;
+
   &-success {
     color: e('var(--@{ant-prefix}-color-success)');
   }
@@ -245,6 +248,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

@@ -375,6 +375,7 @@ export const useNodesInteraction = () => {
     ) => {
       const { nodes, setNodes } = store.getState();
       const sourceNode = nodes.find((item) => item.id === source.id);
+      if (!sourceNode) return;
       const nodeInfo = nodeSchemaMap[type];
       const newNodes: IWorkFlowNode[] = [];
 
@@ -383,8 +384,8 @@ export const useNodesInteraction = () => {
           { type, parentId, disableScreenToFlowPosition: true },
           {
             x:
-              sourceNode?.position.x! + sourceNode?.width! + NEW_NODE_PADDING.x,
-            y: sourceNode?.position.y || 0,
+              sourceNode.position.x + (sourceNode.width ?? 0) + NEW_NODE_PADDING.x,
+            y: sourceNode.position.y || 0,
           },
         );
         if (nodeInfo.isGroup) {
@@ -442,16 +443,16 @@ export const useNodesInteraction = () => {
         const targetNode = nodes.find((item) => item.id === target.id);
         if (!targetNode) return;
         let x =
-          (targetNode.position.x - sourceNode?.position.x!) / 2 +
-          sourceNode?.position.x!;
+          (targetNode.position.x - sourceNode.position.x) / 2 +
+          sourceNode.position.x;
         const y =
-          (targetNode.position.y - sourceNode?.position.y!) / 2 +
-          sourceNode?.position.y!;
+          (targetNode.position.y - sourceNode.position.y) / 2 +
+          sourceNode.position.y;
         if (
           x <=
-          sourceNode?.position.x! + sourceNode?.width! + NEW_NODE_PADDING.x
+          sourceNode.position.x + (sourceNode.width ?? 0) + NEW_NODE_PADDING.x
         ) {
-          x = sourceNode?.position.x! + sourceNode?.width! + NEW_NODE_PADDING.x;
+          x = sourceNode.position.x + (sourceNode.width ?? 0) + NEW_NODE_PADDING.x;
         }
         let newNode = generateNewNode(
           { type, parentId, disableScreenToFlowPosition: true },
