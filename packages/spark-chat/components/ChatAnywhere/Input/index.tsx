@@ -90,7 +90,7 @@ export default forwardRef(function (_, ref) {
     if (onInput.variant === 'aigc' || !onUpload?.length) {
       return [];
     }
-    const nodes = onUpload.map((item, index) => {
+    const uploadPropsList = onUpload.map((item, index) => {
 
       let trigger;
 
@@ -108,11 +108,11 @@ export default forwardRef(function (_, ref) {
         />
       }
 
-      return <Upload
-        {...item}
-        fileList={attachedFiles[index]}
-        key={index}
-        onChange={(info) => {
+      return {
+        ...item,
+        fileList: attachedFiles[index],
+        key: index,
+        onChange: (info) => {
           if (item.beforeUpload && info.file.status) {
             handleFileChange(index, info.fileList)
           }
@@ -120,17 +120,16 @@ export default forwardRef(function (_, ref) {
           if (!item.beforeUpload) {
             handleFileChange(index, info.fileList)
           }
-        }}
-        showUploadList={false}
-      >
-        {
-          trigger
-        }
-      </Upload>
+        },
+        showUploadList: false,
+        children: trigger,
+      }
     });
 
-    if (nodes.length === 1) return nodes;
-    return <UploadPopover nodes={nodes} />
+    if (uploadPropsList.length === 1) return (
+      <Upload {...uploadPropsList[0]} />
+    );
+    return <UploadPopover uploadPropsList={uploadPropsList} />
 
 
 
