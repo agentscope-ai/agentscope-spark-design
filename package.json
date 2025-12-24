@@ -8,7 +8,7 @@
     "prepare": "husky",
     "start:spark-design": "cd packages/spark-design && pnpm install && pnpm run start",
     "start:spark-chat": "cd packages/spark-chat && npm install && npm run start",
-    "build": "cd packages/spark-design && pnpm install && pnpm run build && pnpm run build:mcp && cd ../spark-chat && pnpm i && npm run build && cd ../spark-flow && pnpm i && pm run build",
+    "build": "cd packages/spark-design && pnpm install && pnpm run build && pnpm run build:mcp && cd ../spark-chat && pnpm i && npm run build && cd ../spark-flow && pnpm i && pnpm run build",
     "build:spark-design": "cd packages/spark-design && pnpm install && pnpm run build",
     "build:spark-flow": "cd packages/spark-flow && pnpm install && pnpm run build",
     "build:spark-chat": "cd packages/spark-chat && pnpm i && npm run build",
