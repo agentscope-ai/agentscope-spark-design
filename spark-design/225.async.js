@@ -3379,7 +3379,7 @@ const App: React.FC = () => (
 );
 
 export default App;
-`},43474:function(e,n){n.Z=`import { Slider } from 'antd';
+`},43474:function(e,n){n.Z=`import { Slider } from '@agentscope-ai/design';
 import React from 'react';
 
 const App: React.FC = () => {
@@ -3396,7 +3396,7 @@ const App: React.FC = () => {
 };
 
 export default App;
-`},10611:function(e,n){n.Z=`import { Slider } from 'antd';
+`},10611:function(e,n){n.Z=`import { Slider } from '@agentscope-ai/design';
 import React from 'react';
 
 const App: React.FC = () => {
@@ -3413,7 +3413,7 @@ const App: React.FC = () => {
 };
 
 export default App;
-`},83005:function(e,n){n.Z=`import { Slider } from 'antd';
+`},83005:function(e,n){n.Z=`import { Slider } from '@agentscope-ai/design';
 import React from 'react';
 
 const App: React.FC = () => {
