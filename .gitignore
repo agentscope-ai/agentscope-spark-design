@@ -27,4 +27,6 @@ packages/spark-design/lib
 coverage
 .nyc_output
 
+# Inner files
+packages/spark-flow/publish/**
 .cursor
