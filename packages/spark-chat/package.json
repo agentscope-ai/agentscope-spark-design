@@ -58,6 +58,7 @@
     ]
   },
   "dependencies": {
+    "dayjs": "^1.11.7",
     "@agentscope-ai/design": "^1.0.0",
     "@agentscope-ai/icons": "^1.0.32",
     "@agentscope-ai/icons-override-antd": "^6.0.0",
