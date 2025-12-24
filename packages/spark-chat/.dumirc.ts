@@ -148,6 +148,7 @@ export default defineConfig({
         icon: 'spark-cardAddition-line',
       },
     ]),
+    prefersColor: { default: 'dark', switch: false },
   },
   conventionRoutes: {
     // to avoid generate routes for .dumi/pages/index/components/xx

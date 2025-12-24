@@ -1,0 +1,23 @@
+@import '../../index.less';
+
+.spark-flow-condition-item {
+  border: 1px solid e('var(--@{ant-prefix}-color-border-secondary)');
+  border-radius: 6px;
+
+  &-header {
+    border-bottom: 1px solid e('var(--@{ant-prefix}-color-border-secondary)');
+  }
+
+  .spark-flow-condition-item-divider {
+    height: 20px;
+    margin: 0;
+  }
+
+  &-disabled-label {
+    background: e('var(--@{ant-prefix}-color-fill-secondary)');
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 20px;
+    color: e('var(--@{ant-prefix}-color-text-tertiary)');
+  }
+}

@@ -1,0 +1,28 @@
+
+/* 不引入 base (reset) 样式，避免与项目现有样式冲突 */
+
+/* @tailwind base; */
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .flex-justify-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .full-center {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}

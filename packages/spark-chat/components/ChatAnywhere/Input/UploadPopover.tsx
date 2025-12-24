@@ -1,31 +1,32 @@
 import { IconButton, Popover } from "@agentscope-ai/design";
 import { PlusOutlined } from "@ant-design/icons";
 import { useGetState } from "ahooks";
-import { Flex } from "antd";
-import React from "react";
-import { useEffect, useState } from "react";
-
-
+import { Flex, Upload } from "antd";
+import { useMemo } from "react";
 
 export default function UploadPopover({
-  nodes
+  uploadPropsList
 }: {
-  nodes: React.ReactElement[];
+  uploadPropsList: any[];
 }) {
   const [visible, setVisible, getVisible] = useGetState(false);
 
-  useEffect(() => {
-    const close = () => {
-      if (getVisible()) {
-        setVisible(false);
-      }
-    };
-
-    document.addEventListener('click', close, true);
-    return () => {
-      document.removeEventListener('click', close, true);
-    }
-  }, []);
+  const nodes = useMemo(() => {
+    return uploadPropsList.map((item, index) => {
+      return (
+        <Upload
+          key={index}
+          {...item}
+          customRequest={(v) => {
+            if (item.customRequest) {
+              item.customRequest(v);
+            }
+            setVisible(false);
+          }}
+        />
+      )
+    });
+  }, [uploadPropsList]);
 
   return <Popover
     placement='bottomLeft'

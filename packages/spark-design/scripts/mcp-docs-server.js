@@ -6257,7 +6257,7 @@ module.exports = __toCommonJS(mcp_exports);
 // package.json
 var package_default = {
   name: "@agentscope-ai/design",
-  version: "1.0.17",
+  version: "1.0.20",
   description: "AgentScope Spark Design - UI Library for AgentScope AI",
   repository: {
     type: "git",
@@ -6295,7 +6295,8 @@ var package_default = {
     prepare: "npm run dumi:setup",
     start: "npm run dev",
     test: "vitest",
-    "publish:manual": "npm run build && npm publish"
+    release: "node scripts/publish.js",
+    "release:beta": "node scripts/publish-beta.js"
   },
   dependencies: {
     "@agentscope-ai/icons": "^1.0.35",
@@ -6338,7 +6339,7 @@ var package_default = {
   devDependencies: {
     "@alibot/dumi-plugin-llms": "1.0.4",
     "@alibot/dumi-plugin-api-parser": "1.0.3",
-    "@agentscope-ai/dumi-theme-spark": "0.0.98",
+    "@agentscope-ai/dumi-theme-spark": "0.0.99",
     "@modelcontextprotocol/sdk": "1.17.3",
     "@rc-component/util": "1.2.1",
     "@react-spring/web": "^9.7.5",
