@@ -22,19 +22,34 @@ export default function Footer(props: {
   </>;
 }
 
+interface IAction {
+  icon: string | ReactElement,
+  label?: string,
+  onClick: () => void
+  children?: React.ReactElement;
+}
 
 export function FooterActions(props: {
-  data: { icon: string | ReactElement, label?: string, onClick: () => void }[]
+  data: (IAction)[]
 }) {
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('bubble-footer-actions');
 
   return <div className={prefixCls}>
     {props.data.map((item, index) => {
-      return <IconButton bordered={false} key={index} icon={item.icon} size='small' onClick={item.onClick}></IconButton>
+      if (item.children) {
+        return React.cloneElement(item.children, { key: index });
+      } else {
+        return <IconButton
+          bordered={false}
+          key={index}
+          icon={item.icon}
+          size='small'
+          onClick={item.onClick}
+        ></IconButton>
+      }
     })}
   </div>;
-
 };
 
 

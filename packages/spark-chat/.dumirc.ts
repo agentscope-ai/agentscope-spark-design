@@ -6,6 +6,9 @@ import pkg from './package.json';
 
 const buildArgv = require('yargs-parser')(process.env.BUILD_ARGV_STR || '');
 const env = buildArgv['def_publish_env'];
+const isGhPages = !!process.env.GITHUB_PAGES;
+const ghPagesBase = '/agentscope-spark-design/';
+const ghPagesChatBase = `${ghPagesBase}spark-chat/`;
 
 export default defineConfig({
   title: 'Spark Chat',
@@ -22,8 +25,8 @@ export default defineConfig({
     : [],
   plugins: [
     '@umijs/plugins/dist/tailwindcss',
-    '@ali/dumi-plugin-api-parser',
-    '@ali/dumi-plugin-llms',
+    '@alibot/dumi-plugin-api-parser',
+    '@alibot/dumi-plugin-llms',
   ],
   llms: {
     outputDir: 'llms',
@@ -84,8 +87,9 @@ export default defineConfig({
   },
   metas: [{ name: 'aplus-core', content: 'aplus.js' }],
   history: {
-    type: 'hash',
+    type: isGhPages ? 'browser' : 'hash',
   },
+  base: isGhPages ? ghPagesChatBase : '/',
   headScripts: [
     `
   (function(w, d, s, q) {
@@ -106,8 +110,10 @@ export default defineConfig({
     ? `https://${
         buildArgv['def_publish_env'] === 'daily' ? 'dev.' : ''
       }g.alicdn.com/code/npm/@ali/agentscope-ai-chat/${pkg.version}/docs/`
-    : '/',
-  outputPath: 'dist/docs',
+    : isGhPages
+      ? ghPagesChatBase
+      : '/',
+  outputPath: '../../dist/spark-chat',
   mfsu: false,
   crossorigin: {},
   themeConfig: {
@@ -161,7 +167,6 @@ export default defineConfig({
   },
   alias: {
     '@agentscope-ai/chat': path.join(__dirname, 'components'),
-    '@agentscope-ai/design': ['/node_modules/@ali/agentscope-ai-design'],
     '@ant-design/icons': ['/node_modules/@agentscope-ai/icons-override-antd'],
     '@ant-design/icons-svg': [
       '/node_modules/@agentscope-ai/icons-svg-override-antd',

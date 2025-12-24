@@ -4,9 +4,10 @@ pnpm-lock.yaml
 
 # Build output
 dist
-lib
 docs-dist
 *.log
+packages/spark-chat/lib
+packages/spark-design/lib
 
 # IDE
 .history
@@ -28,3 +29,4 @@ coverage
 
 # Inner files
 packages/spark-flow/publish/**
+.cursor

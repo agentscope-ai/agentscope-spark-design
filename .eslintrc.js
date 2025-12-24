@@ -7,6 +7,7 @@ module.exports = {
   rules: {
    "@typescript-eslint/no-use-before-define": "off",
    "no-useless-escape": "off",
+   "no-param-reassign": "off",
    "@typescript-eslint/no-unused-vars": "off",
   }
 };

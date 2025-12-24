@@ -20,7 +20,7 @@ https://runtime.agentscope.io/zh/quickstart.html
 
 你可以直接配置你已经开发好的智能体的 url 实在在线版 WebUI 直接调试与体验
 
-<code src="../../components/AgentScopeRuntimeWebUI/demo/index.tsx" height="auto" iframe="700" ></code>
+<code src="../../components/AgentScopeRuntimeWebUI/demo/index.tsx" height="auto" iframe="700" noConfigProvider="true" ></code>
 
 ### 本地初始化
 

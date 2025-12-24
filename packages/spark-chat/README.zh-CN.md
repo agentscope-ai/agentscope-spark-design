@@ -17,7 +17,53 @@
 
 ## 🚀 快速开始
 
-### 安装
+### 方式一：使用 CLI 工具（推荐）
+
+最快速的方式是使用我们提供的 CLI 工具：
+
+```bash
+# 方式 1: 全局安装后使用（推荐）
+npm install -g @agentscope-ai/chat
+agentscope-runtime-webui -p 3000
+
+# 方式 2: 使用 npx（无需安装）
+npx @agentscope-ai/chat agentscope-runtime-webui -p 3000
+
+# 方式 3: 本地开发（先 npm link）
+npm link
+agentscope-runtime-webui -p 3000
+```
+
+**常用命令示例：**
+
+```bash
+# 使用默认配置启动（端口 3000）
+agentscope-runtime-webui
+
+# 指定端口
+agentscope-runtime-webui --port 8080
+
+# 指定后端 API 地址
+agentscope-runtime-webui --url http://api.example.com
+
+# 指定认证 token
+agentscope-runtime-webui --token your-auth-token
+
+# 组合使用
+agentscope-runtime-webui -p 8080 -u http://api.example.com -t your-token
+```
+
+**CLI 参数说明：**
+
+| 参数 | 缩写 | 说明 | 默认值 |
+|------|------|------|--------|
+| `--port` | `-p` | 指定服务端口 | `3000` |
+| `--url` | `-u` | 指定后端 API 地址 | 无 |
+| `--token` | `-t` | 指定认证 token | 无 |
+
+### 方式二：集成到项目
+
+#### 安装
 
 ```bash
 # 安装依赖
@@ -32,7 +78,7 @@ npm install @agentscope-ai/chat --save
 > tnpm install @ali/agentscope-ai-chat @ali/agentscope-ai-design --save
 > ```
 
-### 基础使用
+#### 基础使用
 
 ```tsx
 import { ConfigProvider, carbonTheme } from '@agentscope-ai/design';

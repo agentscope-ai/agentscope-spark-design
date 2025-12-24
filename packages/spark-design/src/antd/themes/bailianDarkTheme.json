@@ -61,7 +61,9 @@
   "colorLink": "#5551CC",
   "boxShadow": "0px 4px 6px 0px rgba(255, 255, 255, 0.08)",
   "boxShadowSecondary": "0px 12px 24px -16px rgba(255, 255, 255, 0.04),0px 8px 40px 0px rgba(255, 255, 255, 0.06),0px 0px 1px 0px rgba(255, 255, 255, 0.02)",
-  "colorTextWhite": "#fff",
+
+ "colorTextWhite": "#fff",
+ "colorTextOnPrimary": "#fff",
   "colorFillDisable": "#8D8C98",
   "colorPurple": "#5551CC",
   "colorPurpleHover": "#8383F0",

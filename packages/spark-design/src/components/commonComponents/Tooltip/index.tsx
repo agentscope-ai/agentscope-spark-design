@@ -9,9 +9,15 @@ export interface SparkTooltipProps {
   /**
    * @description 颜色模式
    * @descriptionEn color mode
-   * @default 'light'
+   * @default 'dark'
    */
   mode?: 'dark' | 'light';
+  /**
+   * @description 最大高度
+   * @descriptionEn max height
+   * @default '90vh'
+   */
+  maxHeight?: number | string;
 }
 
 const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
@@ -19,9 +25,12 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
     const Style = useStyle();
     const {
       mode = 'dark',
+      maxHeight = '90vh',
+      styles = {},
       arrow,
       overlayClassName,
       getPopupContainer,
+      align,
       ...restProps
     } = props;
     const { sparkPrefix, antPrefix } = getCommonConfig();
@@ -30,6 +39,14 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
         <Style />
         <Tooltip
           {...restProps}
+          styles={{
+            ...styles,
+            body: {
+              maxHeight,
+              overflow: 'auto',
+              ...styles.body,
+            },
+          }}
           arrow={arrow ?? false}
           overlayClassName={classNames(
             overlayClassName,

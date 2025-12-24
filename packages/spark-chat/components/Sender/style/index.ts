@@ -45,6 +45,13 @@ const IndexStyle = createGlobalStyle`
     }
   }
 
+  &-blur {
+    .${(p) => p.theme.prefixCls}-sender-input {
+      height: 22px !important;
+      min-height: 22px !important;
+    }
+  }
+
   &.${(p) => p.theme.prefixCls}-sender-rtl {
     direction: rtl;
   }
@@ -62,7 +69,9 @@ const IndexStyle = createGlobalStyle`
   }
 
   &-prefix {
+    width: 0;
     flex: 1;
+    overflow: auto;
   }
 
   &-input {

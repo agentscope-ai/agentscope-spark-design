@@ -17,7 +17,53 @@ A free, open-source React chat framework based on **Alibaba Cloud Spark Design**
 
 ## 🚀 Quick Start
 
-### Installation
+### Method 1: Using CLI Tool (Recommended)
+
+The quickest way is to use our CLI tool:
+
+```bash
+# Option 1: Install globally (recommended)
+npm install -g @agentscope-ai/chat
+agentscope-runtime-webui -p 3000
+
+# Option 2: Use npx (no installation required)
+npx @agentscope-ai/chat agentscope-runtime-webui -p 3000
+
+# Option 3: Local development (npm link first)
+npm link
+agentscope-runtime-webui -p 3000
+```
+
+**Common Command Examples:**
+
+```bash
+# Start with default configuration (port 3000)
+agentscope-runtime-webui
+
+# Specify port
+agentscope-runtime-webui --port 8080
+
+# Specify backend API URL
+agentscope-runtime-webui --url http://api.example.com
+
+# Specify authentication token
+agentscope-runtime-webui --token your-auth-token
+
+# Combine options
+agentscope-runtime-webui -p 8080 -u http://api.example.com -t your-token
+```
+
+**CLI Options:**
+
+| Option | Short | Description | Default |
+|--------|-------|-------------|---------|
+| `--port` | `-p` | Specify server port | `3000` |
+| `--url` | `-u` | Specify backend API URL | - |
+| `--token` | `-t` | Specify authentication token | - |
+
+### Method 2: Integrate into Project
+
+#### Installation
 
 ```bash
 # Install dependencies
@@ -32,7 +78,7 @@ npm install @agentscope-ai/chat --save
 > tnpm install @ali/agentscope-ai-chat @ali/agentscope-ai-design --save
 > ```
 
-### Basic Usage
+#### Basic Usage
 
 ```tsx
 import { ConfigProvider, carbonTheme } from '@agentscope-ai/design';

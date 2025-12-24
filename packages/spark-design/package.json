@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/design",
-  "version": "1.0.14",
+  "version": "1.0.20",
   "description": "AgentScope Spark Design - UI Library for AgentScope AI",
   "repository": {
     "type": "git",
@@ -18,7 +18,9 @@
   "bin": "scripts/index.js",
   "files": [
     "lib",
-    "scripts/index.js"
+    "scripts/index.js",
+    "scripts/mcp-docs-server.js",
+    "llms"
   ],
   "scripts": {
     "build": "father build",
@@ -36,7 +38,8 @@
     "prepare": "npm run dumi:setup",
     "start": "npm run dev",
     "test": "vitest",
-    "publish:manual": "npm run build && npm publish"
+    "release": "node scripts/publish.js",
+    "release:beta": "node scripts/publish-beta.js"
   },
   "dependencies": {
     "@agentscope-ai/icons": "^1.0.35",
@@ -65,7 +68,7 @@
     "ahooks": "^3.7.8",
     "antd-style": "^3.7.1",
     "dayjs": "^1.11.7",
-    "dompurify": "^2.3.8",
+    "dompurify": "^2.3.12",
     "js-cookie": "^3.0.5",
     "lodash-es": "^4.17.21",
     "query-string": "^7.1.3",
@@ -79,7 +82,7 @@
   "devDependencies": {
     "@alibot/dumi-plugin-llms": "1.0.4",
     "@alibot/dumi-plugin-api-parser": "1.0.3",
-    "@agentscope-ai/dumi-theme-spark": "0.0.98",
+    "@agentscope-ai/dumi-theme-spark": "0.0.99",
     "@modelcontextprotocol/sdk": "1.17.3",
     "@rc-component/util": "1.2.1",
     "@react-spring/web": "^9.7.5",
@@ -95,7 +98,7 @@
     "@vitejs/plugin-react": "^4.3.3",
     "@vitejs/plugin-react-swc": "^3.7.1",
     "@vitest/coverage-istanbul": "2.1.4",
-    "@vitest/ui": "2.1.4",
+    "@vitest/ui": "2.1.9",
     "ahooks": "^3.8.1",
     "antd": "^5.23.0",
     "classnames": "^2.5.1",

@@ -5,12 +5,6 @@ const alias = {
   '@ant-design/icons-svg': '@agentscope-ai/icons-svg-override-antd',
 };
 
-if (process.env.NPM_PUBLISH) {
-  alias['@agentscope-ai/design'] = '@agentscope-ai/design';
-
-} else {
-  alias['@agentscope-ai/design'] = '@ali/agentscope-ai-design';
-}
 
 export default defineConfig({
   alias: alias,

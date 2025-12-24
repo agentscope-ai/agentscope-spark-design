@@ -13,6 +13,6 @@ group:
 
 #### API
 
-<AntdApiRef url="https://ant.design/components/upload-cn/#api"></AntdApiRef>
+<ApiParser source="./index.tsx" id="VideoProps"></ApiParser>
 
 <div data-embed-hidden></div>

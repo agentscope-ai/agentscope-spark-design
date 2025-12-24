@@ -1,7 +1,6 @@
 import { FlowDirectionGraph, type FlowDirectionGraphOptions } from '@ant-design/graphs';
-import React from 'react';
 import { createGlobalStyle } from 'antd-style';
-import { Button, Card, Select } from '@agentscope-ai/design'
+import { Card } from '@agentscope-ai/design'
 
 const Style = createGlobalStyle`
   .user-flow-node {
@@ -33,10 +32,6 @@ const Style = createGlobalStyle`
     font-weight: bold;
   }
 `
-
-
-
-
 
 const data = {
   nodes: [

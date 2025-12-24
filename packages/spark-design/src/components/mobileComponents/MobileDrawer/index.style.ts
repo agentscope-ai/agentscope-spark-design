@@ -66,4 +66,12 @@ export const useStyle = createGlobalStyle`
     border-top: 1px solid var(--${(p) => p.antPrefix}-color-border-secondary);
   }
 }
+.${(p) => p.antPrefix}-drawer-bottom {
+  .${(p) => p.antPrefix}-drawer-content-wrapper {
+    border-radius: 16px 16px 0 0;
+  }
+  .${(p) => p.antPrefix}-drawer-content {
+    border-radius: 16px 16px 0 0;
+  }
+}
 `;

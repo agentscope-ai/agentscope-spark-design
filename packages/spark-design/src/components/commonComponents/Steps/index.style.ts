@@ -27,6 +27,12 @@ export const useStyle = createGlobalStyle`
     justify-content: center;
     background-color: var(--${(p) => p.antPrefix}-color-border-secondary);
   }
+
+  .${(p) => p.antPrefix}-steps-item-process {
+    .${(p) => p.antPrefix}-steps-item-icon {
+      border-color: transparent !important;
+    }
+  }
   
   .${(p) => p.antPrefix}-steps-item-finish {
     .${(p) => p.antPrefix}-steps-item-icon {
@@ -36,14 +42,14 @@ export const useStyle = createGlobalStyle`
     .${(p) => p.antPrefix}-steps-icon {
       max-width: 20px;
       max-height: 20px;
-      font-size: 16px !important;
+      font-size: 20px !important;
       line-height: 20px !important;
       top: -0.5px !important;
       
       .${(p) => p.sparkPrefix}-finish-icon {
         background-color: var(--${(p) => p.antPrefix}-color-primary-bg);
         border-radius: 50%;
-        font-size: 16px !important;
+        font-size: 20px !important;
         width: 20px;
         height: 20px;
         color: var(--${(p) => p.antPrefix}-color-primary);

@@ -79,7 +79,7 @@ export function ActionButton(props: ActionButtonProps) {
   const { prefixCls, disabled: rootDisabled } = context;
 
   const onClick = context[action];
-  const mergedDisabled = rootDisabled ?? restProps.disabled ?? context[`${action}Disabled`];
+  const mergedDisabled = rootDisabled || restProps.disabled || context[`${action}Disabled`] || false;
 
   return (
     <IconButton

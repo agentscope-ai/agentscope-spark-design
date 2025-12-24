@@ -46,7 +46,7 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-pagination-next,
   .${(p) => p.antPrefix}-pagination-jump-prev,
   .${(p) => p.antPrefix}-pagination-jump-next {
-    font-family: serif;
+    font-family: Montserrat;
     display: inline-block !important;
   }
 }

@@ -96,6 +96,12 @@ export interface SparkEmptyProps {
    * @descriptionEn custom empty size
    */
   size?: React.CSSProperties['width'];
+  /**
+   * @description 是否自适应容器宽度，当容器宽度小于 size 时自动缩放
+   * @descriptionEn whether to auto fit the container width, auto scale when container width is less than size
+   * @default false
+   */
+  autoFit?: boolean;
 }
 
 const TEXTURE_MAP = {
@@ -278,6 +284,7 @@ const Empty = (props: SparkEmptyProps) => {
     children,
     texture = true,
     size = 320,
+    autoFit = true,
     okText,
     okType = 'primary',
     okButtonProps,
@@ -314,23 +321,36 @@ const Empty = (props: SparkEmptyProps) => {
   const parsedSize =
     typeof size === 'string' ? parseFloat(size.replace(/px/i, '')) : size ?? 0;
 
+  /** 自适应容器样式 */
+  const autoFitStyle: React.CSSProperties = autoFit
+    ? {
+        maxWidth: '100%',
+        aspectRatio: '1 / 1',
+        width: size,
+        height: 'auto',
+      }
+    : {
+        width: size,
+        height: size,
+      };
+
   return (
     <>
       <Style />
       <div
         className={`${sparkPrefix}-empty ${props.className || ''}`}
-        style={{ ...imageStyle, width: size, height: size }}
+        style={{ ...autoFitStyle, ...imageStyle }}
       >
         {texture && (
           <Illustrate
-            size={size}
+            size={autoFit ? '100%' : size}
             svgUrl={TEXTURE_MAP.url}
             tokenMap={textureTokenMap}
             className={`${sparkPrefix}-empty-texture`}
           />
         )}
         <Illustrate
-          size={size}
+          size={autoFit ? '100%' : size}
           svgUrl={image}
           tokenMap={tokenMap}
           className={`${sparkPrefix}-empty-image`}
@@ -356,7 +376,9 @@ const Empty = (props: SparkEmptyProps) => {
               </Button>
             </div>
           )}
-          {!!children && children}
+          {!!children && (
+            <div style={{ marginTop: 0.05 * parsedSize }}>{children}</div>
+          )}
         </Flex>
       </div>
     </>

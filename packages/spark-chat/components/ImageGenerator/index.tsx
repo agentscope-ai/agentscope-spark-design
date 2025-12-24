@@ -4,7 +4,7 @@ import { useProviderContext } from '../Provider';
 import { ConfigProvider, Image } from 'antd';
 import { Locale } from 'antd/es/locale';
 import { SparkCheckCircleFill } from '@agentscope-ai/icons';
-import Dot from '../Markdown/plugins/cursor/Dot';
+import Dot from '../Markdown/core/plugins/cursor/Dot';
 
 export interface IImageGeneratorProps {
   /**
@@ -66,17 +66,16 @@ const ImageGenerator: React.FC<IImageGeneratorProps> = (props) => {
   const { block, skeletonText, width = 320, height = 320, src, loadingText = 'Painting...', doneText = 'Paint Completed' } = props;
 
   const skeleton = props.skeleton || <div className={`${prefixCls}-default-skeleton`} style={{ width: '100%', height: '100%' }}>
-    <img
+    <div
       className={`${prefixCls}-default-skeleton-bg`}
-      src="https://img.alicdn.com/imgextra/i2/O1CN01jwLfwV1hPiHfJjQXM_!!6000000004270-2-tps-1155-763.png"
-      alt=""
-    />
+    >
+      <div className={`${prefixCls}-default-skeleton-bg-animate`} />
+    </div>
     <div className={`${prefixCls}-default-skeleton-content`}>
       <img
         className={`${prefixCls}-default-skeleton-icon`}
         src="https://img.alicdn.com/imgextra/i2/O1CN01M1X8yM1MWUC7u3Go5_!!6000000001442-54-tps-72-72.apng"
       />
-
       {
         skeletonText && <div className={`${prefixCls}-default-skeleton-text`}>{skeletonText}</div>
       }

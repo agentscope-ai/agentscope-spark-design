@@ -111,6 +111,11 @@ export interface IChatAnywhereConfigUIConfig {
 
 export interface IChatAnywhereConfigOnInput {
   /**
+   * @description 设置输入框的变体
+   * @descriptionEn Set the variant of the input field
+   */
+  variant?: 'default' | 'aigc';
+  /**
    * @description 输入框前的UI组件
    * @descriptionEn UI component before the input field
    */
@@ -135,6 +140,11 @@ export interface IChatAnywhereConfigOnInput {
    * @descriptionEn Input field header components
    */
   header?: React.ReactElement | React.ReactElement[];
+  /**
+   * @description 是否启用用户focus时展开输入框组件
+   * @descriptionEn Whether to enable the user focus to expand the input box component
+   */
+  enableFocusExpand?: boolean;
   /**
    * @description 提交消息时的回调函数
    * @descriptionEn Callback function when submitting messages
@@ -185,6 +195,11 @@ export interface IChatAnywhereConfigOnUpload {
    */
   beforeUpload?: GetProp<typeof Upload, 'beforeUpload'>;
   /**
+   * @description 是否必传
+   * @descriptionEn Whether to required
+   */
+  required?: boolean;
+  /**
    * @description 自定义上传请求函数
    * @descriptionEn Custom upload request function
    */
@@ -209,6 +224,17 @@ export interface IChatAnywhereConfigOnUpload {
    * @descriptionEn Whether to disable the upload component
    */
   disabled?: boolean;
+  /**
+   * @description 上传组件的标题
+   * @descriptionEn Title for the upload component
+   */
+  title?: string | React.ReactElement;
+  /**
+   * @description 上传组件的描述
+   * @descriptionEn Description for the upload component
+   */
+  description?: string | React.ReactElement;
+  trigger?: React.ReactElement;
 }
 
 export interface IChatAnywhereConfig {
@@ -256,7 +282,7 @@ export interface IChatAnywhereRef extends IChatAnywhereContext {
    * @description 设置输入框内容的方法
    * @descriptionEn Method to set input field content
    */
-  setInputContent: (content: string) => void;
+  setInputContent: (content: string, fileList?: UploadFile[][]) => void;
   /**
    * @description 滚动到底部的方法
    * @descriptionEn Method to scroll to bottom

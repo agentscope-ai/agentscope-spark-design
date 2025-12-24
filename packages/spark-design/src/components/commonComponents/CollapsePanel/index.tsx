@@ -67,7 +67,7 @@ const CollapsePanel = (props: CollapsePanelProps) => {
   const [contentHeight, setContentHeight] = useState(collapsedHeight);
   const contentRef = useRef(null);
   const commonConfig = getCommonConfig();
-  const { sparkPrefix } = commonConfig;
+  const { sparkPrefix, antPrefix } = commonConfig;
   const Style = useStyle();
 
   useEffect(() => {
@@ -91,7 +91,6 @@ const CollapsePanel = (props: CollapsePanelProps) => {
   const handlePanelClick = (e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!expandedHeight) return;
     if (!isExpanded) {
       setIsExpanded(true);
     }
@@ -129,16 +128,14 @@ const CollapsePanel = (props: CollapsePanelProps) => {
         >
           <span className={`${sparkPrefix}-collapse-panel-title`}>
             {title}
-            {expandedHeight && (
-              <div className={`${sparkPrefix}-collapse-panel-icon-wrapper`}>
-                {!isExpanded && isHovered && expandOnPanelClick && (
-                  <SparkDownLine style={{ fontSize: '18px' }} />
-                )}
-                {isExpanded && isHovered && expandOnPanelClick && (
-                  <SparkUpLine style={{ fontSize: '18px' }} />
-                )}
-              </div>
-            )}
+            <div className={`${sparkPrefix}-collapse-panel-icon-wrapper`}>
+              {!isExpanded && isHovered && expandOnPanelClick && (
+                <SparkDownLine style={{ fontSize: '18px' }} />
+              )}
+              {isExpanded && isHovered && expandOnPanelClick && (
+                <SparkUpLine style={{ fontSize: '18px' }} />
+              )}
+            </div>
           </span>
 
           {extra && (
@@ -169,7 +166,7 @@ const CollapsePanel = (props: CollapsePanelProps) => {
           >
             {children}
           </div>
-          {!isExpanded && expandedHeight && (
+          {!isExpanded && (
             <div className={`${sparkPrefix}-collapse-panel-mask`} />
           )}
         </div>

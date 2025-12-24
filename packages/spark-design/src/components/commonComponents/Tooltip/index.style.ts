@@ -6,8 +6,8 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tooltip-inner {
     border: 1px solid transparent;
     padding: 6px 12px;
-    background: var(--${(p) => p.antPrefix}-color-text-base);
-    color: var(--${(p) => p.antPrefix}-color-bg-base);
+    background: var(--${(p) => p.antPrefix}-color-slate);
+    color: var(--${(p) => p.antPrefix}-color-text-on-primary);
   }
 }
 

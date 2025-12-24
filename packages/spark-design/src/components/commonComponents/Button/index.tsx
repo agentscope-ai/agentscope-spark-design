@@ -114,8 +114,9 @@ const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
             colorPrimary: token.token.colorSlate,
             // @ts-ignore
             colorPrimaryHover: token.token.colorSlateHover,
-            colorPrimaryActive: token.token.colorTextBase,
-          },
+            // @ts-ignore
+            colorPrimaryActive: token.token.colorSlate,
+          } as any,
         }}
       >
         <Tooltip title={restProps.tooltipContent}>{button}</Tooltip>

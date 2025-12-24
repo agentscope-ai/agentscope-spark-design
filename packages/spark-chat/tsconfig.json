@@ -23,9 +23,6 @@
       "@agentscope-ai/chat/*": [
         "components/*",
         "*"
-      ],
-      "@agentscope-ai/design": [
-        "node_modules/@ali/agentscope-ai-design"
       ]
     }
   },

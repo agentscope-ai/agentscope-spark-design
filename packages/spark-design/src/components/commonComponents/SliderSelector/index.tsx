@@ -5,7 +5,7 @@ import { useStyle } from './index.style';
 
 export interface SliderSelectorProps {
   className?: string;
-  onChange: (val: number | null) => void;
+  onChange?: (val: number | null) => void;
   value?: number | null;
   min: number;
   max: number;
@@ -25,15 +25,15 @@ export default function SliderSelector(props: SliderSelectorProps) {
     /**InputNumber为受控组件，会导致min和max失效，所以需要手动处理 */
     const numVal = typeof val === 'string' ? parseFloat(val) : val;
     if (numVal === null || isNaN(numVal as number)) {
-      props.onChange(null);
+      props.onChange?.(null);
       return;
     }
     if (numVal < props.min) {
-      props.onChange(props.min);
+      props.onChange?.(props.min);
     } else if (numVal > props.max) {
-      props.onChange(props.max);
+      props.onChange?.(props.max);
     } else {
-      props.onChange(numVal);
+      props.onChange?.(numVal);
     }
   };
   return (

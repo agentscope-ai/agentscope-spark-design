@@ -59,6 +59,14 @@ button[type="button"].${(p) => p.antPrefix}-btn {
   color: var(--${(p) => p.antPrefix}-color-text-white);
 }
 
+.${(p) => p.antPrefix}-btn-primary {
+  color: var(--${(p) => p.antPrefix}-color-text-on-primary);
+}
+.${(p) => p.antPrefix}-btn-primary.${(p) => 
+  p.antPrefix}-btn-variant-solid:not(:disabled):not(.${(p) => p.antPrefix}-btn-disabled):hover {
+  color: var(--${(p) => p.antPrefix}-color-text-on-primary);
+}
+
 .${(p) => p.antPrefix}-btn-primary:disabled {
   background: var(--${(p) => p.antPrefix}-color-fill-disable);
   color: var(--${(p) => p.antPrefix}-color-text-white);

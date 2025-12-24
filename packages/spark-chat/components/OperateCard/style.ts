@@ -28,7 +28,7 @@ export default createGlobalStyle`
     }
 
     &-description {
-    overflow: hidden;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: 12px;
@@ -160,6 +160,8 @@ export default createGlobalStyle`
 
   &-tool-call-block {
     margin-left: 16px;
+    margin-top: 8px;
+
   
     &-title {
       font-size: 12px;
@@ -168,20 +170,8 @@ export default createGlobalStyle`
       margin-bottom: 4px;
     }
 
-    &-content {
-      font-size: 12px;
-      line-height: 20px;
-      font-family: ${(p) => p.theme.fontFamilyCode};
-      border-radius: 6px;
-      padding: 8px;
-      background-color: ${(p) => p.theme.colorFillTertiary};
-      white-space: pre-wrap;
-    }
   }
 
-  &-tool-call-block ~ &-tool-call-block {
-    margin-top: 8px;
-  }
 
 
   &-device-action {
@@ -226,6 +216,34 @@ export default createGlobalStyle`
     
   }
 
+  &-rag-empty-placeholder {
+    padding: 16px 0;
+    border: 1px solid ${(p) => p.theme.colorBorderSecondary};
+    border-radius: 6px;
+    background-color: ${(p) => p.theme.colorBgBase};
+    line-height: 20px;
+    font-size: 12px;
+    color: ${(p) => p.theme.colorTextSecondary};
+    margin: 0 12px 12px 12px;
+  }
+
+  &-rag-query {
+    margin: 0 12px 8px 12px;
+    line-height: 20px;
+    font-size: 12px;
+    color: ${(p) => p.theme.colorTextSecondary};
+
+    &-title {
+      font-weight: 500;
+    }
+
+    &-images {
+      margin: 0 12px 8px 12px;
+      display: flex;
+      gap: 8px;
+    }
+  }
+
   &-rag-item {
     margin-left: 16px;
 
@@ -234,12 +252,20 @@ export default createGlobalStyle`
       color: ${(p) => p.theme.colorText};
       line-height: 20px;
       margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
     }
 
     &-content {
       padding: 8px;
       border-radius: 6px;
       background-color: ${(p) => p.theme.colorFillTertiary};
+
+      &-text {
+        font-size: 12px;
+        line-height: 20px;
+      }
     }
 
     &-images {

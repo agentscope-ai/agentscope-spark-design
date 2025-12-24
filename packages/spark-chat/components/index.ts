@@ -2,8 +2,6 @@ export { ConfigProvider } from 'antd';
 
 export { default as version } from './Version';
 
-export * from '@copilotkit/react-core';
-export * from './AGUI';
 
 export {
   CustomCardsContext,
@@ -30,7 +28,7 @@ export type { ChatAnywhereRef, TMessage, TSession } from './ChatAnywhere';
 export * as DefaultCards from './DefaultCards';
 
 export { default as AgentScopeRuntimeWebUI } from './AgentScopeRuntimeWebUI';
-export * from './AgentScopeRuntimeWebUI/lib/types';
+export * from './AgentScopeRuntimeWebUI/core/types';
 
 export {
   Accordion,
@@ -86,3 +84,7 @@ export {
   type MarkdownProps as IMarkdownProps,
   type MarkdownProps,
 } from './Markdown';
+
+export { default as AIGC } from './AIGC';
+
+export { Sandbox as GenerativeUISandbox } from './GenerativeUI';

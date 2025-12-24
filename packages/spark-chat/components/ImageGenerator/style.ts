@@ -44,14 +44,19 @@ export default createGlobalStyle`
 
     &-bg {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(0deg);
-      width: 100vmax;
-      height: 100vmax;
-      object-fit: cover;
-      animation: ${(p) => p.theme.prefixCls}spin 6s linear infinite;
-      pointer-events: none;
+      inset: 0;
+      
+
+      &-animate {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 250%;
+        height: 250%;
+        transform: translate(-50%, -50%) rotate(0deg);
+        animation: ${(p) => p.theme.prefixCls}spin 6s linear infinite;
+        background: radial-gradient(103.37% 63.46% at 108.3% 0%, rgba(122, 239, 214, 0.60) 0%, rgba(122, 239, 214, 0.00) 100%), radial-gradient(176.66% 108.46% at -9.16% 114.87%, #938CD4 0%, #E4E2FD 100%), #E4E2FD;
+      }
     }
 
     &-icon {
