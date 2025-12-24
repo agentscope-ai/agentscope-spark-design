@@ -1,4 +1,4 @@
-import { Slider } from 'antd';
+import { Slider } from '@agentscope-ai/design';
 import React from 'react';
 
 const App: React.FC = () => {

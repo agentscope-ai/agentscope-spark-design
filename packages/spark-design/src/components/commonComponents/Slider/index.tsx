@@ -17,7 +17,7 @@ export const SparkSliderBasic = React.forwardRef<
   SliderRef,
   SliderSingleProps | SliderRangeProps
 >((props, ref) => {
-  const { sparkPrefix } = getCommonConfig();
+  const { sparkPrefix, antPrefix } = getCommonConfig();
   const Style = useStyle();
 
   return (
@@ -30,6 +30,7 @@ export const SparkSliderBasic = React.forwardRef<
           {
             [`${sparkPrefix}-slider-no-marks`]: !Object.keys(props.marks || {})
               .length,
+            [`${antPrefix}-slider-reverse`]: props.reverse,
           },
           props.className,
         )}
