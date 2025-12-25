@@ -26,7 +26,6 @@
     "build": "father build",
     "build:mcp": "esbuild mcp/index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=scripts/mcp-docs-server.js --banner:js='#!/usr/bin/env node' --external:fs --external:path --external:process",
     "build:watch": "father dev",
-    "changelog": "conventional-changelog -t publish/  -p angular -i CHANGELOG.md -s && replace '^\\# \\[' '## [' ./CHANGELOG.md",
     "copy-antd-docs": "node copy-antd-docs.js",
     "dev": "dumi dev",
     "dev:mobile": "ONLY_MOBILE=1 dumi dev",

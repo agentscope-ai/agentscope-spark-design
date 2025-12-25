@@ -35,6 +35,15 @@ export default defineConfig({
     nav: [
       {
         title: {
+          'en-US': 'Guide',
+          'zh-CN': '指南',
+        },
+        link: '/guide',
+        icon: 'spark-fileCode-line',
+        order: 1,
+      },
+      {
+        title: {
           'en-US': 'Components',
           'zh-CN': '组件',
         },
@@ -44,12 +53,12 @@ export default defineConfig({
       },
       {
         title: {
-          'en-US': 'Guide',
-          'zh-CN': '指南',
+          'en-US': 'Changelog',
+          'zh-CN': '更新日志',
         },
-        link: '/guide',
-        icon: 'spark-fileCode-line',
-        order: 1,
+        icon: 'spark-auditLog-line',
+        link: '/changelog',
+        order: 3,
       },
     ],
   },
