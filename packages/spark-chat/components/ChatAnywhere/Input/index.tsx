@@ -122,12 +122,12 @@ export default forwardRef(function (_, ref) {
           }
         },
         showUploadList: false,
-        children: trigger,
+        trigger,
       }
     });
 
     if (uploadPropsList.length === 1) return (
-      <Upload {...uploadPropsList[0]} />
+      <Upload {...uploadPropsList[0]}>{uploadPropsList[0].trigger}</Upload>
     );
     return <UploadPopover uploadPropsList={uploadPropsList} />
 
