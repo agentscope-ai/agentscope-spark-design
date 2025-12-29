@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 主题生成器 - Theme Generator
 
@@ -54,11 +53,11 @@ const rgbToHex = (r, g, b) => {
  * RGB 转 HSL
  */
 const rgbToHsl = (r, g, b) => {
-  const rr = r / 255;
-  const gg = g / 255;
-  const bb = b / 255;
-  const max = Math.max(rr, gg, bb),
-    min = Math.min(rr, gg, bb);
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
   let h,
     s,
     l = (max + min) / 2;
@@ -69,14 +68,14 @@ const rgbToHsl = (r, g, b) => {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case rr:
-        h = ((gg - bb) / d + (gg < bb ? 6 : 0)) / 6;
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
         break;
-      case gg:
-        h = ((bb - rr) / d + 2) / 6;
+      case g:
+        h = ((b - r) / d + 2) / 6;
         break;
-      case bb:
-        h = ((rr - gg) / d + 4) / 6;
+      case b:
+        h = ((r - g) / d + 4) / 6;
         break;
       default:
         h = 0;
@@ -90,29 +89,28 @@ const rgbToHsl = (r, g, b) => {
  * HSL 转 RGB
  */
 const hslToRgb = (h, s, l) => {
-  const hh = h / 360;
-  const ss = s / 100;
-  const ll = l / 100;
+  h /= 360;
+  s /= 100;
+  l /= 100;
   let r, g, b;
 
-  if (ss === 0) {
-    r = g = b = ll;
+  if (s === 0) {
+    r = g = b = l;
   } else {
     const hue2rgb = (p, q, t) => {
-      let tt = t;
-      if (tt < 0) tt += 1;
-      if (tt > 1) tt -= 1;
-      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
-      if (tt < 1 / 2) return q;
-      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
       return p;
     };
 
-    const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
-    const p = 2 * ll - q;
-    r = hue2rgb(p, q, hh + 1 / 3);
-    g = hue2rgb(p, q, hh);
-    b = hue2rgb(p, q, hh - 1 / 3);
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1 / 3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1 / 3);
   }
 
   return {
@@ -197,17 +195,16 @@ const generateTheme = ({
   textBaseHex,
   darkMode = false,
 }: GenerateThemeProps) => {
-  const resolvedBgBaseHex = bgBaseHex || (darkMode ? '#000000' : '#ffffff');
-  const resolvedTextBaseHex =
-    textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
+  bgBaseHex = bgBaseHex || (darkMode ? '#000000' : '#ffffff');
+  textBaseHex = textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
   const rgb = hexToRgb(primaryHex);
   if (!rgb) return null;
 
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // 获取背景色和文本色的 RGB 和 HSL
-  const bgBaseRgb = hexToRgb(resolvedBgBaseHex);
-  const textBaseRgb = hexToRgb(resolvedTextBaseHex);
+  const bgBaseRgb = hexToRgb(bgBaseHex);
+  const textBaseRgb = hexToRgb(textBaseHex);
   const bgBaseHsl = bgBaseRgb
     ? rgbToHsl(bgBaseRgb.r, bgBaseRgb.g, bgBaseRgb.b)
     : { h: 210, s: 8, l: darkMode ? 5 : 99 };
