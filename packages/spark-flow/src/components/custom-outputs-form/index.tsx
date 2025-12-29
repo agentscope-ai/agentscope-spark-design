@@ -5,7 +5,13 @@ import {
   IValueType,
   IValueTypeOption,
 } from '@/types/work-flow';
-import { Button, Form, getCommonConfig, Input } from '@agentscope-ai/design';
+import {
+  Button,
+  Form,
+  getCommonConfig,
+  Input,
+  Tooltip,
+} from '@agentscope-ai/design';
 import {
   SparkDeleteLine,
   SparkPlusLine,
@@ -122,6 +128,8 @@ export interface ICustomOutputsFormProps {
   isRoot?: boolean;
   enabledTypes?: (IValueType | 'Array')[]; // 支持的类型，白名单策略，优先于disabledTypes
   disabledTypes?: (IValueType | 'Array')[]; // 禁用的类型，黑名单策略，如果设置了enabledTypes，这个参数失效
+  tier?: number;
+  maxTier?: number;
 }
 
 const getDisableStatus = (
@@ -212,6 +220,8 @@ export const CustomOutputsForm = memo(function ({
   isRoot = false,
   enabledTypes,
   disabledTypes,
+  tier = 0,
+  maxTier = undefined,
 }: ICustomOutputsFormProps) {
   const [form] = Form.useForm();
   const [expand, setExpand] = useState(true);
@@ -339,6 +349,8 @@ export const CustomOutputsForm = memo(function ({
                       }
                       enabledTypes={enabledTypes}
                       disabledTypes={disabledTypes}
+                      tier={tier + 1}
+                      maxTier={maxTier}
                     />
                   </div>
                 )}
@@ -348,23 +360,35 @@ export const CustomOutputsForm = memo(function ({
         );
       })}
       {readyOnly !== true && (
-        <Button
-          type="link"
-          onClick={handleAdd}
-          size="small"
-          className="self-start spark-flow-text-btn"
-          icon={<SparkPlusLine />}
+        <Tooltip
+          title={
+            maxTier !== undefined && tier >= maxTier
+              ? $i18n.get({
+                  id: 'spark-flow.components.CustomOutputsForm.index.maxTierReached',
+                  dm: '最大层级已达到，无法添加子变量',
+                })
+              : null
+          }
         >
-          {isRoot
-            ? $i18n.get({
-                id: 'spark-flow.components.CustomOutputsForm.index.addVariable',
-                dm: '添加变量',
-              })
-            : $i18n.get({
-                id: 'spark-flow.components.CustomOutputsForm.index.addSubVariable',
-                dm: '添加子变量',
-              })}
-        </Button>
+          <Button
+            type="link"
+            onClick={handleAdd}
+            size="small"
+            className="self-start spark-flow-text-btn"
+            icon={<SparkPlusLine />}
+            disabled={maxTier !== undefined && tier >= maxTier}
+          >
+            {isRoot
+              ? $i18n.get({
+                  id: 'spark-flow.components.CustomOutputsForm.index.addVariable',
+                  dm: '添加变量',
+                })
+              : $i18n.get({
+                  id: 'spark-flow.components.CustomOutputsForm.index.addSubVariable',
+                  dm: '添加子变量',
+                })}
+          </Button>
+        </Tooltip>
       )}
     </Form>
   );
