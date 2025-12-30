@@ -39,6 +39,7 @@
     "spark-flow.components.CustomOutputsForm.index.variableName": "変数名",
     "spark-flow.components.CustomOutputsForm.index.type": "タイプ",
     "spark-flow.components.CustomOutputsForm.index.description": "説明",
+    "spark-flow.components.CustomOutputsForm.index.maxTierReached": "最大階層に達しました、子変数を追加できません",
     "spark-flow.components.FlowAside.index.nodeManagement": "ノード管理",
     "spark-flow.components.FlowAside.index.nodeLibrary": "ノードライブラリ",
     "spark-flow.components.FlowAside.index.current": "現在",
