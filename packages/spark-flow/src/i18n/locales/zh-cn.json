@@ -39,6 +39,7 @@
   "spark-flow.components.CustomOutputsForm.index.variableName": "变量名",
   "spark-flow.components.CustomOutputsForm.index.type": "类型",
   "spark-flow.components.CustomOutputsForm.index.description": "描述",
+  "spark-flow.components.CustomOutputsForm.index.maxTierReached": "最大层级已达到，无法添加子变量",
   "spark-flow.components.FlowAside.index.nodeManagement": "节点管理",
   "spark-flow.components.FlowAside.index.nodeLibrary": "节点库",
   "spark-flow.components.FlowAside.index.current": "当前",
