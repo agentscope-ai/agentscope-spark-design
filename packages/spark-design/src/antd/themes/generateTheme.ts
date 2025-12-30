@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Theme Generator
 
@@ -239,23 +238,18 @@ interface GenerateThemeProps {
   /** Whether it is dark mode */
   darkMode: boolean;
 }
-const generateTheme = ({
-  primaryHex,
-  bgBaseHex,
-  textBaseHex,
-  darkMode = false,
-}: GenerateThemeProps) => {
-  const resolvedBgBaseHex = bgBaseHex || (darkMode ? '#000000' : '#ffffff');
-  const resolvedTextBaseHex =
-    textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
+const generateTheme = (config: GenerateThemeProps) => {
+  const { primaryHex, darkMode = false } = config;
+  const bgBaseHex = config.bgBaseHex || (darkMode ? '#000000' : '#ffffff');
+  const textBaseHex = config.textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
   const rgb = hexToRgb(primaryHex);
   if (!rgb) return null;
 
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // Get RGB and HSL values for background and text colors
-  const bgBaseRgb = hexToRgb(resolvedBgBaseHex);
-  const textBaseRgb = hexToRgb(resolvedTextBaseHex);
+  const bgBaseRgb = hexToRgb(bgBaseHex);
+  const textBaseRgb = hexToRgb(textBaseHex);
   const bgBaseHsl = bgBaseRgb
     ? rgbToHsl(bgBaseRgb.r, bgBaseRgb.g, bgBaseRgb.b)
     : { h: 210, s: 8, l: darkMode ? 5 : 99 };
