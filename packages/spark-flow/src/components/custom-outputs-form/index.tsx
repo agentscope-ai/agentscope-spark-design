@@ -221,7 +221,7 @@ export const CustomOutputsForm = memo(function ({
   enabledTypes,
   disabledTypes,
   tier = 0,
-  maxTier = undefined,
+  maxTier = -1,
 }: ICustomOutputsFormProps) {
   const [form] = Form.useForm();
   const [expand, setExpand] = useState(true);
@@ -362,7 +362,7 @@ export const CustomOutputsForm = memo(function ({
       {readyOnly !== true && (
         <Tooltip
           title={
-            maxTier !== undefined && tier >= maxTier
+            maxTier !== -1 && tier >= maxTier
               ? $i18n.get({
                   id: 'spark-flow.components.CustomOutputsForm.index.maxTierReached',
                   dm: '最大层级已达到，无法添加子变量',
@@ -376,7 +376,7 @@ export const CustomOutputsForm = memo(function ({
             size="small"
             className="self-start spark-flow-text-btn"
             icon={<SparkPlusLine />}
-            disabled={maxTier !== undefined && tier >= maxTier}
+            disabled={maxTier !== -1 && tier >= maxTier}
           >
             {isRoot
               ? $i18n.get({
@@ -397,7 +397,7 @@ export const CustomOutputsForm = memo(function ({
 export const CustomOutputsFormWrap = memo(function (
   props: ICustomOutputsFormProps,
 ) {
-  const { value, onChange, readyOnly, enabledTypes, disabledTypes } = props;
+  const { value, onChange, readyOnly, enabledTypes, disabledTypes, tier, maxTier } = props;
 
   return (
     <div className="flex flex-col gap-[8px]">
@@ -428,6 +428,8 @@ export const CustomOutputsFormWrap = memo(function (
         isRoot
         enabledTypes={enabledTypes}
         disabledTypes={disabledTypes}
+        tier={tier}
+        maxTier={maxTier}
       />
     </div>
   );
