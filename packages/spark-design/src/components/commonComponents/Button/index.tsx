@@ -100,7 +100,9 @@ const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
         lineHeight: 1,
         ...restProps.style,
       }}
-      className={classNames(restProps.className, 'spark-button')}
+      className={classNames(restProps.className, 'spark-button', {
+        'spark-button-primaryLess': restProps.type === 'primaryLess',
+      })}
     />
   );
 
