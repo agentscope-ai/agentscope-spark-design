@@ -20,6 +20,7 @@ function Layout(props: IProps, ref: React.Ref<any>) {
   const { className } = props;
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-layout');
   const narrowMode = useChatAnywhereOptions(v => v.theme.narrowMode);
+  const rightHeader = useChatAnywhereOptions(v => v.theme.rightHeader);
   const { session } = useChatAnywhereOptions(v => ({ session: v.session }));
   const { collapsed } = useContext(ChatAnyWhereLayoutContext);
   const showLeft = !narrowMode && session && session.multiple;
@@ -36,9 +37,12 @@ function Layout(props: IProps, ref: React.Ref<any>) {
         </div>
       }
       <div className={cls(`${prefixCls}-right`, {
-        [`${prefixCls}-right-has-header`]: true,
+        [`${prefixCls}-right-has-header`]: !!rightHeader,
       })}>
-        <Header />
+        {
+          !!rightHeader && <Header />
+        }
+        
         <Chat />
       </div>
     </div>

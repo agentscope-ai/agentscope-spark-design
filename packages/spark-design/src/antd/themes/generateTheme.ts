@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 主题生成器 - Theme Generator
 
@@ -54,11 +53,11 @@ const rgbToHex = (r, g, b) => {
  * RGB 转 HSL
  */
 const rgbToHsl = (r, g, b) => {
-  const rr = r / 255;
-  const gg = g / 255;
-  const bb = b / 255;
-  const max = Math.max(rr, gg, bb),
-    min = Math.min(rr, gg, bb);
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
+  const max = Math.max(rNorm, gNorm, bNorm),
+    min = Math.min(rNorm, gNorm, bNorm);
   let h,
     s,
     l = (max + min) / 2;
@@ -69,14 +68,14 @@ const rgbToHsl = (r, g, b) => {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case rr:
-        h = ((gg - bb) / d + (gg < bb ? 6 : 0)) / 6;
+      case rNorm:
+        h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
         break;
-      case gg:
-        h = ((bb - rr) / d + 2) / 6;
+      case gNorm:
+        h = ((bNorm - rNorm) / d + 2) / 6;
         break;
-      case bb:
-        h = ((rr - gg) / d + 4) / 6;
+      case bNorm:
+        h = ((rNorm - gNorm) / d + 4) / 6;
         break;
       default:
         h = 0;
@@ -90,29 +89,29 @@ const rgbToHsl = (r, g, b) => {
  * HSL 转 RGB
  */
 const hslToRgb = (h, s, l) => {
-  const hh = h / 360;
-  const ss = s / 100;
-  const ll = l / 100;
+  const hNorm = h / 360;
+  const sNorm = s / 100;
+  const lNorm = l / 100;
   let r, g, b;
 
-  if (ss === 0) {
-    r = g = b = ll;
+  if (sNorm === 0) {
+    r = g = b = lNorm;
   } else {
     const hue2rgb = (p, q, t) => {
-      let tt = t;
-      if (tt < 0) tt += 1;
-      if (tt > 1) tt -= 1;
-      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
-      if (tt < 1 / 2) return q;
-      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+      let tNorm = t;
+      if (tNorm < 0) tNorm += 1;
+      if (tNorm > 1) tNorm -= 1;
+      if (tNorm < 1 / 6) return p + (q - p) * 6 * tNorm;
+      if (tNorm < 1 / 2) return q;
+      if (tNorm < 2 / 3) return p + (q - p) * (2 / 3 - tNorm) * 6;
       return p;
     };
 
-    const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
-    const p = 2 * ll - q;
-    r = hue2rgb(p, q, hh + 1 / 3);
-    g = hue2rgb(p, q, hh);
-    b = hue2rgb(p, q, hh - 1 / 3);
+    const q = lNorm < 0.5 ? lNorm * (1 + sNorm) : lNorm + sNorm - lNorm * sNorm;
+    const p = 2 * lNorm - q;
+    r = hue2rgb(p, q, hNorm + 1 / 3);
+    g = hue2rgb(p, q, hNorm);
+    b = hue2rgb(p, q, hNorm - 1 / 3);
   }
 
   return {
@@ -197,17 +196,16 @@ const generateTheme = ({
   textBaseHex,
   darkMode = false,
 }: GenerateThemeProps) => {
-  const resolvedBgBaseHex = bgBaseHex || (darkMode ? '#000000' : '#ffffff');
-  const resolvedTextBaseHex =
-    textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
+  const bgBase = bgBaseHex || (darkMode ? '#000000' : '#ffffff');
+  const textBase = textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
   const rgb = hexToRgb(primaryHex);
   if (!rgb) return null;
 
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   // 获取背景色和文本色的 RGB 和 HSL
-  const bgBaseRgb = hexToRgb(resolvedBgBaseHex);
-  const textBaseRgb = hexToRgb(resolvedTextBaseHex);
+  const bgBaseRgb = hexToRgb(bgBase);
+  const textBaseRgb = hexToRgb(textBase);
   const bgBaseHsl = bgBaseRgb
     ? rgbToHsl(bgBaseRgb.r, bgBaseRgb.g, bgBaseRgb.b)
     : { h: 210, s: 8, l: darkMode ? 5 : 99 };
@@ -293,7 +291,7 @@ const generateTheme = ({
       : adjustColor(primaryHex, hsl.l < 50 ? -10 : -20, 0),
 
     // 文本颜色 - 基于 textBase 的色相生成（Scale 11-12）
-    colorTextBase: textBaseHex,
+    colorTextBase: textBase,
     colorText: `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.88)`,
     colorTextSecondary: `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.65)`,
     colorTextTertiary: `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.45)`,
@@ -301,20 +299,20 @@ const generateTheme = ({
     colorTextWhite: '#fff',
 
     // 背景颜色 - 基于 bgBase 的色相生成 (Scale 1-3)
-    colorBgBase: bgBaseHex,
+    colorBgBase: bgBase,
     colorBgContainer: darkMode
-      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：稍微亮一点 (5-8%)
-      : generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 1, 99), 0.8), // 浅色：稍微深一点
+      ? generateColorScale(bgBase, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：稍微亮一点 (5-8%)
+      : generateColorScale(bgBase, Math.min(bgBaseHsl.l + 1, 99), 0.8), // 浅色：稍微深一点
     colorBgElevated: darkMode
-      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：与 container 相同
-      : bgBaseHex, // 浅色：使用 bgBase 本身
+      ? generateColorScale(bgBase, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：与 container 相同
+      : bgBase, // 浅色：使用 bgBase 本身
     colorBgLayout: darkMode
-      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：与 container 相同
-      : generateColorScale(bgBaseHex, Math.max(bgBaseHsl.l - 2, 96), 1.2), // 浅色：稍微深一点
+      ? generateColorScale(bgBase, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：与 container 相同
+      : generateColorScale(bgBase, Math.max(bgBaseHsl.l - 2, 96), 1.2), // 浅色：稍微深一点
     colorBgSpotlight: darkMode
-      ? `rgba(${hexToRgb(generateColorScale(bgBaseHex, 28, 1.2)).r}, ${
-          hexToRgb(generateColorScale(bgBaseHex, 28, 1.2)).g
-        }, ${hexToRgb(generateColorScale(bgBaseHex, 28, 1.2)).b}, 0.85)`
+      ? `rgba(${hexToRgb(generateColorScale(bgBase, 28, 1.2)).r}, ${
+          hexToRgb(generateColorScale(bgBase, 28, 1.2)).g
+        }, ${hexToRgb(generateColorScale(bgBase, 28, 1.2)).b}, 0.85)`
       : `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.85)`,
     colorBgMask: darkMode
       ? `rgba(${bgBaseRgb.r}, ${bgBaseRgb.g}, ${bgBaseRgb.b}, 0.8)`
@@ -322,30 +320,30 @@ const generateTheme = ({
 
     // 边框和填充 - 暗色模式使用透明度，浅色模式使用实色
     colorBorder: darkMode
-      ? `rgba(${hexToRgb(generateColorScale(bgBaseHex, 28, 2)).r}, ${
-          hexToRgb(generateColorScale(bgBaseHex, 28, 2)).g
-        }, ${hexToRgb(generateColorScale(bgBaseHex, 28, 2)).b}, 0.8)` // 暗色：中等亮度 + 透明度
-      : generateColorScale(bgBaseHex, 81, 2.5), // 浅色：实色边框
+      ? `rgba(${hexToRgb(generateColorScale(bgBase, 28, 2)).r}, ${
+          hexToRgb(generateColorScale(bgBase, 28, 2)).g
+        }, ${hexToRgb(generateColorScale(bgBase, 28, 2)).b}, 0.8)` // 暗色：中等亮度 + 透明度
+      : generateColorScale(bgBase, 81, 2.5), // 浅色：实色边框
     colorBorderSecondary: darkMode
-      ? `rgba(${hexToRgb(generateColorScale(bgBaseHex, 22, 1.8)).r}, ${
-          hexToRgb(generateColorScale(bgBaseHex, 22, 1.8)).g
-        }, ${hexToRgb(generateColorScale(bgBaseHex, 22, 1.8)).b}, 0.8)`
-      : generateColorScale(bgBaseHex, 88, 2),
+      ? `rgba(${hexToRgb(generateColorScale(bgBase, 22, 1.8)).r}, ${
+          hexToRgb(generateColorScale(bgBase, 22, 1.8)).g
+        }, ${hexToRgb(generateColorScale(bgBase, 22, 1.8)).b}, 0.8)`
+      : generateColorScale(bgBase, 88, 2),
     colorFill: darkMode
       ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.18)` // 暗色：基于文本色的透明填充
-      : generateColorScale(bgBaseHex, 81, 2.5) + '5c',
+      : generateColorScale(bgBase, 81, 2.5) + '5c',
     colorFillSecondary: darkMode
       ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.12)`
-      : generateColorScale(bgBaseHex, 81, 2.5) + '33',
+      : generateColorScale(bgBase, 81, 2.5) + '33',
     colorFillTertiary: darkMode
       ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.08)`
-      : generateColorScale(bgBaseHex, 81, 2.5) + '26',
+      : generateColorScale(bgBase, 81, 2.5) + '26',
     colorFillQuaternary: darkMode
       ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.04)`
-      : generateColorScale(bgBaseHex, 81, 2.5) + '1a',
+      : generateColorScale(bgBase, 81, 2.5) + '1a',
     colorFillDisable: darkMode
-      ? generateColorScale(textBaseHex, 55, 0.8) // 暗色：中等亮度的灰色
-      : generateColorScale(bgBaseHex, 86, 1.8),
+      ? generateColorScale(textBase, 55, 0.8) // 暗色：中等亮度的灰色
+      : generateColorScale(bgBase, 86, 1.8),
 
     // 链接色 - 暗色模式下生成适配的颜色
     colorLink: darkMode

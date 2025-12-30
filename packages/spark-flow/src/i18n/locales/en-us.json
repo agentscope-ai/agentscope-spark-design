@@ -39,6 +39,7 @@
   "spark-flow.components.CustomOutputsForm.index.variableName": "Name",
   "spark-flow.components.CustomOutputsForm.index.type": "Type",
   "spark-flow.components.CustomOutputsForm.index.description": "Description",
+  "spark-flow.components.CustomOutputsForm.index.maxTierReached": "Maximum tier reached, cannot add sub-variable",
   "spark-flow.components.FlowAside.index.nodeManagement": "Node",
   "spark-flow.components.FlowAside.index.nodeLibrary": "Library",
   "spark-flow.components.FlowAside.index.current": "Current",

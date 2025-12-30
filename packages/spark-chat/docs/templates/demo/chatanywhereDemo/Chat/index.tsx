@@ -183,7 +183,7 @@ export default function () {
         }),
         content && createCard('Text', {
           content: content,
-          typing: true,
+          animation: true,
           msgStatus: 'generating'
         })
       ])

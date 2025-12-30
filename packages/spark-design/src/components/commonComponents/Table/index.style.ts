@@ -2,6 +2,16 @@ import createGlobalStyle from '@/libs/createStyle';
 
 export const useStyle = createGlobalStyle`
 .${(p) => p.antPrefix}-table-wrapper {
+
+  .${(p) => p.antPrefix}-table-tbody {
+    .${(p) => p.antPrefix}-table-row > .${(p) => p.antPrefix}-table-cell-row-hover {
+      background: var(--${(p) => p.antPrefix}-color-bg-layout);
+    }
+    .${(p) => p.antPrefix}-table-row.${(p) => p.antPrefix}-table-row-selected > .${(p) => p.antPrefix}-table-cell {
+      background: var(--${(p) => p.antPrefix}-color-primary-bg-hover);
+    }
+  }
+
   .${(p) => p.antPrefix}-table-container {
     .${(p) => p.antPrefix}-table-thead > tr > th {
       padding: 8px 20px;
@@ -72,7 +82,7 @@ export const useStyle = createGlobalStyle`
     }
   }
 
-/* 有 footer 时 bordered 表格添加整体圆角 */
+  /* 有 footer 时 bordered 表格添加整体圆角 */
   .${(p) => p.antPrefix}-table-bordered:has(.${(p) =>
   p.antPrefix}-table-footer) {
     .${(p) => p.antPrefix}-table-container {

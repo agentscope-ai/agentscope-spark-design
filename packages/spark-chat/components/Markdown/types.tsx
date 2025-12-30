@@ -53,6 +53,7 @@ export interface MarkdownProps {
    * @descriptionEn CSS class name for the component
    */
   className?: string;
+  animation?: boolean;
   
   components?: XMarkdownProps['components'];
   citations?: {
@@ -89,4 +90,5 @@ export interface InnerMarkdownXProps extends XMarkdownProps {
    * @descriptionEn Cursor style type, supports dot, underline, or boolean control
    */
   cursor?: MarkdownProps['cursor'];
+  animation?: MarkdownProps['animation'];
 }

@@ -41,7 +41,7 @@ const isSupportsLookbehindAssertions = supportsLookbehindAssertions();
 export default memo(function (props: MarkdownProps) {
   const baseFontSize = props.baseFontSize || 14;
   const baseLineHeight = props.baseLineHeight || 1.7;
-  const content = useTyping({ content: props.content, typing: props.typing });
+  const content = useTyping({ content: props.content, typing: props.typing && !props.animation  });
   const prefixCls = useProviderContext().getPrefixCls('markdown');
   const {
     raw = false,
@@ -92,6 +92,7 @@ export default memo(function (props: MarkdownProps) {
     <MarkdownX
       dompurifyConfig={dompurifyConfig}
       cursor={props.cursor}
+      animation={props.animation}
       // @ts-ignore
       components={components}
       style={{ fontSize: baseFontSize, lineHeight: baseLineHeight }}

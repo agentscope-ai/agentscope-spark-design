@@ -38,6 +38,7 @@ export enum AgentScopeRuntimeContentType {
   IMAGE = "image",
   AUDIO = "audio",
   FILE = "file",
+  REFUSAL = 'refusal'
 }
 
 export interface IBaseContent {
@@ -64,12 +65,17 @@ export interface IFileContent extends IBaseContent {
   file_size?: number;
 }
 
+export interface IRefusalContent extends IBaseContent {
+  type: AgentScopeRuntimeContentType.REFUSAL,
+  refusal: string;
+}
+
 export interface IDataContent<T = Record<string, any>> extends IBaseContent {
   type: AgentScopeRuntimeContentType.DATA,
   data: T;
 }
 
-export type IContent = ITextContent | IImageContent | IDataContent | IFileContent;
+export type IContent = ITextContent | IImageContent | IDataContent | IFileContent | IRefusalContent;
 
 export interface IAgentScopeRuntimeMessage {
   id: string;

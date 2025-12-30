@@ -11,6 +11,8 @@ const Message = React.memo(function ({ data }: { data: IAgentScopeRuntimeMessage
         switch (item.type) {
           case AgentScopeRuntimeContentType.TEXT:
             return <Markdown key={index} content={item.text} cursor={item.status === AgentScopeRuntimeRunStatus.InProgress ? true : false}></Markdown>
+          case AgentScopeRuntimeContentType.REFUSAL:
+            return <Markdown raw key={index} content={item.refusal}></Markdown>
           default:
             return <div key={index}>{JSON.stringify(item)}</div>
         }

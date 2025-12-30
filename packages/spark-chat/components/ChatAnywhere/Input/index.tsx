@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Flex, Popover, UploadFile } from 'antd';
+import { Flex, Popover, UploadFile, Upload as AntdUpload  } from 'antd';
 import { useProviderContext, ChatInput, uuid, Sender, Attachments } from '@agentscope-ai/chat';
 import cls from 'classnames';
 import { useChatAnywhere } from '../hooks/ChatAnywhereProvider';
@@ -122,12 +122,12 @@ export default forwardRef(function (_, ref) {
           }
         },
         showUploadList: false,
-        children: trigger,
+        trigger,
       }
     });
 
     if (uploadPropsList.length === 1) return (
-      <Upload {...uploadPropsList[0]} />
+      <Upload {...uploadPropsList[0]}>{uploadPropsList[0].trigger}</Upload>
     );
     return <UploadPopover uploadPropsList={uploadPropsList} />
 
@@ -229,10 +229,15 @@ export default forwardRef(function (_, ref) {
       if (result === false) {
         return;
       }
+      if (result === AntdUpload.LIST_IGNORE) {
+        return;
+      }
+      
       // Handle Promise return from beforeUpload
       if (result instanceof Promise) {
         result.then((processedFile) => {
-          if (processedFile === false) {
+          // If promise resolves to false or LIST_IGNORE, stop upload
+          if (processedFile === false || processedFile === AntdUpload.LIST_IGNORE) {
             return;
           }
           // Continue with processed file or original file
@@ -242,6 +247,12 @@ export default forwardRef(function (_, ref) {
         }).catch((error) => {
           console.error('beforeUpload promise rejected:', error);
         });
+        return;
+      }
+      
+      // If beforeUpload returns a File or Blob, use it
+      if (result && typeof result === 'object') {
+        continueUpload(result as File);
         return;
       }
     }

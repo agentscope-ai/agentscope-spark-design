@@ -8,12 +8,19 @@ import MiniMapBtn from './mini-map-btn';
 import ScaleBtn from './scale-btn';
 import ShortKeyBtn from './short-key-btn';
 import TouchModeBtn from './touch-mode-btn';
+import classNames from 'classnames';
 
-export default memo(function FlowTools() {
+export interface IFlowToolsProps {
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export default memo(function FlowTools(props: IFlowToolsProps) {
   return (
     <div
       id="spark-flow-bottom-tools-container"
-      className="nopan absolute items-center flex left-[16px] bottom-[16px] gap-[12px]"
+      className={classNames("nopan absolute items-center flex left-[16px] bottom-[16px] gap-[12px]", props.className)}
+      style={props.style}
     >
       <div className="spark-flow-tools gap-[8px] items-center flex">
         <MiniMapBtn />
