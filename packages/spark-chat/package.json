@@ -87,7 +87,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@agentscope-ai/design": "1.0.23-beta.1767091755248",
+    "@agentscope-ai/design": "^1.0.23",
     "@agentscope-ai/dumi-theme-spark": "0.0.98",
     "@alibot/dumi-plugin-api-parser": "1.0.3",
     "@alibot/dumi-plugin-llms": "1.0.4",
