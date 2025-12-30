@@ -398,7 +398,8 @@
   "boxShadowSecondary": "0px 12px 24px -16px rgba(255, 255, 255, 0.06),0px 8px 40px 0px rgba(255, 255, 255, 0.12),0px 0px 1px 0px rgba(255, 255, 255, 0.04)",
 
  "colorTextWhite": "#ffffff",
- "colorTextOnPrimary": "#000000",
+ "colorTextBlack": "#000000",
+ "colorTextOnPrimary": "#ffffff",
   "colorFillDisable": "#898989",
   "colorPurple": "#615CED",
   "colorPurpleHover": "#8383F0",
@@ -430,8 +431,8 @@
 
   "boxShadowTertiary": "0px 12px 32px -16px rgba(255, 255, 255, 0.24),0px 12px 60px 0px rgba(255, 255, 255, 0.12),0px 0px 1px 0px rgba(255, 255, 255, 0.04)",
   "boxShadowTertiaryLeft": "-12px 0px 32px -16px rgba(255, 255, 255, 0.24),-12px 0px 60px 0px rgba(255, 255, 255, 0.12),0px 0px 1px 0px rgba(255, 255, 255, 0.04)",
-  "boxShadowInput": "0px 12px 24px -16px rgba(255, 255, 255, 0.08),0px 12px 40px 0px rgba(255, 255, 255, 0.16),0px 0px 1px 0px rgba(255, 255, 255, 0.04)",
-  "colorTextBlack": "#000000"
+  "boxShadowInput": "0px 12px 24px -16px rgba(255, 255, 255, 0.08),0px 12px 40px 0px rgba(255, 255, 255, 0.16),0px 0px 1px 0px rgba(255, 255, 255, 0.04)"
+
 }
 `,paraId:5,tocIndex:0},{value:"Spark Design \u9ED8\u8BA4\u542F\u7528 cssVar \u6A21\u5F0F\uFF0C\u56E0\u6B64\u60A8\u53EF\u4EE5\u5229\u7528 \u4ECE token \u6D3E\u751F\u51FA\u7684 CSS \u53D8\u91CF\u6765\u6784\u5EFA\u81EA\u5DF1\u7684\u6837\u5F0F\u3002",paraId:6,tocIndex:1},{value:`.example {
   background: var(--sps-color-bg-base);

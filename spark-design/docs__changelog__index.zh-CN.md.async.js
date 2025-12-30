@@ -1,0 +1,42 @@
+"use strict";(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[6335],{13854:function(y,l,n){n.r(l);var g=n(48661),d=n(28450),h=n(87276),k=n(83775),I=n(36337),i=n(14552),b=n(68879),E=n(15957),P=n(8958),j=n(98520),f=n(41395),o=n(79756),O=n(33779),r=n(21570),e=n(28060),a=n(75271),s=n(51280),_=n(52676);function u(){return(0,_.jsx)(r.dY,{children:(0,_.jsx)(a.Suspense,{fallback:(0,_.jsx)(e.Z,{}),children:(0,_.jsx)(_.Fragment,{children:(0,_.jsxs)("div",{className:"markdown",children:[(0,_.jsxs)("h3",{id:"1021",children:[(0,_.jsx)("a",{"aria-hidden":"true",tabIndex:"-1",href:"#1021",children:(0,_.jsx)("span",{className:"icon icon-link"})}),"1.0.21"]}),(0,_.jsx)("p",{children:(0,_.jsx)("code",{children:s.texts[0].value})}),(0,_.jsxs)("h5",{id:"changed",children:[(0,_.jsx)("a",{"aria-hidden":"true",tabIndex:"-1",href:"#changed",children:(0,_.jsx)("span",{className:"icon icon-link"})}),"Changed"]}),(0,_.jsxs)("ul",{children:[(0,_.jsx)("li",{children:s.texts[1].value}),(0,_.jsxs)("li",{children:[s.texts[2].value,(0,_.jsx)("code",{children:s.texts[3].value}),s.texts[4].value,(0,_.jsx)("code",{children:s.texts[5].value}),s.texts[6].value]}),(0,_.jsx)("li",{children:s.texts[7].value}),(0,_.jsxs)("li",{children:[s.texts[8].value,(0,_.jsxs)("ul",{children:[(0,_.jsxs)("li",{children:[s.texts[9].value,(0,_.jsx)("code",{children:s.texts[10].value})]}),(0,_.jsxs)("li",{children:[s.texts[11].value,(0,_.jsx)("code",{children:s.texts[12].value})]}),(0,_.jsxs)("li",{children:[s.texts[13].value,(0,_.jsx)("code",{children:s.texts[14].value})]})]})]})]}),(0,_.jsxs)("h5",{id:"fixed",children:[(0,_.jsx)("a",{"aria-hidden":"true",tabIndex:"-1",href:"#fixed",children:(0,_.jsx)("span",{className:"icon icon-link"})}),"Fixed"]}),(0,_.jsx)("ul",{children:(0,_.jsx)("li",{children:s.texts[15].value})})]})})})})}l.default=u},64925:function(y,l,n){n.d(l,{Z:function(){return r}});var g=n(26068),d=n.n(g),h=n(51886),k=n(71649),I=n(42478),i=n(75271),b=n(53649),E=n.n(b),P=n(75469),j,f=(0,P.Z)(j||(j=E()([`
+.`,"-dropdown .","-dropdown-menu .",`-dropdown-menu-item-icon {
+  font-size: var(--`,`-font-size-lg);
+}
+
+.`,`-dropdown-check-wrapper {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding-inline-end: calc(var(--`,"-control-padding-horizontal) + var(--",`-font-size-sm));
+}
+
+.`,`-dropdown-check-icon {
+  position: absolute;
+  opacity: 0;
+  font-size: 20px;
+  inset-inline-end: var(--`,`-padding-xs);
+}
+
+.`,"-dropdown .","-dropdown-menu .","-dropdown-menu-item.",`-dropdown-menu-item-selected {
+  background-color: transparent;
+  
+  .`,`-dropdown-check-icon {
+    opacity: 1;
+  }
+}
+
+.`,`-dropdown-menu-submenu-popup {
+  box-shadow: var(--`,`-box-shadow);
+  border: 1px solid var(--`,`-color-border-secondary);
+  border-radius: var(--`,`-border-radius-lg);
+  overflow-y: auto;
+}
+
+/*
+.`,"-dropdown-menu .",`-dropdown-menu-submenu {
+  box-shadow: var(--`,`-box-shadow);
+  border: 1px solid var(--`,`-color-border-secondary);
+}
+*/
+`])),function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix},function(e){return e.antPrefix}),o=n(52676),O=function(a){var s,_,u=(0,h.getCommonConfig)(),p=u.antPrefix,m=(0,i.useMemo)(function(){var c;if(!((c=a.menu)!==null&&c!==void 0&&c.selectable)||!a.menu){var x;return((x=a.menu)===null||x===void 0?void 0:x.items)||[]}return a.menu.items.map(function(v){var t={},D=v.label;return D&&(t.label=(0,o.jsxs)("div",{className:"".concat(p,"-dropdown-check-wrapper"),children:[D,(0,o.jsx)("span",{className:"".concat(p,"-dropdown-check-icon"),children:(0,o.jsx)(k.Z,{})})]})),d()(d()({},v),t)})},[(s=a.menu)===null||s===void 0?void 0:s.items,(_=a.menu)===null||_===void 0?void 0:_.selectable]),M=f();return(0,o.jsxs)(o.Fragment,{children:[(0,o.jsx)(M,{}),(0,o.jsx)(I.Z,d()(d()({},a),{},{menu:d()(d()({},a.menu),{},{items:m}),overlayStyle:d()({},a.overlayStyle)}))]})},r=O},63953:function(y,l,n){var g=n(48305),d=n.n(g),h=n(67825),k=n.n(h),I=n(26068),i=n.n(I),b=n(58911),E=n(88602),P=n(99090),j=n(62910),f=n(82090),o=n(52676),O=["content"],r={success:{type:"success",icon:(0,o.jsx)(b.Z,{})},warning:{type:"warning",icon:(0,o.jsx)(E.Z,{})},error:{type:"error",icon:(0,o.jsx)(P.Z,{})},info:{type:"info",icon:(0,o.jsx)(j.Z,{})}},e=function(_,u){var p,m;typeof u=="string"?m={content:u}:m=i()({},u);var M=m,c=M.content,x=k()(M,O);f.ZP.open(i()({type:_,content:c,icon:_==="loading"||(p=r[_])===null||p===void 0?void 0:p.icon},x))},a=function(_){var u=f.ZP.useMessage(_),p=d()(u,2),m=p[0],M=p[1],c=function(t,D){var T,C;typeof D=="string"?C={content:D,type:t}:C=i()(i()({},D),{},{type:t}),m[t](i()(i()({},C),{},{icon:(T=r[t])===null||T===void 0?void 0:T.icon}))},x=i()(i()({},m),{},{success:function(t){return c("success",t)},warning:function(t){return c("warning",t)},error:function(t){return c("error",t)},info:function(t){return c("info",t)},loading:function(t){return c("loading",t)}});return[x,M]};l.Z=i()(i()({},f.ZP),{},{success:function(_){return e("success",_)},warning:function(_){return e("warning",_)},error:function(_){return e("error",_)},info:function(_){return e("info",_)},loading:function(_){return e("loading",_)},useMessage:a})},12281:function(y,l,n){n.d(l,{JG:function(){return E},rb:function(){return P}});var g=n(26068),d=n.n(g),h=n(67825),k=n.n(h),I=n(75271),i=["maxWidth","maxHeight"];function b(){var r;return((r=window.g_config)===null||r===void 0?void 0:r.isIntl)||!1}var E=function(e){if(navigator.clipboard)navigator.clipboard.writeText(e);else{var a=document.createElement("textarea");document.body.appendChild(a),a.style.position="fixed",a.style.clip="rect(0 0 0 0)",a.style.top="10px",a.value=e,a.select(),document.execCommand("copy",!0),document.body.removeChild(a)}},P=function(e){var a=arguments.length>1&&arguments[1]!==void 0?arguments[1]:{},s=a.maxWidth,_=a.maxHeight,u=k()(a,i);return d()({overlayInnerStyle:{maxWidth:s||326,maxHeight:_||150,overflowY:"auto",padding:"6px 12px"},title:e,arrow:!1},u)};function j(r){return React.isValidElement(r)}function f(r){var e=r||navigator.userAgent;return/^((?!chrome|android).)*safari/i.test(e)}var o=function(e){return e>=10?e:"0".concat(e)},O=function(e){if(e<60){var a=Math.ceil(e);return"0:".concat(o(a))}var s=Math.floor(e/60),_=Math.ceil(e%60);return"".concat(o(s),":").concat(o(_))}},51280:function(y,l,n){n.r(l),n.d(l,{texts:function(){return g}});const g=[{value:"2025-12-25",paraId:0,tocIndex:0},{value:"AlertDialog \u7EC4\u4EF6\uFF1A\u5B9A\u4F4D\u8DDD\u79BB\u9876\u90E8\u7684\u9ED8\u8BA4\u9AD8\u5EA6\u8C03\u6574\u4E3A\u5F53\u524D\u7A97\u53E3\u9AD8\u5EA6\u7684 36%",paraId:1,tocIndex:1},{value:"Table \u7EC4\u4EF6\uFF1A\u8868\u683C\u884C hover \u80CC\u666F\u8272\u4FEE\u6539\u4E3A ",paraId:1,tocIndex:1},{value:"color-bg-layout",paraId:1,tocIndex:1},{value:" \u989C\u8272\u53D8\u91CF\uFF1B\u8868\u683C\u884C\u9009\u4E2D\u80CC\u666F\u8272\u4FEE\u6539\u4E3A ",paraId:1,tocIndex:1},{value:"color-primary-bg-hover",paraId:1,tocIndex:1},{value:" \u989C\u8272\u53D8\u91CF",paraId:1,tocIndex:1},{value:"Select \u7EC4\u4EF6\uFF1A\u591A\u9009\u6A21\u5F0F\u7684\u9009\u4E2D\u9879\u80CC\u666F\u8272\u8C03\u6574",paraId:1,tocIndex:1},{value:`\u4E3B\u9898\u8272\u53D8\u91CF\u66F4\u65B0\uFF1A
+`,paraId:1,tocIndex:1},{value:"bailianDarkTheme\uFF1A\u6DFB\u52A0 ",paraId:2,tocIndex:1},{value:'"colorLinkHover": "#857DE3"',paraId:2,tocIndex:1},{value:"bailianTheme\uFF1A\u6DFB\u52A0 ",paraId:2,tocIndex:1},{value:'"colorLinkHover": "#8080FF"',paraId:2,tocIndex:1},{value:"carbonDarkTheme\uFF1A\u4FEE\u6539 ",paraId:2,tocIndex:1},{value:'"colorTextOnPrimary": "#ffffff"',paraId:2,tocIndex:1},{value:"Slider \u7EC4\u4EF6\uFF1A\u6C34\u5E73\u6ED1\u52A8\u6761\u7EC4\u4EF6\u53D6\u6D88\u9ED8\u8BA4\u5DE6\u53F3\u4E24\u8FB9\u7684\u5916\u8FB9\u8DDD margin\uFF0C\u64CD\u4F5C\u6309\u94AE handle \u5728\u6700\u5DE6\u4FA7\u4E0E\u6700\u53F3\u4FA7\u4E0D\u8D85\u51FA\u6ED1\u52A8\u8F68\u9053\u5BBD\u5EA6",paraId:3,tocIndex:2}]}}]);
