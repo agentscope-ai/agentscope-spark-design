@@ -19,7 +19,7 @@ export const DemoContext = React.createContext<{
 
 export const DemoContextProvider = function (props: { children: React.ReactNode }) {
   const [demoContext, setDemoContext, getDemoContext] = useGetState<TContext>({
-    model: 'qwq-plus',
+    model: 'qwen-turbo',
     apikey: localStorage.getItem('apikey') || '',
     theme: localStorage.getItem('theme') || 'carbon',
     enable_thinking: undefined,
