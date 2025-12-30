@@ -1,7 +1,15 @@
 import { useMemo } from "react";
 
-export default function useCursorContent({ cursor, content }: { cursor: boolean | 'dot' | 'underline', content: string }) {
+interface IProps {
+  cursor: boolean | 'dot' | 'underline',
+  content: string,
+  animation: boolean,
+}
+
+export default function useCursorContent(props: IProps) {
+  const { cursor, content, animation } = props;
   const cursorContent = useMemo(() => {
+    if (animation) return '';
     if (cursor) {
       if (cursor === 'dot') return ' :dot:';
       if (cursor === 'underline') return ' :underline:';
