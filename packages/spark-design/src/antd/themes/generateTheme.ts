@@ -35,6 +35,39 @@
 import themeDataDark from './bailianDarkTheme.json';
 import themeData from './bailianTheme.json';
 
+
+
+
+/**
+ * Calculate WCAG relative luminance (used for contrast judgment)
+ * Return value range: 0 (darkest) to 1 (brightest)
+ */
+const getRelativeLuminance = (rgb) => {
+  // Normalize RGB values to 0-1
+  const rsRGB = rgb.r / 255;
+  const gsRGB = rgb.g / 255;
+  const bsRGB = rgb.b / 255;
+
+  // Apply sRGB gamma correction
+  const r = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
+  const g = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
+  const b = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
+
+  // Calculate relative luminance using WCAG formula
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/**
+ * Determine whether to use dark or light text on the background color
+ * Use WCAG relative luminance algorithm, threshold is 0.5
+ * @returns {boolean} true means use dark text, false means use light text
+ */
+const shouldUseDarkText = (rgb) => {
+  const luminance = getRelativeLuminance(rgb);
+  // Use dark text when luminance is greater than 0.5, otherwise use light text
+  return luminance > 0.5;
+};
+
 // ==================== Color Conversion Utility Functions ====================
 
 /**
@@ -352,7 +385,7 @@ const generateTheme = (config: GenerateThemeProps) => {
       : adjustColor(primaryHex, hsl.l < 50 ? -10 : -20, 0),
     // Text color displayed on primary color background: automatically selects black or white based on actual primary color lightness
     // Light theme colors (lightness > 50) use black text, dark theme colors (lightness <= 50) use white text
-    colorTextOnPrimary: actualPrimaryHsl.l > 50 ? '#000000' : '#ffffff',
+    colorTextOnPrimary: shouldUseDarkText(actualPrimaryRgb) ? '#000000' : '#ffffff',
 
     // ========== Text Color System ==========
     // Generated based on textBase hue, uses transparency to achieve different levels
