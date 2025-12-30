@@ -651,7 +651,7 @@ export default App;
 
  "colorTextWhite": "#ffffff",
  "colorTextBlack": "#000000",
- "colorTextOnPrimary": "#ffffff",
+ "colorTextOnPrimary": "#000000",
   "colorFillDisable": "#898989",
   "colorPurple": "#615CED",
   "colorPurpleHover": "#8383F0",
