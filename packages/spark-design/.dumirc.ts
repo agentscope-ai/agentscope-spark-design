@@ -24,7 +24,7 @@ export default defineConfig({
   hash: false,
   themeConfig: {
     demoTitle: {
-      llmTxtBase: `https://unpkg.com/browse/@agentscope-ai/design@${pkg.version
+      llmTxtBase: `https://unpkg.com/@agentscope-ai/design@${pkg.version
       }/llms/components/commonComponents`,
     },
     hd: { rules: [] },
