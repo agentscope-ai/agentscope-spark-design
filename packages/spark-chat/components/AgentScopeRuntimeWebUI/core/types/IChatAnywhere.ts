@@ -24,6 +24,7 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @returns
    */
   fetch?: (data: { input: any[] }) => Promise<Response>;
+  enableSessionId?: boolean;
 }
 
 /**

@@ -62,6 +62,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   const request = useCallback(async (historyMessages: any[]) => {
     // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
+    const { enableSessionId = true } = currentApiOptions;
     let response
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
@@ -73,8 +74,8 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           'Authorization': `Bearer ${currentApiOptions.token || ''}`,
         },
         body: JSON.stringify({
-          input: historyMessages.slice(-1),
-          session_id: getCurrentSessionId(),
+          input: enableSessionId ? historyMessages.slice(-1) : historyMessages,
+          session_id: enableSessionId ? getCurrentSessionId() : undefined,
           stream: true,
         }),
       });
