@@ -6,11 +6,12 @@ import { useMemo } from 'react';
 interface IBeforeUIContainerProps {
   leftChildren?: React.ReactNode;
   rightChildren?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 
 
-export default function BeforeUIContainer({ leftChildren, rightChildren }: IBeforeUIContainerProps) {
+export default function BeforeUIContainer({ leftChildren, rightChildren, children }: IBeforeUIContainerProps) {
   const prefixCls = useProviderContext().getPrefixCls('sender-before-ui-container');
 
   const left = useMemo(() => {
@@ -29,8 +30,10 @@ export default function BeforeUIContainer({ leftChildren, rightChildren }: IBefo
       <div className={prefixCls}>
         <div className={`${prefixCls}-content`}>
           <div className={`${prefixCls}-content-children`}>
-            {left}
-            {right}
+            {children || <>
+              {left}
+              {right}
+            </>}
           </div>
         </div>
       </div>
