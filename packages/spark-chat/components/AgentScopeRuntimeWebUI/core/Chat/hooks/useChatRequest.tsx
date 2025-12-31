@@ -2,7 +2,7 @@ import { sleep, Stream } from "@agentscope-ai/chat";
 import { useCallback, useRef, useEffect } from "react";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import AgentScopeRuntimeResponseBuilder from "../../AgentScopeRuntime/Response/Builder";
-import { AgentScopeRuntimeRunStatus } from "../../AgentScopeRuntime/types";
+import { AgentScopeRuntimeRunStatus, AgentScopeRuntimeMessageType } from "../../AgentScopeRuntime/types";
 import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
 
 interface UseChatRequestOptions {
@@ -62,7 +62,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   const request = useCallback(async (historyMessages: any[]) => {
     // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
-    const { enableSessionId = true } = currentApiOptions;
+    const { enableHistoryMessages = false } = currentApiOptions;
     let response
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
@@ -74,24 +74,46 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           'Authorization': `Bearer ${currentApiOptions.token || ''}`,
         },
         body: JSON.stringify({
-          input: enableSessionId ? historyMessages.slice(-1) : historyMessages,
-          session_id: enableSessionId ? getCurrentSessionId() : undefined,
+          input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
+          session_id: getCurrentSessionId(),
           stream: true,
         }),
       });
     } catch (error) {
-
     }
 
-
-
-
-    if (response && response.body && response.ok) {
+    if (response && response.body) {
       const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
         id: '',
         status: AgentScopeRuntimeRunStatus.Created,
         created_at: 0,
       });
+
+      if (!response.ok) {
+        response.json().then(data => {
+          const res = agentScopeRuntimeResponseBuilder.handle({
+            object: 'message',
+            type: AgentScopeRuntimeMessageType.ERROR,
+            content: [],
+            id: 'error',
+            role: 'assistant',
+            status: AgentScopeRuntimeRunStatus.Failed,
+            code: response.status,
+            message: JSON.stringify(data),
+          });
+
+
+          currentQARef.current.response.cards = [
+            {
+              code: 'AgentScopeRuntimeResponseCard',
+              data: res,
+            }
+          ];
+          onFinish();
+        });
+        return;
+      }
+
       try {
 
         for await (const chunk of Stream({
