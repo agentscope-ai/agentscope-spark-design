@@ -52,7 +52,7 @@ module.exports = {
   },
 
   transformIgnorePatterns: [
-    'node_modules/(?!(@ant-design|@agentscope-ai|@rc-component|rc-|antd|@ali|dayjs)/)',
+    '/node_modules/(?!(.pnpm/)?(@agentscope-ai|@ant-design|@rc-component|rc-|antd|@ali|dayjs))',
   ],
 
   testMatch: ['<rootDir>/tests/**/*.test.(ts|tsx|js|jsx)'],

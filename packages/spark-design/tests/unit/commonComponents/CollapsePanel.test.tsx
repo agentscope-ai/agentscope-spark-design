@@ -294,15 +294,15 @@ describe('CollapsePanel 组件 - 定制化功能测试', () => {
       expect(screen.getByTestId('up-icon')).toBeInTheDocument();
     });
 
-    it('没有 expandedHeight 时不应该显示图标', () => {
+    it('没有 expandedHeight 时也应该显示图标（只要有 expandOnPanelClick）', () => {
       render(
         <CollapsePanel title="标题" expandOnPanelClick>
           内容
         </CollapsePanel>,
       );
 
-      expect(screen.queryByTestId('down-icon')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('up-icon')).not.toBeInTheDocument();
+      // 收起状态应该显示向下箭头
+      expect(screen.getByTestId('down-icon')).toBeInTheDocument();
     });
   });
 
