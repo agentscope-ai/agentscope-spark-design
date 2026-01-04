@@ -10,6 +10,7 @@ import useChatMessageHandler from "./useChatMessageHandler";
 import useChatRequest from "./useChatRequest";
 import useChatSessionHandler from "./useChatSessionHandler";
 import ReactDOM from "react-dom";
+// import mockdata from '../../mock/mock.json'
 
 /**
  * 聊天控制器 Hook - 协调所有聊天相关操作
@@ -80,6 +81,7 @@ export default function useChatController() {
     await sessionHandler.syncSessionMessages(messageHandler.getMessages());
 
     await request(historyMessages);
+    // mockRequest(mockdata);
   }, [messageHandler, sessionHandler, request]);
 
   /**
