@@ -51,9 +51,6 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       updateMessage(currentQARef.current.response);
 
       await sleep(100);
-      // if (chunk?.type?.startsWith('plugin_')) {
-      //   debugger
-      // }
 
     }
   }, [])
