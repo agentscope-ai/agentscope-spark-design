@@ -198,6 +198,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
               duration={duration}
               enableVolume={enableVolume}
               muted={muted}
+              enableFullscreen={true}
               onMute={() => setMuted(!muted)}
               onPlayPause={handlePlayPause}
               onFullscreen={handleFullscreen}
