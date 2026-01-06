@@ -39,15 +39,16 @@ export default function (props: IThinkingProps) {
   const prefixCls = getPrefixCls('operate-card');
 
 
-  return <OperateCard
 
+  return <OperateCard
+    key={loading.toString()}
     header={{
       icon: loading ? <SparkLoadingLine spin /> : <SparkMemoryLine />,
       title: props.title,
       description: props.subTitle,
     }}
     body={{
-      defaultOpen,
+      defaultOpen: loading ? defaultOpen : false,
       children: <OperateCard.LineBody>
         <div className={`${prefixCls}-thinking`}>
           {props.content}

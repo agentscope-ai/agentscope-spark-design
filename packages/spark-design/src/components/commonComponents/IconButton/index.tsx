@@ -24,7 +24,7 @@ export interface SparkIconButtonProps extends ButtonProps {
 }
 
 export default (props: SparkIconButtonProps) => {
-  const { className, iconType, bordered = true, ...restProps } = props;
+  const { className, iconType, bordered = true, icon: iconProp, ...restProps } = props;
   const config = getCommonConfig();
   const { iconfont } = config;
 
@@ -33,12 +33,12 @@ export default (props: SparkIconButtonProps) => {
   const icon = useMemo(() => {
     if (iconType) {
       return <IconFont type={iconType} size={props.size} />;
-    } else if (typeof props.icon === 'string') {
-      return <IconFont type={props.icon} size={props.size} />;
+    } else if (typeof iconProp === 'string') {
+      return <IconFont type={iconProp} size={props.size} />;
     } else {
-      return props.icon;
+      return iconProp;
     }
-  }, [props.icon, iconType, iconfont]);
+  }, [iconProp, iconType, iconfont]);
 
   return (
     <>
