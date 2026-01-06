@@ -11,18 +11,16 @@ export default function Link(props) {
 function Sup(props) {
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('markdown-footnote');
-  console.log(props, prefixCls);
+  const { href, ...rest } = props;
 
-
-  const { id, href, ...rest } = props;
   return <a {...rest} className={prefixCls} onClick={() => {
     try {
-      const url = document.querySelector(`#${id.replace('-ref', '')}`).querySelector('a').getAttribute('href');
+      const [x, y, id,] = props.id.split('-');
+      const url = document.querySelector(`#footnote-${id}`).querySelector('a').getAttribute('href');
       window.open(url, '_blank');
     } catch (error) {
-      
     }
-  }}/>
+  }} />
 }
 
 
