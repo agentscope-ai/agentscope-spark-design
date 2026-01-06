@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { useContextSelector } from 'use-context-selector';
 import { ChatAnywhereMessagesContext, useChatAnywhereMessages } from '../Context/ChatAnywhereMessagesContext';
 import { ChatAnywhereInputContext, useChatAnywhereInput } from '../Context/ChatAnywhereInputContext';
+import { emit } from '../Context/useChatAnywhereEventEmitter';
 
 // 逐步放开
 function Ref(_, ref) {
@@ -12,7 +13,10 @@ function Ref(_, ref) {
     return {
       messages,
       input: {
-        setDisabled
+        setDisabled,
+        submit: ({ query, fileList }: { query: string; fileList?: any[] }) => {
+          emit({ type: 'handleSubmit', data: { query, fileList } });
+        }
       },
 
     }

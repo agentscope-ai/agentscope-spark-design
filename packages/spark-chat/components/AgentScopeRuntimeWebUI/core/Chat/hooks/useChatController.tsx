@@ -126,6 +126,14 @@ export default function useChatController() {
     }
   });
 
+  useChatAnywhereEventEmitter({
+    type: 'handleSubmit',
+    callback: async (data) => {
+      await handleSubmit(data.detail);
+    }
+  }, [handleSubmit]);
+
+
   return {
     handleSubmit,
     handleCancel,

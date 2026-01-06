@@ -1,10 +1,12 @@
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef } from '@agentscope-ai/chat';
+import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef, ChatInput } from '@agentscope-ai/chat';
 import OptionsPanel from './OptionsPanel';
 import { useMemo, useRef, useState } from 'react';
 import sessionApi from './sessionApi';
 import defaultConfig from './OptionsPanel/defaultConfig';
 import { useLocalStorageState } from 'ahooks';
 import Weather from './Weather';
+import { Flex } from 'antd';
+
 
 export default function () {
 
@@ -36,6 +38,17 @@ export default function () {
       },
       sender: {
         ...optionsConfig.sender,
+        beforeUI: <ChatInput.BeforeUIContainer>
+          <Flex gap={6}>
+            {
+              optionsConfig.welcome.prompts.map(prompt => (
+                <a key={prompt.value} onClick={() => {
+                  chatRef.current?.input.submit({ query: prompt.value });
+                }}>{prompt.value}</a>
+              ))
+            }
+          </Flex>
+        </ChatInput.BeforeUIContainer>,
         attachments: optionsConfig.sender.attachments ? {
           customRequest(options) {
             // 模拟上传进度

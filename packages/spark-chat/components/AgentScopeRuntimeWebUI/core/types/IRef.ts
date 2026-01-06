@@ -4,5 +4,6 @@ export interface IAgentScopeRuntimeWebUIRef {
   messages: ReturnType<typeof useChatAnywhereMessages>;
   input: {
     setDisabled: (disabled: boolean) => void;
-  }
+    submit: ({ query, fileList }: { query: string; fileList?: any[] }) => void;
+  };
 }
