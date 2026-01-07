@@ -22,6 +22,7 @@ export interface SparkEmptyProps {
     | 'noVideo'
     | 'noAccess'
     | 'error'
+    | 'noChat'
     | 'noModel'
     | 'noApp'
     | 'success'
@@ -206,6 +207,15 @@ const IMAGE_MAP = {
       '#E6E8EE': 'color-border-secondary',
       '#615CED': 'color-primary',
     },
+  },
+  noChat: {
+    url: 'https://img.alicdn.com/imgextra/i3/O1CN014KyRst1w9QT51V8Yx_!!6000000006265-55-tps-108-108.svg',
+    tokenMap: {
+      '#FFFFFF': 'color-bg-base',
+      '#E6E8EE': 'color-border-secondary',
+      '#615CED': 'color-primary',
+      '#CDD0DC': 'color-border',
+    }
   },
   noModel: {
     url: 'https://gw.alicdn.com/imgextra/i2/O1CN01BSPmLi1iaXGByjbne_!!6000000004429-55-tps-108-108.svg',
