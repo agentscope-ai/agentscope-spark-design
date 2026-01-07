@@ -8,7 +8,7 @@ export default function () {
 
   useTimeout(() => {
     setSrc('https://img.alicdn.com/imgextra/i1/O1CN01lS5S0a1yl6FKoBZHl_!!6000000006618-0-tps-1280-1280.jpg');
-  }, 20 * 1000)
+  }, 10 * 1000)
 
   return <Flex vertical gap="middle">
     <ImageGenerator
