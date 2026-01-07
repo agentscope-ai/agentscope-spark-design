@@ -233,6 +233,7 @@ const Spin = ({
         .fluid-background-container .glass {
           overflow: hidden;
           position: absolute;
+          border-radius: 8px;
           inset: 0;
           backdrop-filter: blur(calc(var(--s) * 0.12));
           box-shadow: 0 0 calc(var(--s) * 0.2) color-mix(in srgb, black, transparent 70%);
