@@ -295,10 +295,10 @@ const Spin = ({
       `}</style>
       <div ref={containerRef} className={cn('fluid-background-container', className)}>
         <div className="fluid-inner">
-          <div className="c c4" style={{ '--i': 0 }}></div>
-          <div className="c c1" style={{ '--i': 1 }}></div>
-          <div className="c c2" style={{ '--i': 2 }}></div>
-          <div className="c c3" style={{ '--i': 3 }}></div>
+          <div className="c c4" style={{ '--i': 0 } as React.CSSProperties}></div>
+          <div className="c c1" style={{ '--i': 1 } as React.CSSProperties}></div>
+          <div className="c c2" style={{ '--i': 2 } as React.CSSProperties}></div>
+          <div className="c c3" style={{ '--i': 3 } as React.CSSProperties}></div>
           <div className="rings"></div>
         </div>
         <div className="glass"></div>
