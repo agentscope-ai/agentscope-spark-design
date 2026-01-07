@@ -350,7 +350,16 @@ export const GroupNode = memo((props: IGroupNodeProps) => {
     setIsDragging(false);
     event.preventDefault();
     event.stopPropagation();
-    const type = event.dataTransfer.getData('application/reactflow');
+    // 兼容某些 Windows Chrome 版本 dataTransfer 可能为 undefined 的情况
+    if(!event.dataTransfer){
+      message.warning(
+        $i18n.get({
+          id: 'spark-flow.components.BaseNode.index.browserDragNotSupported',
+          dm: '当前浏览器不支持完整的拖拽功能，请尝试：1. 升级到最新的chrome浏览器；2. 使用浏览器的匿名模式 3. 使用其他浏览器，如：edge；',
+        }),
+      );
+    }
+    const type = event.dataTransfer?.getData('application/reactflow');
 
     if (typeof type === 'undefined' || !type) {
       return;

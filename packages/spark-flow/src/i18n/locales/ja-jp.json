@@ -5,6 +5,7 @@
     "spark-flow.components.BaseNode.index.debug": "デバッグ",
     "spark-flow.components.BaseNode.index.whenError": "エラー発生時",
     "spark-flow.components.BaseNode.index.errorBranch": "エラーブランチ",
+    "spark-flow.components.BaseNode.index.browserDragNotSupported": "現在のブラウザはドラッグ＆ドロップを完全にサポートしていません。次の方法をお試しください：1. 最新のChromeブラウザにアップグレードする；2. ブラウザのシークレットモードを使用する；3. Edgeなど他のブラウザを使用する。",
     "spark-flow.components.CheckListBtn.index.checklistVar1": "チェックリスト · {var1}",
     "spark-flow.components.CheckListBtn.index.allResolved": "すべてのチェックリスト項目が解決されました",
     "spark-flow.components.CodeInput.index.arrayEmpty": "Array(空の配列)",
@@ -294,6 +295,7 @@
     "spark-flow.hooks.useNodesInteraction.nodeCannotBeAddedToGroup": "このノードはサブキャンバスに追加できません",
     "spark-flow.hooks.useNodesInteraction.nodeCannotBeAddedToGroupWithNodeType": "このノードはこのサブキャンバスに追加できません",
     "spark-flow.hooks.useNodesInteraction.copySuccess": "コピー成功",
+    "spark-flow.hooks.useNodesInteraction.browserDragNotSupported": "現在のブラウザはドラッグ＆ドロップを完全にサポートしていません。次の方法をお試しください：1. 最新のChromeブラウザにアップグレードする；2. ブラウザのシークレットモードを使用する；3. Edgeなど他のブラウザを使用する。",
     "spark-flow.hooks.useNodesOutputParams.builtinVariable": "組み込み変数",
     "spark-flow.components.CodeInput.index.jsonEdit": "JSON編集",
     "spark-flow.demos.spark-flow-1.components.WorkFlowHeader.index.clear": "クリア"
