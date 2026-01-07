@@ -149,4 +149,43 @@ export default createGlobalStyle`
 .${(p) => p.theme.prefixCls}-markdown  > *:first-child {
   margin-top: 0 !important;
 }
+
+.${(p) => p.theme.prefixCls}-markdown-footnotes {
+  > h2 {
+    display: none;
+  }
+
+  > ol {
+    margin: 0 0 0 1em;
+  }
+
+  [data-footnote-backref] {
+    display: none;
+  }
+
+}
+
+
+.${p => p.theme.prefixCls}-markdown-footnote {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  padding: 0 4px;
+  height: 16px;
+  margin-inline: 2px;
+  font-size: 10px;
+  color: ${p => p.theme.colorTextSecondary};
+  text-align: center;
+  background: ${p => p.theme.colorFillSecondary};
+  border-radius: 4px;
+  transition: all 100ms ${p => p.theme.motionEaseOut};
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover {
+    color: ${p => p.theme.colorWhite};
+    background: ${p => p.theme.colorPrimary};
+  }
+}
 `;

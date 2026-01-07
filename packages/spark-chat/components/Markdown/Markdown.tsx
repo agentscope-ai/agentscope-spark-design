@@ -14,6 +14,8 @@ import useCitationsData from './core/hooks/useCitationsData';
 import Latex from '@ant-design/x-markdown/plugins/Latex';
 import { citationsExtension } from './core/plugins/citations';
 import { CursorComponent, cursorExtension } from './core/plugins/cursor';
+import markedFootnote from 'marked-footnote'
+import Link from './core/components/Link';
 
 
 // 缓存不变的 dompurify 配置
@@ -41,7 +43,7 @@ const isSupportsLookbehindAssertions = supportsLookbehindAssertions();
 export default memo(function (props: MarkdownProps) {
   const baseFontSize = props.baseFontSize || 14;
   const baseLineHeight = props.baseLineHeight || 1.7;
-  const content = useTyping({ content: props.content, typing: props.typing });
+  const content = useTyping({ content: props.content, typing: props.typing && !props.animation });
   const prefixCls = useProviderContext().getPrefixCls('markdown');
   const {
     raw = false,
@@ -61,6 +63,7 @@ export default memo(function (props: MarkdownProps) {
     img: props.disableImage ? DisabledImage : Media,
     citation: CitationComponent,
     'custom-cursor': CursorComponent,
+    a: Link,
     ...props.components,
   }), [props.disableImage, CitationComponent, props.components]);
 
@@ -72,16 +75,22 @@ export default memo(function (props: MarkdownProps) {
 
 
   // 使用 useMemo 缓存 extensions 配置
-  const extensions = useMemo(() => {
+  const { extensions, walkTokens } = useMemo(() => {
     const exts = Latex()
     exts.push(cursorExtension());
     if (citationsDataCount > 0) exts.push(citationsExtension(citationsData));
-    return exts;
+
+    const f = markedFootnote({
+      sectionClass: `${prefixCls}-footnotes`
+    });
+    exts.push(...f.extensions);
+    return { extensions: exts, walkTokens: f.walkTokens };
   }, [citationsDataCount, citationsData]);
 
   // // 使用 useMemo 缓存 config 对象
   const config = useMemo(() => ({
     extensions,
+    walkTokens,
   }), [extensions]);
 
   const fallback = <Raw content={content || ''} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
@@ -92,6 +101,7 @@ export default memo(function (props: MarkdownProps) {
     <MarkdownX
       dompurifyConfig={dompurifyConfig}
       cursor={props.cursor}
+      animation={props.animation}
       // @ts-ignore
       components={components}
       style={{ fontSize: baseFontSize, lineHeight: baseLineHeight }}

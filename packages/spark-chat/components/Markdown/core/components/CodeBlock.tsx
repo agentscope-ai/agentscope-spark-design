@@ -9,6 +9,7 @@ import { SparkCopyLine, SparkTrueLine } from '@agentscope-ai/icons';
 const supportedLanguages = Object.keys(CodeBlockLangExtensionsMap);
 
 const countLines = (str: string): number => {
+  if (!str) return 1;
   const regex = /\n/g;
   const matches = str.match(regex);
   return matches ? matches.length : 1;

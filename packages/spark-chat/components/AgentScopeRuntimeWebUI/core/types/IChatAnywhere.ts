@@ -23,7 +23,8 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @param data
    * @returns
    */
-  fetch?: (data: { input: any[] }) => Promise<Response>;
+  fetch?: (data: { input: any[]; biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'] }) => Promise<Response>;
+  enableHistoryMessages?: boolean;
 }
 
 /**
@@ -345,7 +346,7 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
     }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
-  
+
   /**
    * @description 是否显示重新生成按钮
    * @descriptionEn Whether to show the replace button
@@ -405,4 +406,11 @@ export interface IAgentScopeRuntimeWebUIInputData {
    * @descriptionEn File list
    */
   fileList?: UploadProps['fileList'];
+  /**
+   * @description 业务参数
+   * @descriptionEn Business parameters
+   */
+  biz_params?: {
+    user_prompt_params?: Record<string, string>;
+  };
 }

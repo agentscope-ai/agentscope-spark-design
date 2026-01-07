@@ -10,6 +10,7 @@ import useChatMessageHandler from "./useChatMessageHandler";
 import useChatRequest from "./useChatRequest";
 import useChatSessionHandler from "./useChatSessionHandler";
 import ReactDOM from "react-dom";
+// import mockdata from '../../mock/mock.json'
 
 /**
  * 聊天控制器 Hook - 协调所有聊天相关操作
@@ -79,7 +80,8 @@ export default function useChatController() {
     const historyMessages = messageHandler.getHistoryMessages();
     await sessionHandler.syncSessionMessages(messageHandler.getMessages());
 
-    await request(historyMessages);
+    await request(historyMessages, data.biz_params);
+    // mockRequest(mockdata);
   }, [messageHandler, sessionHandler, request]);
 
   /**
@@ -123,6 +125,14 @@ export default function useChatController() {
       await handleRegenerate(data.detail.id);
     }
   });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleSubmit',
+    callback: async (data) => {
+      await handleSubmit(data.detail);
+    }
+  }, [handleSubmit]);
+
 
   return {
     handleSubmit,

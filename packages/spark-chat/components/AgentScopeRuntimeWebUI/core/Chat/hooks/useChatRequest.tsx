@@ -2,8 +2,9 @@ import { sleep, Stream } from "@agentscope-ai/chat";
 import { useCallback, useRef, useEffect } from "react";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import AgentScopeRuntimeResponseBuilder from "../../AgentScopeRuntime/Response/Builder";
-import { AgentScopeRuntimeRunStatus } from "../../AgentScopeRuntime/types";
+import { AgentScopeRuntimeRunStatus, AgentScopeRuntimeMessageType } from "../../AgentScopeRuntime/types";
 import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
+import { IAgentScopeRuntimeWebUIInputData } from "../../types";
 
 interface UseChatRequestOptions {
   currentQARef: React.MutableRefObject<{
@@ -51,21 +52,20 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       updateMessage(currentQARef.current.response);
 
       await sleep(100);
-      // if (chunk?.type?.startsWith('plugin_')) {
-      //   debugger
-      // }
 
     }
   }, [])
 
 
-  const request = useCallback(async (historyMessages: any[]) => {
+  const request = useCallback(async (historyMessages: any[], biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params']) => {
     // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
+    const { enableHistoryMessages = false } = currentApiOptions;
     let response
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
         input: historyMessages,
+        biz_params,
       }) : await fetch(currentApiOptions.baseURL, {
         method: 'POST',
         headers: {
@@ -73,24 +73,47 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           'Authorization': `Bearer ${currentApiOptions.token || ''}`,
         },
         body: JSON.stringify({
-          input: historyMessages.slice(-1),
+          input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
           session_id: getCurrentSessionId(),
           stream: true,
+          biz_params,
         }),
       });
     } catch (error) {
-
     }
 
-
-
-
-    if (response && response.body && response.ok) {
+    if (response && response.body) {
       const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
         id: '',
         status: AgentScopeRuntimeRunStatus.Created,
         created_at: 0,
       });
+
+      if (!response.ok) {
+        response.json().then(data => {
+          const res = agentScopeRuntimeResponseBuilder.handle({
+            object: 'message',
+            type: AgentScopeRuntimeMessageType.ERROR,
+            content: [],
+            id: 'error',
+            role: 'assistant',
+            status: AgentScopeRuntimeRunStatus.Failed,
+            code: response.status,
+            message: JSON.stringify(data),
+          });
+
+
+          currentQARef.current.response.cards = [
+            {
+              code: 'AgentScopeRuntimeResponseCard',
+              data: res,
+            }
+          ];
+          onFinish();
+        });
+        return;
+      }
+
       try {
 
         for await (const chunk of Stream({

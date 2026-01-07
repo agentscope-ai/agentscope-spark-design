@@ -1,26 +1,28 @@
 import createGlobalStyle from '@/libs/createStyle';
 
 export const useStyle = createGlobalStyle`
-/* 默认深色 */
-.${(p) => p.antPrefix}-tooltip-content {
-  .${(p) => p.antPrefix}-tooltip-inner {
-    border: 1px solid transparent;
-    padding: 6px 12px;
-    background: var(--${(p) => p.antPrefix}-color-slate);
-    color: var(--${(p) => p.antPrefix}-color-text-on-primary);
+/* Default dark mode */
+.${(p) => p.antPrefix}-tooltip {
+  .${(p) => p.antPrefix}-tooltip-content {
+    .${(p) => p.antPrefix}-tooltip-inner {
+      border: 1px solid transparent;
+      padding: 6px 12px;
+      background: var(--${(p) => p.antPrefix}-color-slate);
+      color: var(--${(p) => p.antPrefix}-color-text-white);
+    }
   }
 }
 
-/* 浅色模式 */
+/* Light mode - keep same style as dark mode */
 .${(p) => p.sparkPrefix}-tooltip-light {
   .${(p) => p.antPrefix}-tooltip-content .${(p) => p.antPrefix}-tooltip-inner {
-    background: var(--${(p) => p.antPrefix}-color-bg-base);
-    color: var(--${(p) => p.antPrefix}-color-text);
+    background: var(--${(p) => p.antPrefix}-color-slate);
+    color: var(--${(p) => p.antPrefix}-color-text-white);
   }
   
   .${(p) => p.antPrefix}-tooltip-arrow {
     &::after {
-      background: var(--${(p) => p.antPrefix}-color-bg-base);
+      background: var(--${(p) => p.antPrefix}-color-slate);
     }
   }
 }

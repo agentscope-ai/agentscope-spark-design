@@ -1,32 +1,79 @@
 /**
- * 主题生成器 - Theme Generator
+ * Theme Generator
 
- * 核心功能：
- * 1. 颜色空间转换（HEX/RGB/HSL）
- * 2. 颜色调整和生成
- * 3. 完整主题配置生成（支持浅色/暗色模式）
+ * Generates a complete theme configuration based on input primary color, background color, and text color.
+ * Supports both light and dark modes.
  *
- * 设计原则（参考 Radix Colors）：
- * - 浅色模式：背景 95-99% 亮度，边框 80-90% 亮度，文本 15-25% 亮度
- * - 暗色模式：背景 0-10% 亮度，边框使用透明度，文本 85-95% 亮度
- * - 状态色和装饰色在暗色模式下使用预设优化值
+ * ## Core Features
+ * 1. **Color Space Conversion**: HEX ↔ RGB ↔ HSL conversions
+ * 2. **Color Adjustment and Generation**: Adjust brightness and saturation based on HSL color space
+ * 3. **Complete Theme Configuration**: Generates a complete theme configuration object including
+ *    primary colors, text colors, background colors, border colors, fill colors, status colors,
+ *    decorative colors, shadows, etc.
  *
- * 生成规则：
- * - 主色 (Primary)：从输入的主色生成，暗色模式自动调整亮度
- * - 背景色系：基于 bgBase 生成，保持色相统一
- * - 文本色系：基于 textBase 生成，保持色相统一
- * - 边框色系：基于 bgBase 生成，饱和度提高以增强可见度
- * - 填充色系：暗色模式基于文本色+透明度，浅色模式基于背景色
- * - 状态色/装饰色/阴影：暗色模式使用预设优化值，浅色模式使用配置文件
+ * ## Design Principles
+ * ### Light Mode
+ * - Background: 95-99% lightness
+ * - Border: 80-90% lightness
+ * - Text: 15-25% lightness
+ *
+ * ### Dark Mode
+ * - Background: 0-10% lightness
+ * - Border: Uses transparency to enhance layering
+ * - Text: 85-95% lightness
+ * - Status colors and decorative colors: Use preset optimized values
+ *
+ * ## Generation Rules
+ * - **Primary Color**: Generated from input primary color, automatically adjusts brightness in dark mode for readability
+ * - **Background Color System**: Generated based on bgBase, maintains consistent hue
+ * - **Text Color System**: Generated based on textBase, uses transparency to achieve different levels
+ * - **Border Color System**: Generated based on bgBase, increases saturation to enhance visibility
+ * - **Fill Color System**: Dark mode uses text color + transparency, light mode uses background color
+ * - **Status Colors/Decorative Colors/Shadows**: Dark mode uses preset optimized values, light mode uses configuration file
  */
 
 import themeDataDark from './bailianDarkTheme.json';
 import themeData from './bailianTheme.json';
 
-// ==================== 颜色转换工具函数 ====================
+
+
 
 /**
- * HEX 转 RGB
+ * Calculate WCAG relative luminance (used for contrast judgment)
+ * Return value range: 0 (darkest) to 1 (brightest)
+ */
+const getRelativeLuminance = (rgb) => {
+  // Normalize RGB values to 0-1
+  const rsRGB = rgb.r / 255;
+  const gsRGB = rgb.g / 255;
+  const bsRGB = rgb.b / 255;
+
+  // Apply sRGB gamma correction
+  const r = rsRGB <= 0.03928 ? rsRGB / 12.92 : Math.pow((rsRGB + 0.055) / 1.055, 2.4);
+  const g = gsRGB <= 0.03928 ? gsRGB / 12.92 : Math.pow((gsRGB + 0.055) / 1.055, 2.4);
+  const b = bsRGB <= 0.03928 ? bsRGB / 12.92 : Math.pow((bsRGB + 0.055) / 1.055, 2.4);
+
+  // Calculate relative luminance using WCAG formula
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/**
+ * Determine whether to use dark or light text on the background color
+ * Use WCAG relative luminance algorithm, threshold is 0.5
+ * @returns {boolean} true means use dark text, false means use light text
+ */
+const shouldUseDarkText = (rgb) => {
+  const luminance = getRelativeLuminance(rgb);
+  // Use dark text when luminance is greater than 0.5, otherwise use light text
+  return luminance > 0.5;
+};
+
+// ==================== Color Conversion Utility Functions ====================
+
+/**
+ * Converts HEX color value to RGB object
+ * @param {string} hex - HEX color value (e.g., '#FF0000' or 'FF0000')
+ * @returns {{r: number, g: number, b: number} | null} RGB object, returns null if conversion fails
  */
 const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -40,7 +87,11 @@ const hexToRgb = (hex) => {
 };
 
 /**
- * RGB 转 HEX
+ * Converts RGB values to HEX color string
+ * @param {number} r - Red component (0-255)
+ * @param {number} g - Green component (0-255)
+ * @param {number} b - Blue component (0-255)
+ * @returns {string} HEX color string (e.g., '#FF0000')
  */
 const rgbToHex = (r, g, b) => {
   return (
@@ -50,14 +101,18 @@ const rgbToHex = (r, g, b) => {
 };
 
 /**
- * RGB 转 HSL
+ * Converts RGB values to HSL object
+ * @param {number} r - Red component (0-255)
+ * @param {number} g - Green component (0-255)
+ * @param {number} b - Blue component (0-255)
+ * @returns {{h: number, s: number, l: number}} HSL object (h: 0-360, s: 0-100, l: 0-100)
  */
 const rgbToHsl = (r, g, b) => {
-  r /= 255;
-  g /= 255;
-  b /= 255;
-  const max = Math.max(r, g, b),
-    min = Math.min(r, g, b);
+  const rr = r / 255;
+  const gg = g / 255;
+  const bb = b / 255;
+  const max = Math.max(rr, gg, bb),
+    min = Math.min(rr, gg, bb);
   let h,
     s,
     l = (max + min) / 2;
@@ -68,14 +123,14 @@ const rgbToHsl = (r, g, b) => {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r:
-        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      case rr:
+        h = ((gg - bb) / d + (gg < bb ? 6 : 0)) / 6;
         break;
-      case g:
-        h = ((b - r) / d + 2) / 6;
+      case gg:
+        h = ((bb - rr) / d + 2) / 6;
         break;
-      case b:
-        h = ((r - g) / d + 4) / 6;
+      case bb:
+        h = ((rr - gg) / d + 4) / 6;
         break;
       default:
         h = 0;
@@ -86,31 +141,36 @@ const rgbToHsl = (r, g, b) => {
 };
 
 /**
- * HSL 转 RGB
+ * Converts HSL values to RGB object
+ * @param {number} h - Hue (0-360)
+ * @param {number} s - Saturation (0-100)
+ * @param {number} l - Lightness (0-100)
+ * @returns {{r: number, g: number, b: number}} RGB object (r, g, b: 0-255)
  */
 const hslToRgb = (h, s, l) => {
-  h /= 360;
-  s /= 100;
-  l /= 100;
+  const hh = h / 360;
+  const ss = s / 100;
+  const ll = l / 100;
   let r, g, b;
 
-  if (s === 0) {
-    r = g = b = l;
+  if (ss === 0) {
+    r = g = b = ll;
   } else {
     const hue2rgb = (p, q, t) => {
-      if (t < 0) t += 1;
-      if (t > 1) t -= 1;
-      if (t < 1 / 6) return p + (q - p) * 6 * t;
-      if (t < 1 / 2) return q;
-      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      let tt = t;
+      if (tt < 0) tt += 1;
+      if (tt > 1) tt -= 1;
+      if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+      if (tt < 1 / 2) return q;
+      if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
       return p;
     };
 
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1 / 3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1 / 3);
+    const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
+    const p = 2 * ll - q;
+    r = hue2rgb(p, q, hh + 1 / 3);
+    g = hue2rgb(p, q, hh);
+    b = hue2rgb(p, q, hh - 1 / 3);
   }
 
   return {
@@ -120,10 +180,14 @@ const hslToRgb = (h, s, l) => {
   };
 };
 
-// ==================== 颜色调整函数 ====================
+// ==================== Color Adjustment Functions ====================
 
 /**
- * 调整颜色的亮度和饱和度（相对调整）
+ * Adjusts color brightness and saturation relatively
+ * @param {string} hex - Original HEX color value
+ * @param {number} lightness - Lightness adjustment value (positive for lighter, negative for darker)
+ * @param {number} [saturation=0] - Saturation adjustment value (positive to increase, negative to decrease)
+ * @returns {string} Adjusted HEX color value
  */
 const adjustColor = (hex, lightness, saturation = 0) => {
   const rgb = hexToRgb(hex);
@@ -138,7 +202,11 @@ const adjustColor = (hex, lightness, saturation = 0) => {
 };
 
 /**
- * 生成指定亮度的颜色（绝对值）
+ * Generates a color with specified lightness (absolute value)
+ * @param {string} hex - Base HEX color value
+ * @param {number} targetLightness - Target lightness value (0-100)
+ * @param {number | null} [targetSaturation=null] - Target saturation value (0-100), keeps original saturation if null
+ * @returns {string} Generated HEX color value
  */
 const generateColorWithLightness = (
   hex,
@@ -159,7 +227,11 @@ const generateColorWithLightness = (
 };
 
 /**
- * 基于基础色生成色阶（保持色相，调整亮度和饱和度）
+ * Generates color scale based on base color (maintains hue, adjusts lightness and saturation)
+ * @param {string} baseHex - Base HEX color value
+ * @param {number} lightness - Target lightness value (0-100)
+ * @param {number} [saturationMultiplier=1] - Saturation multiplier (1 to keep original saturation)
+ * @returns {string} Generated HEX color value
  */
 const generateColorScale = (baseHex, lightness, saturationMultiplier = 1) => {
   const rgb = hexToRgb(baseHex);
@@ -173,58 +245,80 @@ const generateColorScale = (baseHex, lightness, saturationMultiplier = 1) => {
   return rgbToHex(newRgb.r, newRgb.g, newRgb.b);
 };
 
-// ==================== 主题生成函数 ====================
+// ==================== Theme Generation Function ====================
 
 /**
- * 生成完整主题
- * @param {string} primaryHex - 主色调
- * @param {string} bgBaseHex - 背景基础色
- * @param {string} textBaseHex - 文本基础色
- * @param {boolean} darkMode - 是否为暗色模式
- * @returns {Object} 完整的主题配置对象
+ * Generates complete theme configuration
+ * 
+ * Generates a complete theme configuration object based on input primary color, background color,
+ * text color, and mode (light/dark). The theme configuration includes: primary colors, text colors,
+ * background colors, border colors, fill colors, status colors, decorative colors, shadows, etc.
+ * 
+ * @param {Object} props - Theme generation parameters
+ * @param {string} props.primaryHex - Primary color HEX value (required)
+ * @param {string} [props.bgBaseHex] - Background base color HEX value, uses default if not provided (light: #ffffff, dark: #000000)
+ * @param {string} [props.textBaseHex] - Text base color HEX value, uses default if not provided (light: #1a1a1a, dark: #E7E7ED)
+ * @param {boolean} [props.darkMode=false] - Whether it is dark mode
+ * @returns {Object | null} Complete theme configuration object, returns null if parameters are invalid
  */
 interface GenerateThemeProps {
+  /** Primary color HEX value */
   primaryHex: string;
+  /** Background base color HEX value */
   bgBaseHex?: string;
+  /** Text base color HEX value */
   textBaseHex?: string;
+  /** Whether it is dark mode */
   darkMode: boolean;
 }
-const generateTheme = ({
-  primaryHex,
-  bgBaseHex,
-  textBaseHex,
-  darkMode = false,
-}: GenerateThemeProps) => {
-  bgBaseHex = bgBaseHex || (darkMode ? '#000000' : '#ffffff');
-  textBaseHex = textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
+const generateTheme = (config: GenerateThemeProps) => {
+  const { primaryHex, darkMode = false } = config;
+  const bgBaseHex = config.bgBaseHex || (darkMode ? '#000000' : '#ffffff');
+  const textBaseHex = config.textBaseHex || (darkMode ? '#E7E7ED' : '#1a1a1a');
   const rgb = hexToRgb(primaryHex);
   if (!rgb) return null;
 
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
-  // 获取背景色和文本色的 RGB 和 HSL
+  // Get RGB and HSL values for background and text colors
   const bgBaseRgb = hexToRgb(bgBaseHex);
   const textBaseRgb = hexToRgb(textBaseHex);
   const bgBaseHsl = bgBaseRgb
     ? rgbToHsl(bgBaseRgb.r, bgBaseRgb.g, bgBaseRgb.b)
     : { h: 210, s: 8, l: darkMode ? 5 : 99 };
 
-  // 参考 Radix Colors 的色阶系统
-  // 浅色模式：
-  //   Scale 1-3: 背景色 (95-99% 亮度)
-  //   Scale 6-8: 边框色、填充色 (80-90% 亮度)
-  //   Scale 11-12: 文本色 (15-25% 亮度)
-  // 暗色模式：
-  //   Scale 1-3: 背景色 (0-10% 亮度)
-  //   Scale 6-8: 边框色、填充色 (带透明度)
-  //   Scale 11-12: 文本色 (85-95% 亮度)
+  // Light mode:
+  //   Scale 1-3: Background colors (95-99% lightness)
+  //   Scale 6-8: Border colors, fill colors (80-90% lightness)
+  //   Scale 11-12: Text colors (15-25% lightness)
+  // Dark mode:
+  //   Scale 1-3: Background colors (0-10% lightness)
+  //   Scale 6-8: Border colors, fill colors (with transparency)
+  //   Scale 11-12: Text colors (85-95% lightness)
 
-  const baseSaturation = Math.max(8, Math.min(hsl.s, 40)); // 主色背景（如 primaryBg）使用低饱和度
-  const borderSaturation = Math.max(12, Math.min(hsl.s * 0.6, 35)); // 主色边框（如 primaryBorder）使用的饱和度
+  // Calculate saturation values related to primary color
+  // Primary color background uses low saturation to ensure background is not too vibrant
+  const baseSaturation = Math.max(8, Math.min(hsl.s, 40));
+  // Primary color border uses medium saturation to enhance visibility
+  const borderSaturation = Math.max(12, Math.min(hsl.s * 0.6, 35));
 
-  // 生成主色相关的颜色
-  const theme = {
-    // 保留边框圆角配置
+  // Calculate actual generated primary color (considering dark mode adjustment)
+  const actualPrimaryHex = darkMode
+    ? generateColorWithLightness(
+        primaryHex,
+        Math.max(hsl.l - 5, 42),
+        hsl.s * 0.95,
+      )
+    : primaryHex;
+  // Get actual primary color lightness to determine text on primary color
+  const actualPrimaryRgb = hexToRgb(actualPrimaryHex);
+  const actualPrimaryHsl = actualPrimaryRgb
+    ? rgbToHsl(actualPrimaryRgb.r, actualPrimaryRgb.g, actualPrimaryRgb.b)
+    : hsl;
+
+  // Generate complete theme configuration object
+    const theme = {
+    // ========== Border Radius Configuration ==========
     borderRadiusXS: themeData.borderRadiusXS,
     borderRadiusSM: themeData.borderRadiusSM,
     borderRadius: themeData.borderRadius,
@@ -233,7 +327,8 @@ const generateTheme = ({
     borderRadiusFull: themeData.borderRadiusFull,
     wireframe: themeData.wireframe,
 
-    // 主色系 - 暗色模式下生成适配的主色
+    // ========== Primary Color System ==========
+    // Automatically adjusts primary color brightness in dark mode to ensure readability
     colorPrimary: darkMode
       ? generateColorWithLightness(
           primaryHex,
@@ -256,8 +351,8 @@ const generateTheme = ({
         )
       : adjustColor(primaryHex, hsl.l < 50 ? -10 : -20, 0),
     colorPrimaryBg: darkMode
-      ? generateColorWithLightness(primaryHex, 13, baseSaturation * 0.6) // 暗色模式：深色背景
-      : generateColorWithLightness(primaryHex, 96, baseSaturation * 0.8), // 浅色模式：浅色背景
+      ? generateColorWithLightness(primaryHex, 13, baseSaturation * 0.6) // Dark mode: dark background (13% lightness)
+      : generateColorWithLightness(primaryHex, 96, baseSaturation * 0.8), // Light mode: light background (96% lightness)
     colorPrimaryBgHover: darkMode
       ? generateColorWithLightness(primaryHex, 13, baseSaturation * 0.6)
       : generateColorWithLightness(primaryHex, 94, baseSaturation),
@@ -288,8 +383,12 @@ const generateTheme = ({
           hsl.s * 0.95,
         )
       : adjustColor(primaryHex, hsl.l < 50 ? -10 : -20, 0),
+    // Text color displayed on primary color background: automatically selects black or white based on actual primary color lightness
+    // Light theme colors (lightness > 50) use black text, dark theme colors (lightness <= 50) use white text
+    colorTextOnPrimary: shouldUseDarkText(actualPrimaryRgb) ? '#000000' : '#ffffff',
 
-    // 文本颜色 - 基于 textBase 的色相生成（Scale 11-12）
+    // ========== Text Color System ==========
+    // Generated based on textBase hue, uses transparency to achieve different levels
     colorTextBase: textBaseHex,
     colorText: `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.88)`,
     colorTextSecondary: `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.65)`,
@@ -297,17 +396,16 @@ const generateTheme = ({
     colorTextQuaternary: `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.25)`,
     colorTextWhite: '#fff',
 
-    // 背景颜色 - 基于 bgBase 的色相生成 (Scale 1-3)
+    // ========== Background Color System ==========
+    // Generated based on bgBase hue, maintains consistent hue
     colorBgBase: bgBaseHex,
     colorBgContainer: darkMode
-      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：稍微亮一点 (5-8%)
-      : generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 1, 99), 0.8), // 浅色：稍微深一点
+      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + hsl.l * 0.08, 12), 1.2) // Dark mode: dynamically adjusts based on primary color lightness (brighter primary = brighter container, max 12% lightness)
+      : generateColorScale(bgBaseHex, Math.max(100 - hsl.l * 0.05, 96), 0.8), // Light mode: darker primary = grayer container; lighter primary = closer to white (min 96% lightness)
     colorBgElevated: darkMode
-      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：与 container 相同
-      : bgBaseHex, // 浅色：使用 bgBase 本身
-    colorBgLayout: darkMode
-      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // 暗色：与 container 相同
-      : generateColorScale(bgBaseHex, Math.max(bgBaseHsl.l - 2, 96), 1.2), // 浅色：稍微深一点
+      ? generateColorScale(bgBaseHex, Math.min(bgBaseHsl.l + 3, 8), 1.2) // Dark mode: slightly brighter than container (max 8% lightness)
+      : bgBaseHex, // Light mode: uses bgBase itself (usually white)
+    colorBgLayout: bgBaseHex, // Keeps consistent with bgBase
     colorBgSpotlight: darkMode
       ? `rgba(${hexToRgb(generateColorScale(bgBaseHex, 28, 1.2)).r}, ${
           hexToRgb(generateColorScale(bgBaseHex, 28, 1.2)).g
@@ -317,19 +415,20 @@ const generateTheme = ({
       ? `rgba(${bgBaseRgb.r}, ${bgBaseRgb.g}, ${bgBaseRgb.b}, 0.8)`
       : `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.45)`,
 
-    // 边框和填充 - 暗色模式使用透明度，浅色模式使用实色
+    // ========== Border and Fill Color System ==========
+    // Dark mode uses transparency to enhance layering, light mode uses solid colors
     colorBorder: darkMode
       ? `rgba(${hexToRgb(generateColorScale(bgBaseHex, 28, 2)).r}, ${
           hexToRgb(generateColorScale(bgBaseHex, 28, 2)).g
-        }, ${hexToRgb(generateColorScale(bgBaseHex, 28, 2)).b}, 0.8)` // 暗色：中等亮度 + 透明度
-      : generateColorScale(bgBaseHex, 81, 2.5), // 浅色：实色边框
+        }, ${hexToRgb(generateColorScale(bgBaseHex, 28, 2)).b}, 0.8)` // Dark mode: medium lightness (28%) + 80% opacity
+      : generateColorScale(bgBaseHex, 81, 2.5), // Light mode: solid border (81% lightness)
     colorBorderSecondary: darkMode
       ? `rgba(${hexToRgb(generateColorScale(bgBaseHex, 22, 1.8)).r}, ${
           hexToRgb(generateColorScale(bgBaseHex, 22, 1.8)).g
         }, ${hexToRgb(generateColorScale(bgBaseHex, 22, 1.8)).b}, 0.8)`
       : generateColorScale(bgBaseHex, 88, 2),
     colorFill: darkMode
-      ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.18)` // 暗色：基于文本色的透明填充
+      ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.18)` // Dark mode: transparent fill based on text color
       : generateColorScale(bgBaseHex, 81, 2.5) + '5c',
     colorFillSecondary: darkMode
       ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.12)`
@@ -341,10 +440,11 @@ const generateTheme = ({
       ? `rgba(${textBaseRgb.r}, ${textBaseRgb.g}, ${textBaseRgb.b}, 0.04)`
       : generateColorScale(bgBaseHex, 81, 2.5) + '1a',
     colorFillDisable: darkMode
-      ? generateColorScale(textBaseHex, 55, 0.8) // 暗色：中等亮度的灰色
-      : generateColorScale(bgBaseHex, 86, 1.8),
+      ? generateColorScale(textBaseHex, 55, 0.8) // Dark mode: medium lightness gray (55% lightness)
+      : generateColorScale(bgBaseHex, 86, 1.8), // Light mode: light gray (86% lightness)
 
-    // 链接色 - 暗色模式下生成适配的颜色
+    // ========== Link Color ==========
+    // Automatically adjusts brightness in dark mode to ensure readability
     colorLink: darkMode
       ? generateColorWithLightness(
           primaryHex,
@@ -353,7 +453,8 @@ const generateTheme = ({
         )
       : primaryHex,
 
-    // 状态色 - 暗色模式下使用预设值
+    // ========== Status Colors ==========
+    // Dark mode uses preset optimized values, light mode uses values from configuration file
     colorInfo: darkMode ? themeDataDark.colorInfo : themeData.colorInfo,
     colorInfoHover: darkMode
       ? themeDataDark.colorInfoHover
@@ -427,7 +528,8 @@ const generateTheme = ({
       ? themeDataDark.colorErrorBorderHover
       : themeData.colorErrorBorderHover,
 
-    // 装饰色 - 暗色模式下使用预设值
+    // ========== Decorative Colors ==========
+    // Dark mode uses preset optimized values, light mode uses values from configuration file
     colorPurple: darkMode ? themeDataDark.colorPurple : themeData.colorPurple,
     colorPurpleHover: darkMode
       ? themeDataDark.colorPurpleHover
@@ -490,7 +592,8 @@ const generateTheme = ({
       ? themeDataDark.colorLavenderBg
       : themeData.colorLavenderBg || 'rgba(226, 212, 255, 0.8)',
 
-    // 阴影 - 暗色模式使用预设值
+    // ========== Shadows ==========
+    // Dark mode uses preset optimized values, light mode uses values from configuration file
     boxShadow: darkMode ? themeDataDark.boxShadow : themeData.boxShadow,
     boxShadowSecondary: darkMode
       ? themeDataDark.boxShadowSecondary
