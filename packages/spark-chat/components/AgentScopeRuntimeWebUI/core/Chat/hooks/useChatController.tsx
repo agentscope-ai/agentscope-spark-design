@@ -80,7 +80,7 @@ export default function useChatController() {
     const historyMessages = messageHandler.getHistoryMessages();
     await sessionHandler.syncSessionMessages(messageHandler.getMessages());
 
-    await request(historyMessages);
+    await request(historyMessages, data.biz_params);
     // mockRequest(mockdata);
   }, [messageHandler, sessionHandler, request]);
 
