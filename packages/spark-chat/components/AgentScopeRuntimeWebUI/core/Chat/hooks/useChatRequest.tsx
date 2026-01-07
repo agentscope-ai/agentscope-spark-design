@@ -4,6 +4,7 @@ import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext
 import AgentScopeRuntimeResponseBuilder from "../../AgentScopeRuntime/Response/Builder";
 import { AgentScopeRuntimeRunStatus, AgentScopeRuntimeMessageType } from "../../AgentScopeRuntime/types";
 import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
+import { IAgentScopeRuntimeWebUIInputData } from "../../types";
 
 interface UseChatRequestOptions {
   currentQARef: React.MutableRefObject<{
@@ -56,7 +57,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   }, [])
 
 
-  const request = useCallback(async (historyMessages: any[]) => {
+  const request = useCallback(async (historyMessages: any[], biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params']) => {
     // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
     const { enableHistoryMessages = false } = currentApiOptions;
@@ -64,6 +65,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
         input: historyMessages,
+        biz_params,
       }) : await fetch(currentApiOptions.baseURL, {
         method: 'POST',
         headers: {
@@ -74,6 +76,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
           session_id: getCurrentSessionId(),
           stream: true,
+          biz_params,
         }),
       });
     } catch (error) {
