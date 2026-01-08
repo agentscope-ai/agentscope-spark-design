@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/design",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "AgentScope Spark Design - UI Library for AgentScope AI",
   "repository": {
     "type": "git",
