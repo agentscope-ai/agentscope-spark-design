@@ -3,7 +3,6 @@ import useMergedState from '@rc-component/util/lib/hooks/useMergedState';
 import { Segmented, Tabs, TabsProps } from 'antd';
 import classNames from 'classnames';
 import { useCallback, useMemo } from 'react';
-import { flushSync } from 'react-dom';
 import { useStyle } from './index.style';
 
 export interface SparkTabsProps extends Omit<TabsProps, 'type'> {
@@ -28,12 +27,10 @@ const SparkTabs = (props: SparkTabsProps) => {
 
   const Style = useStyle();
 
-  // 缓存 onChange 回调，使用 flushSync 强制同步更新，防止卡顿时选中态丢失
+  // 缓存 onChange 回调
   const handleChange = useCallback(
     (key: string) => {
-      flushSync(() => {
-        setMergedActiveKey(key);
-      });
+      setMergedActiveKey(key);
       props.onChange?.(key);
     },
     [setMergedActiveKey, props.onChange],
@@ -59,30 +56,27 @@ const SparkTabs = (props: SparkTabsProps) => {
     [sparkPrefix, centered],
   );
 
-  // 缓存 renderTabBar 函数
-  const renderTabBar = useCallback(
-    () => (
-      <Segmented
-        options={segmentedOptions}
-        onChange={handleChange}
-        className={segmentedClassName}
-        value={mergedActiveKey}
-        size={props.size}
-      />
-    ),
-    [segmentedOptions, handleChange, segmentedClassName, mergedActiveKey, props.size],
-  );
+  // 获取当前选中 tab 的内容
+  const activeContent = useMemo(() => {
+    const activeItem = props.items?.find((item) => item.key === mergedActiveKey);
+    return activeItem?.children;
+  }, [props.items, mergedActiveKey]);
 
+  // segmented 类型：分离 Segmented 和内容渲染，避免 renderTabBar 导致的样式问题
   if (type === 'segmented') {
     return (
       <>
         <Style />
-        <Tabs
-          animated={false}
-          {...restProps}
-          activeKey={mergedActiveKey}
-          renderTabBar={renderTabBar}
-        ></Tabs>
+        <Segmented
+          options={segmentedOptions}
+          value={mergedActiveKey}
+          onChange={handleChange}
+          className={segmentedClassName}
+          size={props.size}
+        />
+        <div className={`${sparkPrefix}-segmented-tab-content`}>
+          {activeContent}
+        </div>
       </>
     );
   }
