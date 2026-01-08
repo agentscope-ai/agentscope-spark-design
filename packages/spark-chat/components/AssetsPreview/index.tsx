@@ -8,7 +8,6 @@ import Audio from './Audio';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SparkLeftLine, SparkRightLine } from '@agentscope-ai/icons';
 import { IconButton } from '@agentscope-ai/design';
-import { useDebounce } from 'ahooks';
 
 export interface IAssetsPreviewProps {
   className?: string;
@@ -27,23 +26,53 @@ function AssetsPreview(props: IAssetsPreviewProps) {
     video: Video,
     audio: Audio,
   }[props.type];
-  const ref = useRef();
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => { }, [props.data.length])
   const { height = 144 } = props;
-  const [value, setValue] = useState<string>();
-  const debouncedValue = useDebounce(value, { wait: 500 });
+  const [arrowTop, setArrowTop] = useState<number>(0);
+  const [arrowShow, setArrowShow] = useState<'left' | 'right' | ''>('');
+  const maxWidth = useRef<number>(0);
 
 
   const onScroll = useCallback((e) => {
-    console.log(e.target.scrollLeft, e.target.scrollWidth - e.target.clientWidth);
+
+    if (e.target.scrollLeft > 0) {
+      setArrowShow('right');
+    }
+
+    if (e.target.scrollLeft >= maxWidth.current) {
+      setArrowShow('left')
+    }
   }, [])
+
+
+  useEffect(() => {
+    setArrowTop(height / 2 - 12 - 6);
+  }, [height])
+
+
+  useEffect(() => {
+    if (ref.current) {
+      maxWidth.current = ref.current.scrollWidth - ref.current.clientWidth;
+      if (maxWidth.current > 0) {
+        setArrowShow('right');
+      } else {
+      }
+    }
+  }, [])
+
+
+  const toArrow = useCallback((direct: 'left' | 'right') => {
+    const width = ref.current.clientWidth / props.data.length;
+    ref.current.scrollLeft = ref.current.scrollLeft + width * (direct === 'left' ? -1 : 1)
+  }, [props.data])
 
 
   return <>
     <Style />
     <div className={cls(`${prefixCls}`, props.className)}>
-      <div className={cls(`${prefixCls}-container`, props.className)} style={{ height }} onScroll={onScroll}>
+      <div className={cls(`${prefixCls}-container`, props.className)} style={{ height }} onScroll={onScroll} ref={ref}>
         {
           props.data.map((item, index) => {
             return <Component key={index} {...item as any} />;
@@ -52,8 +81,21 @@ function AssetsPreview(props: IAssetsPreviewProps) {
       </div>
       <div className={cls(`${prefixCls}-left-edge`)} />
       <div className={cls(`${prefixCls}-right-edge`)} />
-      <IconButton className={cls(`${prefixCls}-left-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkLeftLine />}></IconButton>
-      <IconButton className={cls(`${prefixCls}-right-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkRightLine />}></IconButton>
+
+
+      {
+        arrowTop ? <>
+          {
+            arrowShow === 'left' && <IconButton onClick={() => toArrow('left')} style={{ top: arrowTop }} className={cls(`${prefixCls}-left-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkLeftLine />}></IconButton>
+          }
+
+          {
+            arrowShow === 'right' && <IconButton onClick={() => toArrow('right')} style={{ top: arrowTop }} className={cls(`${prefixCls}-right-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkRightLine />}></IconButton>
+          }
+
+        </> : null
+      }
+
     </div>
   </>
 }

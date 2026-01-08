@@ -23,8 +23,6 @@ export default createGlobalStyle`
 
   &-arrow {
     position: absolute;
-    top: 50%;
-    transform: translateY(-65%);
     bottom: 0;
   }
 
