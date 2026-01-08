@@ -53,7 +53,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
 
 
   useEffect(() => {
-    if (ref.current) {
+    if (ref.current && props.type !== 'audio') {
       maxWidth.current = ref.current.scrollWidth - ref.current.clientWidth;
       if (maxWidth.current > 0) {
         setArrowShow('right');
@@ -64,7 +64,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
 
 
   const toArrow = useCallback((direct: 'left' | 'right') => {
-    const width = ref.current.clientWidth / props.data.length;
+    const width = ref.current.scrollWidth / props.data.length;
     ref.current.scrollLeft = ref.current.scrollLeft + width * (direct === 'left' ? -1 : 1)
   }, [props.data])
 
@@ -72,25 +72,31 @@ function AssetsPreview(props: IAssetsPreviewProps) {
   return <>
     <Style />
     <div className={cls(`${prefixCls}`, props.className)}>
-      <div className={cls(`${prefixCls}-container`, props.className)} style={{ height }} onScroll={onScroll} ref={ref}>
+      <div className={cls(`${prefixCls}-container`, props.className)} style={props.type !== 'audio' ? { height } : {
+        flexDirection: 'column'
+      }} onScroll={onScroll} ref={ref}>
         {
           props.data.map((item, index) => {
             return <Component key={index} {...item as any} />;
           })
         }
       </div>
-      <div className={cls(`${prefixCls}-left-edge`)} />
-      <div className={cls(`${prefixCls}-right-edge`)} />
 
 
       {
-        arrowTop ? <>
+        arrowTop && props.type !== 'audio' ? <>
           {
-            arrowShow === 'left' && <IconButton onClick={() => toArrow('left')} style={{ top: arrowTop }} className={cls(`${prefixCls}-left-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkLeftLine />}></IconButton>
+            arrowShow === 'left' && <>
+              <div className={cls(`${prefixCls}-left-edge`)} />
+              <IconButton onClick={() => toArrow('left')} style={{ top: arrowTop }} className={cls(`${prefixCls}-left-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkLeftLine />}></IconButton>
+            </>
           }
 
           {
-            arrowShow === 'right' && <IconButton onClick={() => toArrow('right')} style={{ top: arrowTop }} className={cls(`${prefixCls}-right-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkRightLine />}></IconButton>
+            arrowShow === 'right' && <>
+              <div className={cls(`${prefixCls}-right-edge`)} />
+              <IconButton onClick={() => toArrow('right')} style={{ top: arrowTop }} className={cls(`${prefixCls}-right-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkRightLine />}></IconButton>
+            </>
           }
 
         </> : null

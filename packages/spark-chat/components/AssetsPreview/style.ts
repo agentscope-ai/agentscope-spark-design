@@ -70,5 +70,11 @@ export default createGlobalStyle`
 
 
   }
+
+  
+  &-audio {
+    display: block;
+    width: 100%;
+  }
 }
 `;

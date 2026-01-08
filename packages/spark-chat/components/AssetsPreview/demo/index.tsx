@@ -33,5 +33,17 @@ export default function () {
       { src: 'https://cloud.video.taobao.com/vod/m9amjbqLTGUvaGo3o61u-Ch2hycUCa3RA3pAw1-Zv_0.mp4', width: 16, height: 9 },
 
     ]} />
+
+    <AssetsPreview type="audio" data={[
+      { src: 'https://cloud.video.taobao.com/vod/m9amjbqLTGUvaGo3o61u-Ch2hycUCa3RA3pAw1-Zv_0.mp4', },
+
+    ]} />
+
+    <AssetsPreview type="audio" data={[
+      { src: 'https://cloud.video.taobao.com/vod/m9amjbqLTGUvaGo3o61u-Ch2hycUCa3RA3pAw1-Zv_0.mp4', },
+      { src: 'https://cloud.video.taobao.com/vod/m9amjbqLTGUvaGo3o61u-Ch2hycUCa3RA3pAw1-Zv_0.mp4', },
+      { src: 'https://cloud.video.taobao.com/vod/m9amjbqLTGUvaGo3o61u-Ch2hycUCa3RA3pAw1-Zv_0.mp4', },
+
+    ]} />
   </Flex>
 }

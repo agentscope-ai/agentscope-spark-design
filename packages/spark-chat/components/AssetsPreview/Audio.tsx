@@ -1,5 +1,9 @@
 import { IAudio } from "./types";
+import { useProviderContext } from "..";
+
 
 export default function Audio(props: IAudio) {
-  return <div>Audio</div>;
+  const prefixCls = useProviderContext().getPrefixCls('assets-preview-audio');
+
+  return <audio src={props.src} controls className={prefixCls} />;
 }
