@@ -2,7 +2,6 @@ export { ConfigProvider } from 'antd';
 
 export { default as version } from './Version';
 
-
 export {
   CustomCardsContext,
   CustomCardsProvider,
@@ -87,4 +86,8 @@ export {
 
 export { default as AIGC } from './AIGC';
 
+export {
+  default as AssetsPreview,
+  type IAssetsPreviewProps,
+} from './AssetsPreview';
 export { Sandbox as GenerativeUISandbox } from './GenerativeUI';
