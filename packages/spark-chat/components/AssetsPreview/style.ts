@@ -2,12 +2,59 @@ import { createGlobalStyle } from 'antd-style';
 
 export default createGlobalStyle`
 .${(p) => p.theme.prefixCls}-assets-preview {
+  position: relative;
+
+  &-left-edge,
+  &-right-edge {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 128px;
+    pointer-events: none;
+  }
+
+  &-left-edge {
+    left: 0;
+  }
+
+  &-right-edge {
+    right: 0;
+  }
+
+  &-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-65%);
+    bottom: 0;
+  }
+
+  &-left-arrow {
+    left: 10px;
+  }
+
+  &-right-arrow {
+    right: 10px;
+  }
 
   &-container {
     display: flex;
     padding: 8px;
     gap: 8px;
+    overflow-x: auto;
+    justify-content: safe center;
     background-color: ${(p) => p.theme.colorFillTertiary};
+  }
+
+
+  &-image {
+    height: 100%;
+    flex-basis: auto;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 }
 `;
