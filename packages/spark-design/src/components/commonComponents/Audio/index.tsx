@@ -64,10 +64,11 @@ const Audio = forwardRef<HTMLAudioElement, AudioProps>((props, ref) => {
   }, [isPlaying]);
 
   // 音频加载完成处理
-  const handleLoadedMetadata = () => {
+  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     if (audioRef.current) {
       setDuration(audioRef.current.duration);
     }
+    audioProps.onLoadedMetadata?.(e);
   };
 
   // 播放/暂停切换
@@ -83,19 +84,22 @@ const Audio = forwardRef<HTMLAudioElement, AudioProps>((props, ref) => {
   };
 
   // 处理播放事件
-  const handlePlay = () => {
+  const handlePlay = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     setIsPlaying(true);
+    audioProps.onPlay?.(e);
   };
 
   // 处理暂停事件
-  const handlePause = () => {
+  const handlePause = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     setIsPlaying(false);
+    audioProps.onPause?.(e);
   };
 
   // 处理播放结束事件
-  const handleEnded = () => {
+  const handleEnded = (e: React.SyntheticEvent<HTMLAudioElement>) => {
     setIsPlaying(false);
     setCurrentTime(audioRef.current?.duration || 0);
+    audioProps.onEnded?.(e);
   };
 
   // 处理进度条点击事件

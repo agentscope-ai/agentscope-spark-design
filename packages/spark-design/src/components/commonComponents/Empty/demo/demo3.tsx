@@ -32,6 +32,13 @@ export default () => {
         onOk={() => {}}
       />
       <Empty
+        type="noChat"
+        title="Empty Chat"
+        description="Please add your chat"
+        okText="Retry"
+        onOk={() => {}}
+      />
+      <Empty
         type="stayTuned"
         title="Stay Tuned!"
         description="The function is being improved, stay tuned."

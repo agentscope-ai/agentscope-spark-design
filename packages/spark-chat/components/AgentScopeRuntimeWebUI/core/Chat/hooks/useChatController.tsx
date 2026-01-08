@@ -80,7 +80,7 @@ export default function useChatController() {
     const historyMessages = messageHandler.getHistoryMessages();
     await sessionHandler.syncSessionMessages(messageHandler.getMessages());
 
-    await request(historyMessages);
+    await request(historyMessages, data.biz_params);
     // mockRequest(mockdata);
   }, [messageHandler, sessionHandler, request]);
 
@@ -125,6 +125,14 @@ export default function useChatController() {
       await handleRegenerate(data.detail.id);
     }
   });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleSubmit',
+    callback: async (data) => {
+      await handleSubmit(data.detail);
+    }
+  }, [handleSubmit]);
+
 
   return {
     handleSubmit,

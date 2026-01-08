@@ -74,34 +74,31 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
   }, [isPlaying]);
 
   // 检测视频是否有音频通道
-  const checkAudioTracks = () => {
-    // @ts-ignore
-    window.videoRef = videoRef.current;
+  const handleCanPlayThrough = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     if (videoRef.current) {
       // 方法1: 检查mozHasAudio属性 (Firefox)
       if ('mozHasAudio' in videoRef.current) {
         // @ts-ignore
         setEnableVolume(videoRef.current.mozHasAudio);
-        return true;
       }
       // 方法2: 检查webkitAudioDecodedByteCount属性 (WebKit)
-      if ('webkitAudioDecodedByteCount' in videoRef.current) {
+      else if ('webkitAudioDecodedByteCount' in videoRef.current) {
         // @ts-ignore
         setEnableVolume(videoRef.current.webkitAudioDecodedByteCount > 0);
-        return true;
       }
-
-      setEnableVolume(false);
-      return false;
+      else {
+        setEnableVolume(false);
+      }
     }
-    return false;
+    videoProps.onCanPlayThrough?.(e);
   };
 
   // 视频加载完成处理
-  const handleLoadedMetadata = () => {
+  const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
     }
+    videoProps.onLoadedMetadata?.(e);
   };
 
   // 播放/暂停切换
@@ -117,13 +114,15 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
   };
 
   // 处理播放事件
-  const handlePlay = () => {
+  const handlePlay = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setIsPlaying(true);
+    videoProps.onPlay?.(e);
   };
 
   // 处理暂停事件
-  const handlePause = () => {
+  const handlePause = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setIsPlaying(false);
+    videoProps.onPause?.(e);
   };
 
   // 全屏切换
@@ -136,9 +135,10 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
   };
 
   // 处理播放结束事件
-  const handleEnded = () => {
+  const handleEnded = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setIsPlaying(false);
     setCurrentTime(videoRef.current?.duration);
+    videoProps.onEnded?.(e);
   };
 
   // 处理鼠标进入事件
@@ -185,7 +185,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
             className={`${sparkPrefix}-video-element`}
             crossOrigin="anonymous"
             onLoadedMetadata={handleLoadedMetadata}
-            onCanPlayThrough={checkAudioTracks}
+            onCanPlayThrough={handleCanPlayThrough}
             onPlay={handlePlay}
             onPause={handlePause}
             onEnded={handleEnded}

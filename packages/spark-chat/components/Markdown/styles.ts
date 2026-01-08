@@ -159,6 +159,10 @@ export default createGlobalStyle`
     margin: 0 0 0 1em;
   }
 
+  [data-footnote-backref] {
+    display: none;
+  }
+
 }
 
 

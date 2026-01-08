@@ -34,6 +34,7 @@ import { useFlowInteraction } from './use-flow-interaction';
 import { useFlowSave } from './use-flow-save';
 
 export const useNodesInteraction = () => {
+  const [messageApi] = message.useMessage();
   const { handleSaveFlowDraft } = useFlowSave();
   const store = useStoreApi();
   const setSelectedNode = useStore((state) => state.setSelectedNode);
@@ -339,7 +340,16 @@ export const useNodesInteraction = () => {
     (event: React.DragEvent<HTMLDivElement>, parentId?: string) => {
       setIsDragging(false);
       event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow');
+      // 兼容某些 Windows Chrome 版本 dataTransfer 可能为 undefined 的情况
+      if(!event.dataTransfer){
+        messageApi.warning(
+          $i18n.get({
+            id: 'spark-flow.hooks.useNodesInteraction.browserDragNotSupported',
+            dm: '当前浏览器不支持完整的拖拽功能，请尝试：1. 升级到最新的chrome浏览器；2. 使用浏览器的匿名模式 3. 使用其他浏览器，如：edge；',
+          }),
+        );
+      }
+      const type = event.dataTransfer?.getData('application/reactflow');
 
       if (typeof type === 'undefined' || !type) {
         return;
@@ -352,7 +362,10 @@ export const useNodesInteraction = () => {
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    // 兼容某些 Windows Chrome 版本 dataTransfer 可能为 undefined 的情况
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'move';
+    }
   }, []);
 
   const handleSelectNode = useCallback(
@@ -384,7 +397,9 @@ export const useNodesInteraction = () => {
           { type, parentId, disableScreenToFlowPosition: true },
           {
             x:
-              sourceNode.position.x + (sourceNode.width ?? 0) + NEW_NODE_PADDING.x,
+              sourceNode.position.x +
+              (sourceNode.width ?? 0) +
+              NEW_NODE_PADDING.x,
             y: sourceNode.position.y || 0,
           },
         );
@@ -452,7 +467,10 @@ export const useNodesInteraction = () => {
           x <=
           sourceNode.position.x + (sourceNode.width ?? 0) + NEW_NODE_PADDING.x
         ) {
-          x = sourceNode.position.x + (sourceNode.width ?? 0) + NEW_NODE_PADDING.x;
+          x =
+            sourceNode.position.x +
+            (sourceNode.width ?? 0) +
+            NEW_NODE_PADDING.x;
         }
         let newNode = generateNewNode(
           { type, parentId, disableScreenToFlowPosition: true },
