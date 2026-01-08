@@ -13,33 +13,31 @@ export interface IAssetsPreviewProps {
     container?: string;
   };
   height?: number;
+  type: 'image' | 'video' | 'audio';
   data: (IImage | IVideo | IAudio)[];
-
 }
 
 function AssetsPreview(props: IAssetsPreviewProps) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview');
+  const Component = {
+    image: Image,
+    video: Video,
+    audio: Audio,
+  }[props.type];
 
   return <>
     <Style />
     <div className={cls(`${prefixCls}-assets-preview`, props.className)}>
       <Container height={props.height}>
         {
-          props.data.map((item) => {
-            if (item.type === 'image') {
-              return <Image key={item.src} {...item} />;
-            } else if (item.type === 'video') {
-              return <Video key={item.src} {...item} />;
-            } else if (item.type === 'audio') {
-              return <Audio key={item.src} {...item} />;
-            }
+          props.data.map((item, index) => {
+            return <Component key={index} {...item as any} />;
           })
         }
       </Container>
     </div>
   </>
 }
-
 
 
 export default AssetsPreview;
