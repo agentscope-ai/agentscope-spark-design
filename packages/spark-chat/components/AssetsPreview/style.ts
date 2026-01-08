@@ -54,5 +54,21 @@ export default createGlobalStyle`
     background-position: center;
     background-repeat: no-repeat;
   }
+
+  &-video {
+    height: 100%;
+    flex-basis: auto;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+
+  }
 }
 `;
