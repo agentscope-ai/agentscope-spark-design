@@ -33,7 +33,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
   }, [])
 
   useEffect(() => {
-    setArrowTop(height / 2 - 12 - 6);
+    setArrowTop(height / 2 - 12);
   }, [height])
 
   useEffect(() => {
@@ -44,9 +44,9 @@ function AssetsPreview(props: IAssetsPreviewProps) {
 
 
   const toArrow = useCallback((direct: 'left' | 'right') => {
-    const width = ref.current.scrollWidth / props.data.length;
+    const width = 100;
     ref.current.scrollLeft = ref.current.scrollLeft + width * (direct === 'left' ? -1 : 1)
-  }, [props.data])
+  }, [])
 
   const Component = {
     image: Image,

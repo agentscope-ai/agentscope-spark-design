@@ -15,10 +15,12 @@ export default createGlobalStyle`
 
   &-left-edge {
     left: 0;
+    background: linear-gradient(to right, ${(p) => p.theme.colorBgLayout}, rgba(0, 0, 0, 0));
   }
 
   &-right-edge {
     right: 0;
+    background: linear-gradient(to left, ${(p) => p.theme.colorBgLayout}, rgba(0, 0, 0, 0));
   }
 
   &-arrow {
@@ -41,6 +43,11 @@ export default createGlobalStyle`
     overflow-x: auto;
     justify-content: safe center;
     background-color: ${(p) => p.theme.colorFillTertiary};
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome/Safari/Opera */
+    }
   }
 
 
