@@ -11,9 +11,8 @@ group:
 ## LLMs.txt
 
 为了让 Cursor 和 Claude Code 等工具理解 Spark Design，我们支持 LLMs.txt 文件，使 Spark Design 的文档可供大型语言模型使用。
-
-- [index.llms.txt](https://g.alicdn.com/code/npm/@ali/agentscope-ai-design/4.7.2/docs-dist/llms/index.llms.txt)：主要的 LLMs.txt 索引文件
-- [all.llms.txt](https://g.alicdn.com/code/npm/@ali/agentscope-ai-design/4.7.2/docs-dist/llms/all.llms.txt)：Spark Design 的完整文档
+- [index.llms.txt](https://unpkg.com/@agentscope-ai/design@1.0.26/llms/index.llms.txt)：主要的 LLMs.txt 索引文件
+- [all.llms.txt](https://unpkg.com/@agentscope-ai/design@1.0.26/llms/all.llms.txt)：Spark Design 的完整文档
 
 在 Cursor 中使用 @Docs 功能将 LLMs.txt 文件包含在您的项目中。[了解更多](https://docs.cursor.com/en/context/@-symbols/@-docs)
 
