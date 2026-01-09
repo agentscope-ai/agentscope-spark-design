@@ -5,7 +5,7 @@ import { IImage, IVideo, IAudio } from './types';
 import Image from './Image';
 import Video from './Video';
 import Audio from './Audio';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { SparkLeftLine, SparkRightLine } from '@agentscope-ai/icons';
 import { IconButton } from '@agentscope-ai/design';
 
@@ -21,44 +21,24 @@ export interface IAssetsPreviewProps {
 
 function AssetsPreview(props: IAssetsPreviewProps) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview');
-  const Component = {
-    image: Image,
-    video: Video,
-    audio: Audio,
-  }[props.type];
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => { }, [props.data.length])
   const { height = 144 } = props;
   const [arrowTop, setArrowTop] = useState<number>(0);
-  const [arrowShow, setArrowShow] = useState<'left' | 'right' | ''>('');
   const maxWidth = useRef<number>(0);
-
+  const [scrollLeft, setScrollLeft] = useState<number>(0);
+  const deferScrollLeft = useDeferredValue(scrollLeft);
 
   const onScroll = useCallback((e) => {
-
-    if (e.target.scrollLeft > 0) {
-      setArrowShow('right');
-    }
-
-    if (e.target.scrollLeft >= maxWidth.current) {
-      setArrowShow('left')
-    }
+    setScrollLeft(e.target.scrollLeft);
   }, [])
-
 
   useEffect(() => {
     setArrowTop(height / 2 - 12 - 6);
   }, [height])
 
-
   useEffect(() => {
     if (ref.current && props.type !== 'audio') {
       maxWidth.current = ref.current.scrollWidth - ref.current.clientWidth;
-      if (maxWidth.current > 0) {
-        setArrowShow('right');
-      } else {
-      }
     }
   }, [])
 
@@ -68,6 +48,11 @@ function AssetsPreview(props: IAssetsPreviewProps) {
     ref.current.scrollLeft = ref.current.scrollLeft + width * (direct === 'left' ? -1 : 1)
   }, [props.data])
 
+  const Component = {
+    image: Image,
+    video: Video,
+    audio: Audio,
+  }[props.type];
 
   return <>
     <Style />
@@ -82,18 +67,17 @@ function AssetsPreview(props: IAssetsPreviewProps) {
         }
       </div>
 
-
       {
         arrowTop && props.type !== 'audio' ? <>
           {
-            arrowShow === 'left' && <>
+            deferScrollLeft > 50 && <>
               <div className={cls(`${prefixCls}-left-edge`)} />
               <IconButton onClick={() => toArrow('left')} style={{ top: arrowTop }} className={cls(`${prefixCls}-left-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkLeftLine />}></IconButton>
             </>
           }
 
           {
-            arrowShow === 'right' && <>
+            deferScrollLeft < maxWidth.current - 50 && <>
               <div className={cls(`${prefixCls}-right-edge`)} />
               <IconButton onClick={() => toArrow('right')} style={{ top: arrowTop }} className={cls(`${prefixCls}-right-arrow`, `${prefixCls}-arrow`)} size="small" shape='circle' icon={<SparkRightLine />}></IconButton>
             </>
