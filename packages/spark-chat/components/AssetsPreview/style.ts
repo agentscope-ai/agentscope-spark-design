@@ -70,6 +70,8 @@ export default createGlobalStyle`
     flex-shrink: 0;
     border-radius: 8px;
     overflow: hidden;
+    position: relative;
+    cursor: pointer;
 
     video {
       width: 100%;
@@ -77,8 +79,56 @@ export default createGlobalStyle`
       object-fit: cover;
     }
 
+    &-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      background: linear-gradient(180deg, rgba(111, 111, 111, 0.27) 0%, rgba(38, 36, 76, 0.83) 100%);
+    }
 
+    &-play-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      transition: transform 0.2s ease;
+      font-size: 40px;
+      
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+
+    &-duration {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    &-playing-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
   }
+    
   &-audio {
     display: flex;
     align-items: center;
