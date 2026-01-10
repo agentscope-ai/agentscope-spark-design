@@ -12,12 +12,10 @@ export default createGlobalStyle`
   .anticon-spin {
     animation-duration: 2s;
   }
+
   &-icon-success {
     color: ${(p) => p.theme.colorSuccess};
   }
-
-  
-
 
   @keyframes ${(p) => p.theme.prefixCls}-loading {
     0% {

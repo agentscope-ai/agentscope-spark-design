@@ -77,6 +77,12 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    * @descriptionEn Typography configuration
    */
   typography?: IAgentScopeRuntimeWebUITypography;
+
+  /**
+   * @description 背景色
+   * @descriptionEn Background color
+   */
+  background?: string;
 }
 
 export interface IAgentScopeRuntimeWebUITypography {
