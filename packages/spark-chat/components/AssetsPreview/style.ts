@@ -62,6 +62,10 @@ export default createGlobalStyle`
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+
+    .anticon-eye {
+      font-size: 20px;
+    }
   }
 
   &-video {
@@ -90,7 +94,18 @@ export default createGlobalStyle`
       align-items: center;
       justify-content: center;
       border-radius: 4px;
-      background: linear-gradient(180deg, rgba(111, 111, 111, 0.27) 0%, rgba(38, 36, 76, 0.83) 100%);
+
+      &-playing {
+        opacity: 0;
+        &:hover {
+          opacity: 1;
+          background: linear-gradient(180deg, rgba(111, 111, 111, 0.27) 0%, rgba(38, 36, 76, 0.83) 100%);
+        }
+      }
+
+      &-paused {
+        background: linear-gradient(180deg, rgba(111, 111, 111, 0.27) 0%, rgba(38, 36, 76, 0.83) 100%);
+      }
     }
 
     &-play-btn {
@@ -127,6 +142,7 @@ export default createGlobalStyle`
       right: 0;
       bottom: 0;
     }
+    
   }
     
   &-audio {

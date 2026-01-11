@@ -1,7 +1,8 @@
 import { IVideo } from "./types";
 import { useProviderContext } from "..";
 import { useRef, useState, useCallback } from "react";
-import { SparkPlayFill } from "@agentscope-ai/icons";
+import { SparkPauseFill, SparkPlayFill } from "@agentscope-ai/icons";
+import cls from "classnames";
 
 export default function Video(props: IVideo) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview-video');
@@ -9,6 +10,7 @@ export default function Video(props: IVideo) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -37,6 +39,13 @@ export default function Video(props: IVideo) {
 
   const handleEnded = useCallback(() => {
     setIsPlaying(false);
+    setCurrentTime(0);
+  }, []);
+
+  const handleTimeUpdate = useCallback(() => {
+    if (videoRef.current) {
+      setCurrentTime(videoRef.current.currentTime);
+    }
   }, []);
 
   return (
@@ -53,21 +62,23 @@ export default function Video(props: IVideo) {
         poster={poster}
         preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
+        onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
       />
-      {!isPlaying && (
-        <div className={`${prefixCls}-overlay`} onClick={handlePlayPause}>
-          <div className={`${prefixCls}-play-btn`}>
-            <SparkPlayFill />
-          </div>
-          <div className={`${prefixCls}-duration`}>
-            {formatTime(duration)}
-          </div>
+      <div className={cls(`${prefixCls}-overlay`, {
+        [`${prefixCls}-overlay-playing`]: isPlaying,
+        [`${prefixCls}-overlay-paused`]: !isPlaying,
+      })} onClick={isPlaying ? handlePlayPause : handlePlayPause}>
+        <div className={`${prefixCls}-play-btn`}>
+          {
+            isPlaying ? <SparkPauseFill /> : <SparkPlayFill />
+          }
         </div>
-      )}
-      {isPlaying && (
-        <div className={`${prefixCls}-playing-overlay`} onClick={handlePlayPause} />
-      )}
+        <div className={`${prefixCls}-duration`}>
+          {formatTime(currentTime)}/{formatTime(duration)}
+        </div>
+      </div>
+
     </div>
   );
 }
