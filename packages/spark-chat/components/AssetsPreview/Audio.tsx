@@ -78,8 +78,8 @@ export default function Audio(props: IAudio) {
     <>
       <audio ref={audioRef} src={props.src} muted={isMuted} />
       <div className={prefixCls}>
-        <IconButton shape="circle" size="small" type="text" onClick={togglePlay} icon={isPlaying ? <SparkPauseFill /> : <SparkPlayFill />} />
-        <IconButton shape="circle" size="small" type="text" onClick={toggleMuted} icon={isMuted ? <SparkMuteLine /> : <SparkVolumeLine />} />
+        <IconButton size="small" type="text" onClick={togglePlay} icon={isPlaying ? <SparkPauseFill /> : <SparkPlayFill />} />
+        <IconButton size="small" type="text" onClick={toggleMuted} icon={isMuted ? <SparkMuteLine /> : <SparkVolumeLine />} />
         <div className={`${prefixCls}-time`}>{formatTime(currentTime)}</div>
         <div
           className={`${prefixCls}-progress`}
