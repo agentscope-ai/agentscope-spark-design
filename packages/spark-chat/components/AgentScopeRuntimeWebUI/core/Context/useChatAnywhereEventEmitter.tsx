@@ -6,14 +6,13 @@ interface IAgentScopeRuntimeWebUIEventEmitter {
 }
 
 
-export default function useChatAnywhereEventEmitter(props: IAgentScopeRuntimeWebUIEventEmitter) {
-
+export default function useChatAnywhereEventEmitter(props: IAgentScopeRuntimeWebUIEventEmitter, deps: any[] = []) {
   useEffect(() => {
     document.addEventListener(props.type, props.callback);
     return () => {
       document.removeEventListener(props.type, props.callback);
     }
-  }, [])
+  }, deps)
 
 }
 

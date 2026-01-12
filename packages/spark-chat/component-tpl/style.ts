@@ -1,6 +1,6 @@
-import { createGlobalStyle } from '@agentscope-ai/chat';
+import { createGlobalStyle } from 'antd-style';
 
 export default createGlobalStyle`
-.${(p) => p.prefix}- {
+.${(p) => p.theme.prefixCls}- {
 }
 `;

@@ -34,7 +34,7 @@ type CompoundedComponent = React.ForwardRefExoticComponent<
 };
 
 const InternalForm = forwardRef<SparkFormRef, SparkFormProps>((props, ref) => {
-  const { labelMarginRight = undefined } = props;
+  const { labelMarginRight = undefined, ...restProps } = props;
   const formRef = useRef<any>(null);
   const { sparkPrefix } = getCommonConfig();
   const Style = useStyle();
@@ -49,7 +49,7 @@ const InternalForm = forwardRef<SparkFormRef, SparkFormProps>((props, ref) => {
       {
         //@ts-ignore
         <Form
-          {...props}
+          {...restProps}
           className={classnames(
             props.className,
             `${sparkPrefix}-form`,

@@ -4,7 +4,7 @@ import { useMergedState } from 'rc-util';
 import pickAttrs from 'rc-util/lib/pickAttrs';
 import getValue from 'rc-util/lib/utils/get';
 import React, { useState } from 'react';
-import { useFocusWithin, useClickAway, useEventListener } from 'ahooks';
+import { useFocusWithin, useEventListener } from 'ahooks';
 import useProxyImperativeHandle from '../Util/hooks/use-proxy-imperative-handle';
 import { useProviderContext } from '@agentscope-ai/chat';
 import SenderHeader, { SendHeaderContext } from './SenderHeader';
@@ -19,6 +19,7 @@ import ModeSelect from './ModeSelect';
 import type { InputRef as AntdInputRef, ButtonProps, GetProps } from 'antd';
 import { SparkEnlargeLine, SparkShrinkLine } from '@agentscope-ai/icons';
 import { IconButton } from '@agentscope-ai/design';
+import BeforeUIContainer from './BeforeUIContainer';
 
 
 export type SubmitType = 'enter' | 'shiftEnter' | false;
@@ -399,7 +400,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
         .filter(item => item.kind === 'file')
         .map(item => item.getAsFile())
         .filter((file): file is File => file !== null);
-    } 
+    }
     if (files.length > 0) {
       files.forEach(file => onPasteFile(file));
       e.preventDefault();
@@ -547,10 +548,12 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 type CompoundedSender = typeof ForwardSender & {
   Header: typeof SenderHeader;
   ModeSelect: typeof ModeSelect;
+  BeforeUIContainer: typeof BeforeUIContainer;
 };
 
 const Sender = ForwardSender as CompoundedSender;
 Sender.Header = SenderHeader;
 Sender.ModeSelect = ModeSelect;
+Sender.BeforeUIContainer = BeforeUIContainer;
 
 export default Sender;

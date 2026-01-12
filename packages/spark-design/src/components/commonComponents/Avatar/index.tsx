@@ -11,7 +11,13 @@ const SparkAvatar = forwardRef<any, AvatarProps>((props, ref) => {
 
   useEffect(() => {
     if (typeof children === 'string') {
-      setModifiedChildren(children.slice(0, 1));
+      // 使用 Array.from 来正确处理 emoji 等多字节字符
+      setModifiedChildren(Array.from(children)[0]);
+      return;
+    }
+    if (typeof children === 'number') {
+      // 数字类型转换为字符串后截取第一个字符
+      setModifiedChildren(Array.from(String(children))[0]);
       return;
     }
     setModifiedChildren(children);

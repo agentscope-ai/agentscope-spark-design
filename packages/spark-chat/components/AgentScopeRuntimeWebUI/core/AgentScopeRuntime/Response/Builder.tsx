@@ -155,7 +155,7 @@ class AgentScopeRuntimeResponseBuilder {
           } else if (data.type === AgentScopeRuntimeContentType.IMAGE) {
             (lastContent as IImageContent).image_url = (data as IImageContent).image_url;
           } else if (data.type === AgentScopeRuntimeContentType.DATA) {
-
+            (lastContent as IDataContent).data = (data as IDataContent).data;
           }
         } else {
           msg.content.push(data);
