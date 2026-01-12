@@ -65,6 +65,7 @@ export default createGlobalStyle`
 
     .anticon-eye {
       font-size: 20px;
+      margin: 0 !important;
     }
   }
 
