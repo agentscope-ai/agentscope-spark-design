@@ -57,12 +57,13 @@ export default memo(function (props: MarkdownProps) {
   } = useCitationsData({ citations: props.citations, citationsMap: props.citationsMap });
 
   const components = useMemo(() => ({
-    pre: CodeBlock,
+    code: CodeBlock,
     style: Null,
     script: Null,
     img: props.disableImage ? DisabledImage : Media,
     citation: CitationComponent,
     'custom-cursor': CursorComponent,
+    
     a: Link,
     ...props.components,
   }), [props.disableImage, CitationComponent, props.components]);
