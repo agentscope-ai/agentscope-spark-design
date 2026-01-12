@@ -1,8 +1,9 @@
 import { IVideo } from "./types";
 import { useProviderContext } from "..";
 import { useRef, useState, useCallback } from "react";
-import { SparkPauseFill, SparkPlayFill } from "@agentscope-ai/icons";
+import { SparkEnlargeLine, SparkPauseFill, SparkPlayFill } from "@agentscope-ai/icons";
 import cls from "classnames";
+import { IconButton } from "@agentscope-ai/design";
 
 export default function Video(props: IVideo) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview-video');
@@ -48,6 +49,22 @@ export default function Video(props: IVideo) {
     }
   }, []);
 
+  const handleEnlarge = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.requestFullscreen) {
+      video.requestFullscreen();
+    } else if ((video as any).webkitRequestFullscreen) {
+      // Safari 兼容
+      (video as any).webkitRequestFullscreen();
+    } else if ((video as any).msRequestFullscreen) {
+      // IE11 兼容
+      (video as any).msRequestFullscreen();
+    }
+  }, []);
+
   return (
     <div
       className={prefixCls}
@@ -66,19 +83,23 @@ export default function Video(props: IVideo) {
         onEnded={handleEnded}
       />
       <div className={cls(`${prefixCls}-overlay`, {
-        [`${prefixCls}-overlay-playing`]: isPlaying,
-        [`${prefixCls}-overlay-paused`]: !isPlaying,
+        [`${prefixCls}-overlay-playing`]: 1,
+        // [`${prefixCls}-overlay-paused`]: 1,
       })} onClick={isPlaying ? handlePlayPause : handlePlayPause}>
         <div className={`${prefixCls}-play-btn`}>
           {
             isPlaying ? <SparkPauseFill /> : <SparkPlayFill />
           }
         </div>
-        <div className={`${prefixCls}-duration`}>
-          {formatTime(currentTime)}/{formatTime(duration)}
+
+
+        <div className={`${prefixCls}-enlarge`} onClick={handleEnlarge}>
+          <IconButton bordered={false} size="small" icon={<SparkEnlargeLine />} />
         </div>
       </div>
-
+      <div className={`${prefixCls}-duration`}>
+        {formatTime(duration - currentTime)}
+      </div>
     </div>
   );
 }
