@@ -2,12 +2,11 @@
  * CheckBoxComponent - Checkbox input with two-way binding.
  */
 
-import { memo, useCallback } from 'react'
+import React, { memo, useCallback } from 'react'
 import type { CheckBoxComponentProps } from '@/0.8/types'
 import { useDataBinding, useFormBinding } from '@/0.8/hooks/useDataBinding'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 
 /**
  * CheckBox component - checkbox input with label.
@@ -31,10 +30,10 @@ export const CheckBoxComponent = memo(function CheckBoxComponent({
   const id = `checkbox-${componentId}`
 
   return (
-    <div className={cn('flex items-center gap-3')}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       <Checkbox id={id} checked={checked} onCheckedChange={handleChange} />
       {labelText && (
-        <Label htmlFor={id} className="cursor-pointer">
+        <Label htmlFor={id} style={{ cursor: 'pointer' }}>
           {labelText}
         </Label>
       )}

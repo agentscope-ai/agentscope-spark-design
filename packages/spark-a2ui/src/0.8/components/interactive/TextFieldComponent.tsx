@@ -1,14 +1,13 @@
 /**
  * TextFieldComponent - Text input field with two-way binding.
  */
-
+import React from 'react';
 import { memo, useCallback } from 'react'
 import type { TextFieldComponentProps } from '@/0.8/types'
 import { useDataBinding, useFormBinding } from '@/0.8/hooks/useDataBinding'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 
 /**
  * Maps textFieldType to HTML input type.
@@ -46,14 +45,14 @@ export const TextFieldComponent = memo(function TextFieldComponent({
   const isLongText = textFieldType === 'longText'
 
   return (
-    <div className={cn('flex flex-col gap-2')}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {labelText && <Label htmlFor={id}>{labelText}</Label>}
       {isLongText ? (
         <Textarea
           id={id}
           value={value}
           onChange={handleChange}
-          className="min-h-[100px]"
+          style={{ minHeight: 100 }}
         />
       ) : (
         <Input id={id} type={inputType} value={value} onChange={handleChange} />
