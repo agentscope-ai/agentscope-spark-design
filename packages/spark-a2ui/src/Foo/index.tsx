@@ -20,11 +20,12 @@ function App() {
                 "children": {
                   "explicitList": [
                     "heading",
-                    "text",
-                    "button"
+                    "section1",
+                    "divider-h",
+                    "section2",
+                    "vertical-demo"
                   ]
-                },
-                "alignment": "start"
+                }
               }
             }
           },
@@ -33,42 +34,84 @@ function App() {
             "component": {
               "Text": {
                 "text": {
-                  "literalString": "Hello, A2UI!"
+                  "literalString": "Divider Component"
                 },
-                "usageHint": "h1"
+                "usageHint": "h2"
               }
             }
           },
           {
-            "id": "text",
+            "id": "section1",
             "component": {
               "Text": {
                 "text": {
-                  "literalString": "Welcome to the A2UI React Renderer Playground. Edit the JSON on the left to see changes in real-time."
+                  "literalString": "Content above horizontal divider"
                 },
                 "usageHint": "body"
               }
             }
           },
           {
-            "id": "button",
+            "id": "divider-h",
             "component": {
-              "Button": {
-                "child": "button-text",
-                "primary": true,
-                "action": {
-                  "name": "hello-click"
-                }
+              "Divider": {
+                "axis": "horizontal"
               }
             }
           },
           {
-            "id": "button-text",
+            "id": "section2",
             "component": {
               "Text": {
                 "text": {
-                  "literalString": "Get Started"
-                }
+                  "literalString": "Content below horizontal divider"
+                },
+                "usageHint": "body"
+              }
+            }
+          },
+          {
+            "id": "vertical-demo",
+            "component": {
+              "Row": {
+                "children": {
+                  "explicitList": [
+                    "left-text",
+                    "divider-v",
+                    "right-text"
+                  ]
+                },
+                "alignment": "stretch"
+              }
+            }
+          },
+          {
+            "id": "left-text",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Left"
+                },
+                "usageHint": "body"
+              }
+            }
+          },
+          {
+            "id": "divider-v",
+            "component": {
+              "Divider": {
+                "axis": "vertical"
+              }
+            }
+          },
+          {
+            "id": "right-text",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Right"
+                },
+                "usageHint": "body"
               }
             }
           }

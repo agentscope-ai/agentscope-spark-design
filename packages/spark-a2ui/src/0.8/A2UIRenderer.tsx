@@ -37,6 +37,7 @@ import { useSurfaceContext } from './contexts/SurfaceContext'
 import { ActionProvider } from './contexts/ActionContext'
 import { ComponentRenderer } from './components/ComponentRenderer'
 import type { ActionHandler } from './types'
+import React from 'react'
 
 /**
  * Props for A2UIRenderer.

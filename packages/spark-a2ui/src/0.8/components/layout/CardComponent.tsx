@@ -1,8 +1,7 @@
 /**
  * CardComponent - Card container.
  */
-
-import { memo } from 'react'
+import React, { memo } from 'react'
 import type { CardComponentProps } from '@/0.8/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { ComponentRenderer } from '../ComponentRenderer'
@@ -20,7 +19,7 @@ export const CardComponent = memo(function CardComponent({
 
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent style={{ padding: 16 }}>
         <ComponentRenderer surfaceId={surfaceId} componentId={child} />
       </CardContent>
     </Card>

@@ -2,33 +2,32 @@
  * ColumnComponent - Vertical flex container.
  */
 
-import { memo } from 'react'
+import React, { memo, CSSProperties } from 'react'
 import type { ColumnComponentProps, Distribution, Alignment } from '@/0.8/types'
 import { useDataModel } from '@/0.8/hooks/useDataBinding'
-import { cn } from '@/lib/utils'
 import { getValueByPath } from '@/0.8/utils/pathUtils'
 import { ComponentRenderer } from '../ComponentRenderer'
 
 /**
- * Maps distribution values to Tailwind justify-content classes.
+ * Maps distribution values to CSS justify-content values.
  */
-const distributionStyles: Record<Distribution, string> = {
-  start: 'justify-start',
-  center: 'justify-center',
-  end: 'justify-end',
-  spaceBetween: 'justify-between',
-  spaceAround: 'justify-around',
-  spaceEvenly: 'justify-evenly',
+const distributionStyles: Record<Distribution, CSSProperties['justifyContent']> = {
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  spaceBetween: 'space-between',
+  spaceAround: 'space-around',
+  spaceEvenly: 'space-evenly',
 }
 
 /**
- * Maps alignment values to Tailwind align-items classes.
+ * Maps alignment values to CSS align-items values.
  */
-const alignmentStyles: Record<Alignment, string> = {
-  start: 'items-start',
-  center: 'items-center',
-  end: 'items-end',
-  stretch: 'items-stretch',
+const alignmentStyles: Record<Alignment, CSSProperties['alignItems']> = {
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  stretch: 'stretch',
 }
 
 /**
@@ -42,16 +41,18 @@ export const ColumnComponent = memo(function ColumnComponent({
 }: ColumnComponentProps) {
   const dataModel = useDataModel(surfaceId)
 
-  const className = cn(
-    'flex flex-col gap-4',
-    distributionStyles[distribution],
-    alignmentStyles[alignment]
-  )
+  const style: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    justifyContent: distributionStyles[distribution],
+    alignItems: alignmentStyles[alignment],
+  }
 
   // Render explicit list of children
   if (children?.explicitList) {
     return (
-      <div className={className}>
+      <div style={style}>
         {children.explicitList.map((childId) => (
           <ComponentRenderer
             key={childId}
@@ -69,13 +70,13 @@ export const ColumnComponent = memo(function ColumnComponent({
     const listData = getValueByPath(dataModel, dataBinding)
 
     if (!listData || typeof listData !== 'object') {
-      return <div className={className} />
+      return <div style={style} />
     }
 
     const items = Object.entries(listData as Record<string, unknown>)
 
     return (
-      <div className={className}>
+      <div style={style}>
         {items.map(([key]) => (
           <ComponentRenderer
             key={key}
@@ -87,7 +88,7 @@ export const ColumnComponent = memo(function ColumnComponent({
     )
   }
 
-  return <div className={className} />
+  return <div style={style} />
 })
 
 ColumnComponent.displayName = 'A2UI.Column'
