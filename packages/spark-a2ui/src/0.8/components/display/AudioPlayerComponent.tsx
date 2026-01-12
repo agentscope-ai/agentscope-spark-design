@@ -2,7 +2,7 @@
  * AudioPlayerComponent - Displays an audio player.
  */
 
-import { memo } from 'react'
+import React, { memo } from 'react'
 import type { AudioPlayerComponentProps } from '@/0.8/types'
 import { useDataBinding } from '@/0.8/hooks/useDataBinding'
 import { cn } from '@/lib/utils'
