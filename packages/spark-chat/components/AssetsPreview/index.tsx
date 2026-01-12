@@ -8,14 +8,39 @@ import Audio from './Audio';
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { SparkLeftLine, SparkRightLine } from '@agentscope-ai/icons';
 import { IconButton } from '@agentscope-ai/design';
-
+import { Image as AntdImage } from 'antd';
 export interface IAssetsPreviewProps {
+  /**
+   * @description 类名
+   * @descriptionEn Class Name
+   * @default ''
+   */
   className?: string;
+  /**
+   * @description 语义化类名
+   * @descriptionEn Semantic Class Name
+   * @default {}
+   */
   classNames?: {
     container?: string;
   };
+  /**
+   * @description 高度
+   * @descriptionEn Height
+   * @default 144
+   */
   height?: number;
+  /**
+   * @description 类型
+   * @descriptionEn Type
+   * @default 'image'
+   */
   type: 'image' | 'video' | 'audio';
+  /**
+   * @description 数据
+   * @descriptionEn Data
+   * @default []
+   */
   data: (IImage | IVideo | IAudio)[];
 }
 
@@ -44,7 +69,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
 
 
   const toArrow = useCallback((direct: 'left' | 'right') => {
-    const width = 100;
+    const width = 200;
     ref.current.scrollLeft = ref.current.scrollLeft + width * (direct === 'left' ? -1 : 1)
   }, [])
 
@@ -54,16 +79,19 @@ function AssetsPreview(props: IAssetsPreviewProps) {
     audio: Audio,
   }[props.type];
 
+
+  const list = props.data.map((item, index) => {
+    return <Component key={index} {...item as any} />;
+  })
+
   return <>
     <Style />
     <div className={cls(`${prefixCls}`, props.className)}>
-      <div className={cls(`${prefixCls}-container`, props.className)} style={props.type !== 'audio' ? { height } : {
+      <div className={cls(`${prefixCls}-container`, props.classNames?.container)} style={props.type !== 'audio' ? { height } : {
         flexDirection: 'column'
       }} onScroll={onScroll} ref={ref}>
         {
-          props.data.map((item, index) => {
-            return <Component key={index} {...item as any} />;
-          })
+          props.type === 'image' ? <AntdImage.PreviewGroup>{list}</AntdImage.PreviewGroup> : list
         }
       </div>
 
@@ -85,7 +113,6 @@ function AssetsPreview(props: IAssetsPreviewProps) {
 
         </> : null
       }
-
     </div>
   </>
 }
