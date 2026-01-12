@@ -20,7 +20,10 @@ function App() {
                 "children": {
                   "explicitList": [
                     "heading",
-                    "form"
+                    "vertical-label",
+                    "vertical-list",
+                    "horizontal-label",
+                    "horizontal-list"
                   ]
                 }
               }
@@ -31,84 +34,155 @@ function App() {
             "component": {
               "Text": {
                 "text": {
-                  "literalString": "Form Inputs"
+                  "literalString": "List Component"
                 },
                 "usageHint": "h2"
               }
             }
           },
           {
-            "id": "form",
+            "id": "vertical-label",
             "component": {
-              "Column": {
+              "Text": {
+                "text": {
+                  "literalString": "Vertical List:"
+                },
+                "usageHint": "caption"
+              }
+            }
+          },
+          {
+            "id": "vertical-list",
+            "component": {
+              "List": {
                 "children": {
                   "explicitList": [
-                    "name-field",
-                    "email-field",
-                    "checkbox"
+                    "v-item1",
+                    "v-item2",
+                    "v-item3"
                   ]
-                }
+                },
+                "direction": "vertical",
+                "alignment": "start"
               }
             }
           },
           {
-            "id": "name-field",
+            "id": "v-item1",
             "component": {
-              "TextField": {
-                "label": {
-                  "literalString": "Name"
-                },
+              "Text": {
                 "text": {
-                  "path": "form.name"
-                }
+                  "literalString": "• First item"
+                },
+                "usageHint": "body"
               }
             }
           },
           {
-            "id": "email-field",
+            "id": "v-item2",
             "component": {
-              "TextField": {
-                "label": {
-                  "literalString": "Email"
-                },
+              "Text": {
                 "text": {
-                  "path": "form.email"
-                }
-              }
-            }
-          },
-          {
-            "id": "checkbox",
-            "component": {
-              "CheckBox": {
-                "label": {
-                  "literalString": "Subscribe to newsletter"
+                  "literalString": "• Second item"
                 },
-                "value": {
-                  "path": "form.subscribe"
-                }
+                "usageHint": "body"
               }
             }
-          }
-        ]
-      }
-    },
-    {
-      "dataModelUpdate": {
-        "surfaceId": "main",
-        "path": "form",
-        "contents": [
-          {
-            "key": "name",
-            "valueString": ""
           },
           {
-            "key": "email",
-            "valueString": ""
+            "id": "v-item3",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "• Third item"
+                },
+                "usageHint": "body"
+              }
+            }
           },
           {
-            "key": "subscribe",
-            "valueBoolean": false
+            "id": "horizontal-label",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Horizontal List:"
+                },
+                "usageHint": "caption"
+              }
+            }
+          },
+          {
+            "id": "horizontal-list",
+            "component": {
+              "List": {
+                "children": {
+                  "explicitList": [
+                    "h-item1",
+                    "h-item2",
+                    "h-item3"
+                  ]
+                },
+                "direction": "horizontal",
+                "alignment": "center"
+              }
+            }
+          },
+          {
+            "id": "h-item1",
+            "component": {
+              "Card": {
+                "child": "h-item1-text"
+              }
+            }
+          },
+          {
+            "id": "h-item1-text",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Card 1"
+                },
+                "usageHint": "body"
+              }
+            }
+          },
+          {
+            "id": "h-item2",
+            "component": {
+              "Card": {
+                "child": "h-item2-text"
+              }
+            }
+          },
+          {
+            "id": "h-item2-text",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Card 2"
+                },
+                "usageHint": "body"
+              }
+            }
+          },
+          {
+            "id": "h-item3",
+            "component": {
+              "Card": {
+                "child": "h-item3-text"
+              }
+            }
+          },
+          {
+            "id": "h-item3-text",
+            "component": {
+              "Text": {
+                "text": {
+                  "literalString": "Card 3"
+                },
+                "usageHint": "body"
+              }
+            }
           }
         ]
       }
