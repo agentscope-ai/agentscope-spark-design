@@ -2,7 +2,7 @@
  * ButtonComponent - Clickable button that triggers actions.
  */
 
-import { memo, useCallback } from 'react'
+import React,{ memo, useCallback } from 'react'
 import type { ButtonComponentProps } from '@/0.8/types'
 import { useDispatchAction } from '@/0.8/hooks/useDispatchAction'
 import { Button } from '@/components/ui/button'
@@ -28,9 +28,8 @@ export const ButtonComponent = memo(function ButtonComponent({
 
   return (
     <Button
-      variant={primary ? 'default' : 'outline'}
+      primary={primary}
       onClick={handleClick}
-      className="inline-flex items-center justify-center"
     >
       {child ? (
         <ComponentRenderer surfaceId={surfaceId} componentId={child} />

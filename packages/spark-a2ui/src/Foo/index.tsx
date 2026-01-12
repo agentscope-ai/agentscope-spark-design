@@ -20,10 +20,7 @@ function App() {
                 "children": {
                   "explicitList": [
                     "heading",
-                    "section1",
-                    "divider-h",
-                    "section2",
-                    "vertical-demo"
+                    "form"
                   ]
                 }
               }
@@ -34,86 +31,84 @@ function App() {
             "component": {
               "Text": {
                 "text": {
-                  "literalString": "Divider Component"
+                  "literalString": "Form Inputs"
                 },
                 "usageHint": "h2"
               }
             }
           },
           {
-            "id": "section1",
+            "id": "form",
             "component": {
-              "Text": {
-                "text": {
-                  "literalString": "Content above horizontal divider"
-                },
-                "usageHint": "body"
-              }
-            }
-          },
-          {
-            "id": "divider-h",
-            "component": {
-              "Divider": {
-                "axis": "horizontal"
-              }
-            }
-          },
-          {
-            "id": "section2",
-            "component": {
-              "Text": {
-                "text": {
-                  "literalString": "Content below horizontal divider"
-                },
-                "usageHint": "body"
-              }
-            }
-          },
-          {
-            "id": "vertical-demo",
-            "component": {
-              "Row": {
+              "Column": {
                 "children": {
                   "explicitList": [
-                    "left-text",
-                    "divider-v",
-                    "right-text"
+                    "name-field",
+                    "email-field",
+                    "checkbox"
                   ]
-                },
-                "alignment": "stretch"
+                }
               }
             }
           },
           {
-            "id": "left-text",
+            "id": "name-field",
             "component": {
-              "Text": {
+              "TextField": {
+                "label": {
+                  "literalString": "Name"
+                },
                 "text": {
-                  "literalString": "Left"
+                  "path": "form.name"
+                }
+              }
+            }
+          },
+          {
+            "id": "email-field",
+            "component": {
+              "TextField": {
+                "label": {
+                  "literalString": "Email"
                 },
-                "usageHint": "body"
-              }
-            }
-          },
-          {
-            "id": "divider-v",
-            "component": {
-              "Divider": {
-                "axis": "vertical"
-              }
-            }
-          },
-          {
-            "id": "right-text",
-            "component": {
-              "Text": {
                 "text": {
-                  "literalString": "Right"
-                },
-                "usageHint": "body"
+                  "path": "form.email"
+                }
               }
             }
+          },
+          {
+            "id": "checkbox",
+            "component": {
+              "CheckBox": {
+                "label": {
+                  "literalString": "Subscribe to newsletter"
+                },
+                "value": {
+                  "path": "form.subscribe"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "dataModelUpdate": {
+        "surfaceId": "main",
+        "path": "form",
+        "contents": [
+          {
+            "key": "name",
+            "valueString": ""
+          },
+          {
+            "key": "email",
+            "valueString": ""
+          },
+          {
+            "key": "subscribe",
+            "valueBoolean": false
           }
         ]
       }

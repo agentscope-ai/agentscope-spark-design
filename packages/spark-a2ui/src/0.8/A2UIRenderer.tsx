@@ -38,6 +38,17 @@ import { ActionProvider } from './contexts/ActionContext'
 import { ComponentRenderer } from './components/ComponentRenderer'
 import type { ActionHandler } from './types'
 import React from 'react'
+import { createGlobalStyle } from 'antd-style';
+import { ConfigProvider } from 'antd';
+
+const GlobalStyle = createGlobalStyle`
+.${(p) => p.theme.prefixCls}-a2ui-renderer {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+  }
+}
+`;
 
 /**
  * Props for A2UIRenderer.
@@ -67,6 +78,7 @@ export interface A2UIRendererProps {
  * ```
  */
 export function A2UIRenderer({ onAction }: A2UIRendererProps) {
+  const { getPrefixCls } = React.useContext(ConfigProvider.ConfigContext);
   const { surfaces } = useSurfaceContext()
 
   // Render all surfaces
@@ -78,19 +90,22 @@ export function A2UIRenderer({ onAction }: A2UIRendererProps) {
 
   return (
     <ActionProvider onAction={onAction}>
-      {surfaceEntries.map(([surfaceId, surface]) => {
-        // Only render surfaces that have a root component
-        if (!surface.root) {
-          return null
-        }
-        return (
-          <ComponentRenderer
-            key={surfaceId}
-            surfaceId={surfaceId}
-            componentId={surface.root}
-          />
-        )
-      })}
+      <GlobalStyle />
+      <div className={getPrefixCls('a2ui-renderer')}>
+        {surfaceEntries.map(([surfaceId, surface]) => {
+          // Only render surfaces that have a root component
+          if (!surface.root) {
+            return null
+          }
+          return (
+            <ComponentRenderer
+              key={surfaceId}
+              surfaceId={surfaceId}
+              componentId={surface.root}
+            />
+          )
+        })}
+      </div>
     </ActionProvider>
   )
 }

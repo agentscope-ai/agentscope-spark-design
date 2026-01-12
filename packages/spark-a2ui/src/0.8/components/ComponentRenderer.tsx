@@ -2,7 +2,7 @@
  * ComponentRenderer - Routes component rendering based on type.
  */
 
-import { memo, useContext, type ComponentType } from 'react'
+import React, { memo, useContext, type ComponentType } from 'react'
 import type { BaseComponentProps } from '../types'
 import { useComponent } from '../hooks/useComponent'
 import { ComponentsMapContext } from '../contexts/ComponentsMapContext'
