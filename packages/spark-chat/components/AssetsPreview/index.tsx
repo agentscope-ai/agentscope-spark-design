@@ -2,13 +2,12 @@ import { useProviderContext } from '../Provider';
 import Style from './style';
 import cls from 'classnames';
 import { IImage, IVideo, IAudio } from './types';
-import Image from './Image';
+import Image, { ImagesContainer } from './Image';
 import Video from './Video';
 import Audio from './Audio';
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { SparkLeftLine, SparkRightLine } from '@agentscope-ai/icons';
 import { IconButton } from '@agentscope-ai/design';
-import { Image as AntdImage } from 'antd';
 export interface IAssetsPreviewProps {
   /**
    * @description 类名
@@ -91,7 +90,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
         flexDirection: 'column'
       }} onScroll={onScroll} ref={ref}>
         {
-          props.type === 'image' ? <AntdImage.PreviewGroup>{list}</AntdImage.PreviewGroup> : list
+          props.type === 'image' ? <ImagesContainer>{list}</ImagesContainer> : list
         }
       </div>
 

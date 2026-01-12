@@ -17,3 +17,8 @@ export default function (props: IImage) {
     ><Image src={props.src} width={"100%"} height={"100%"} /></ConfigProvider>
   </div>;
 }
+
+
+export function ImagesContainer(props: { children: React.ReactNode }) {
+  return <Image.PreviewGroup>{props.children}</Image.PreviewGroup>
+}
