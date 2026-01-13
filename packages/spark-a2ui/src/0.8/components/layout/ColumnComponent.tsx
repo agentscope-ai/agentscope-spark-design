@@ -44,7 +44,7 @@ export const ColumnComponent = memo(function ColumnComponent({
   const style: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
+    gap: 8,
     justifyContent: distributionStyles[distribution],
     alignItems: alignmentStyles[alignment],
   }

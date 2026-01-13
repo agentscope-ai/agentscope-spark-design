@@ -8,7 +8,7 @@ export interface Example {
   messages: A2UIMessage[]
 }
 
-export  const examples: Example[] = [
+export const examples: Example[] = [
   {
     id: 'hello-world',
     title: 'Hello World',
@@ -428,10 +428,10 @@ export  const examples: Example[] = [
               component: {
                 Image: {
                   url: {
-                    literalString: 'https://picsum.photos/200/150',
+                    literalString: 'https://img.alicdn.com/imgextra/i4/O1CN013vSVjM1RpmzyMesgz_!!6000000002161-0-tps-2640-1100.jpg',
                   },
                   fit: 'contain',
-                  usageHint: 'smallFeature',
+                  usageHint: 'largeFeature',
                 },
               },
             },
@@ -440,10 +440,10 @@ export  const examples: Example[] = [
               component: {
                 Image: {
                   url: {
-                    literalString: 'https://picsum.photos/200/151',
+                    literalString: 'https://img.alicdn.com/imgextra/i4/O1CN013vSVjM1RpmzyMesgz_!!6000000002161-0-tps-2640-1100.jpg',
                   },
                   fit: 'cover',
-                  usageHint: 'smallFeature',
+                  usageHint: 'largeFeature',
                 },
               },
             },

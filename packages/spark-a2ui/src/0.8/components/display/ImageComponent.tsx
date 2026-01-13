@@ -1,33 +1,33 @@
 /**
  * ImageComponent - Displays an image with configurable sizing and fit.
  */
-
+import React, { useMemo } from 'react'
 import { memo } from 'react'
 import type { ImageComponentProps } from '@/0.8/types'
 import { useDataBinding } from '@/0.8/hooks/useDataBinding'
-import { cn } from '@/lib/utils'
+import { Image as AntdImage } from 'antd'
 
 /**
- * Maps fit property to CSS object-fit values.
+ * Maps fit property to CSS objectFit values.
  */
-const fitStyles: Record<string, string> = {
-  contain: 'object-contain',
-  cover: 'object-cover',
-  fill: 'object-fill',
-  none: 'object-none',
-  'scale-down': 'object-scale-down',
+const fitStyles: Record<string, React.CSSProperties['objectFit']> = {
+  contain: 'contain',
+  cover: 'cover',
+  fill: 'fill',
+  none: 'none',
+  'scale-down': 'scale-down',
 }
 
 /**
- * Maps usageHint to size and style classes.
+ * Maps usageHint to size and style objects.
  */
-const usageHintStyles: Record<string, string> = {
-  icon: 'w-6 h-6',
-  avatar: 'w-10 h-10 rounded-full',
-  smallFeature: 'w-16 h-16',
-  mediumFeature: 'w-32 h-32',
-  largeFeature: 'w-48 h-48',
-  header: 'w-full h-48',
+const usageHintStyles: Record<string, React.CSSProperties> = {
+  icon: { width: 24, height: 24 },
+  avatar: { width: 40, height: 40, borderRadius: '50%' },
+  smallFeature: { width: 64, height: 64 },
+  mediumFeature: { width: 128, height: 128 },
+  largeFeature: { width: 192, height: 192 },
+  header: { width: '100%', height: 192 },
 }
 
 /**
@@ -42,16 +42,21 @@ export const ImageComponent = memo(function ImageComponent({
 }: ImageComponentProps) {
   const imageUrl = useDataBinding<string>(surfaceId, url, '')
 
+  const style: React.CSSProperties = useMemo(
+    () => ({
+      objectFit: fitStyles[fit] || fitStyles.cover,
+      ...(usageHint && usageHintStyles[usageHint]),
+    }),
+    [fit, usageHint]
+  )
+
   if (!imageUrl) {
     return null
   }
 
-  const className = cn(
-    fitStyles[fit] || fitStyles.cover,
-    usageHint && usageHintStyles[usageHint]
-  )
+  
 
-  return <img src={imageUrl} alt="" className={className} loading="lazy" />
+  return <AntdImage src={imageUrl} alt="" style={style} loading="lazy" />
 })
 
 ImageComponent.displayName = 'A2UI.Image'

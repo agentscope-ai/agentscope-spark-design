@@ -19,7 +19,7 @@ export const CardComponent = memo(function CardComponent({
 
   return (
     <Card>
-      <CardContent style={{ padding: 16 }}>
+      <CardContent>
         <ComponentRenderer surfaceId={surfaceId} componentId={child} />
       </CardContent>
     </Card>
