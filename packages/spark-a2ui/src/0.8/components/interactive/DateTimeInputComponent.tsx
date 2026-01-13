@@ -3,7 +3,7 @@
  * Uses shadcn/ui Calendar and Popover components.
  */
 
-import { memo, useCallback, useMemo } from 'react'
+import React, { memo, useCallback, useMemo } from 'react'
 import { CalendarIcon } from 'lucide-react'
 import { format, parse, isValid } from 'date-fns'
 import type { DateTimeInputComponentProps } from '@/0.8/types'
