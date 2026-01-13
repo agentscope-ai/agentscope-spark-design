@@ -4,6 +4,24 @@ hero:
   description: Release versions follow Semantic Versioning 2.0.0.
 ---
 
+### 1.0.25
+`2025-01-07`
+
+##### Fixed
+- Tooltip: fixed the style specificity issue inside the popover.
+
+### 1.0.24
+`2025-01-04`
+
+##### Changed
+- Video: added the `enableFullscreen` prop to support fullscreen playback.
+
+### 1.0.22
+`2025-12-29`
+
+##### Changed
+- Carbon theme: updated the `colorTextOnPrimary` token to `#ffffff`.
+
 ### 1.0.21
 `2025-12-25`
 

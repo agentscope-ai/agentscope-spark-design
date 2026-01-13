@@ -64,7 +64,7 @@
 
  "colorTextWhite": "#ffffff",
  "colorTextBlack": "#000000",
- "colorTextOnPrimary": "#000000",
+ "colorTextOnPrimary": "#ffffff",
   "colorFillDisable": "#898989",
   "colorPurple": "#615CED",
   "colorPurpleHover": "#8383F0",

@@ -19,6 +19,7 @@ import { Markdown } from '@agentscope-ai/chat';
 <code src="./demo/latex.tsx" height="600">Latex</code>
 <code src="./demo/citations.tsx" height="auto">Citations</code>
 <code src="./demo/cursor.tsx" height="auto">Cursor</code>
+<code src="./demo/footnotes.tsx" height="auto">Footnotes</code>
 
 
 #### API

@@ -6,6 +6,7 @@
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "baseUrl": "./",
+    "types": ["jest", "@testing-library/jest-dom"],
     "paths": {
       "@@/*": [".dumi/tmp/*"],
       "@agentscope-ai/design": ["src"],
@@ -25,5 +26,5 @@
     "resolveJsonModule": true,
     "noImplicitAny": false
   },
-  "include": [".dumirc.ts", "src/**/*", "dist/demos"]
+  "include": [".dumirc.ts", "src/**/*", "dist/demos", "tests/**/*"]
 }
