@@ -47,7 +47,7 @@ export default memo(function (props: MarkdownProps) {
   const prefixCls = useProviderContext().getPrefixCls('markdown');
   const {
     raw = false,
-    allowHtml = true,
+    allowHtml = false,
   } = props;
 
   const {
