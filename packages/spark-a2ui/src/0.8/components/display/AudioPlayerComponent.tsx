@@ -5,7 +5,6 @@
 import React, { memo } from 'react'
 import type { AudioPlayerComponentProps } from '@/0.8/types'
 import { useDataBinding } from '@/0.8/hooks/useDataBinding'
-import { cn } from '@/lib/utils'
 
 /**
  * AudioPlayer component for playing audio content.
@@ -23,11 +22,11 @@ export const AudioPlayerComponent = memo(function AudioPlayerComponent({
   }
 
   return (
-    <div className={cn('flex flex-col gap-2')}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {descriptionText && (
-        <p className="text-sm text-muted-foreground">{descriptionText}</p>
+        <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>{descriptionText}</p>
       )}
-      <audio src={audioUrl} controls className="w-full">
+      <audio src={audioUrl} controls style={{ width: '100%' }}>
         Your browser does not support the audio element.
       </audio>
     </div>

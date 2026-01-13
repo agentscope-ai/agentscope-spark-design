@@ -604,7 +604,7 @@ export const examples: Example[] = [
               component: {
                 Video: {
                   url: {
-                    literalString: 'https://www.w3schools.com/html/mov_bbb.mp4',
+                    literalString: 'https://cloud.video.taobao.com/vod/KQsliPiww_VlqnYlBJB8qyh2hycUCa3RA3pAw1-Zv_0.mp4',
                   },
                 },
               },
