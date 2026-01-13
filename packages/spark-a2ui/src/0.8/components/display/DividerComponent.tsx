@@ -2,7 +2,7 @@
  * DividerComponent - Displays a separator line.
  */
 
-import { memo } from 'react'
+import React, { memo } from 'react'
 import type { DividerComponentProps } from '@/0.8/types'
 import { Separator } from '@/components/ui/separator'
 
@@ -15,7 +15,6 @@ export const DividerComponent = memo(function DividerComponent({
   return (
     <Separator
       orientation={axis}
-      className={axis === 'vertical' ? 'self-stretch h-auto!' : 'w-full'}
     />
   )
 })

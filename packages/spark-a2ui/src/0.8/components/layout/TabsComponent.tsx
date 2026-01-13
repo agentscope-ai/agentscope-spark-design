@@ -2,7 +2,7 @@
  * TabsComponent - Tabbed content container.
  */
 
-import { memo } from 'react'
+import React, { memo } from 'react'
 import type { TabsComponentProps, ValueSource } from '@/0.8/types'
 import { useDataBinding } from '@/0.8/hooks/useDataBinding'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
