@@ -2,8 +2,6 @@ import * as React from 'react'
 import { Checkbox as AntCheckbox, type CheckboxRef } from 'antd'
 import type { CheckboxChangeEvent } from 'antd/es/checkbox'
 
-import { cn } from '@/lib/utils'
-
 export interface CheckboxProps
   extends Omit<React.ComponentProps<typeof AntCheckbox>, 'onChange'> {
   /** 兼容 radix-ui 的 onCheckedChange 回调 */
@@ -23,7 +21,7 @@ const Checkbox = React.forwardRef<CheckboxRef, CheckboxProps>(
       <AntCheckbox
         ref={ref}
         data-slot="checkbox"
-        className={cn(className)}
+        className={className}
         onChange={handleChange}
         {...props}
       />

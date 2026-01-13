@@ -2,22 +2,21 @@
  * TextComponent - Displays text content with optional Markdown support.
  */
 
-import { memo, type JSX } from 'react'
+import React, { memo, type JSX, type CSSProperties } from 'react'
 import type { TextComponentProps } from '@/0.8/types'
 import { useDataBinding } from '@/0.8/hooks/useDataBinding'
-import { cn } from '@/lib/utils'
 
 /**
- * Maps usageHint to Tailwind CSS classes.
+ * Maps usageHint to inline styles.
  */
-const usageHintStyles: Record<string, string> = {
-  h1: 'text-3xl font-bold tracking-tight',
-  h2: 'text-2xl font-semibold tracking-tight',
-  h3: 'text-xl font-semibold',
-  h4: 'text-lg font-semibold',
-  h5: 'text-base font-semibold',
-  caption: 'text-sm text-muted-foreground',
-  body: 'text-base',
+const usageHintStyles: Record<string, CSSProperties> = {
+  h1: { fontSize: 30, fontWeight: 700, letterSpacing: -0.4 },
+  h2: { fontSize: 24, fontWeight: 600, letterSpacing: -0.4 },
+  h3: { fontSize: 20, fontWeight: 600 },
+  h4: { fontSize: 18, fontWeight: 600 },
+  h5: { fontSize: 16, fontWeight: 600 },
+  caption: { fontSize: 14, color: 'rgba(0, 0, 0, 0.45)' },
+  body: { fontSize: 16 },
 }
 
 /**
@@ -44,13 +43,13 @@ export const TextComponent = memo(function TextComponent({
 }: TextComponentProps) {
   const textValue = useDataBinding<string>(surfaceId, text, '')
 
-  const className = cn(usageHintStyles[usageHint] || usageHintStyles.body)
+  const style = usageHintStyles[usageHint] || usageHintStyles.body
 
   const Element = (usageHintElements[usageHint] as 'p') || 'p'
 
   // For now, render as plain text
   // TODO: Add Markdown support if needed
-  return <Element className={className}>{textValue}</Element>
+  return <Element style={style}>{textValue}</Element>
 })
 
 TextComponent.displayName = 'A2UI.Text'

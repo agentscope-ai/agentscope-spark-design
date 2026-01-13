@@ -23,7 +23,7 @@ export const TabsComponent = memo(function TabsComponent({
   const defaultTab = tabItems[0].child
 
   return (
-    <Tabs defaultValue={defaultTab} className="w-full">
+    <Tabs defaultValue={defaultTab}>
       <TabsList>
         {tabItems.map((item, index) => (
           <TabsTrigger key={item.child} value={item.child}>
