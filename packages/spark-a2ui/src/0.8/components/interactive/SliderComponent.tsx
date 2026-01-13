@@ -2,11 +2,10 @@
  * SliderComponent - Slider input with two-way binding.
  */
 
-import { memo, useCallback } from 'react'
+import React, { memo, useCallback } from 'react'
+import { Slider } from 'antd'
 import type { SliderComponentProps } from '@/0.8/types'
 import { useFormBinding } from '@/0.8/hooks/useDataBinding'
-import { Slider } from '@/components/ui/slider'
-import { cn } from '@/lib/utils'
 
 /**
  * Slider component - range slider input.
@@ -24,26 +23,24 @@ export const SliderComponent = memo(function SliderComponent({
   )
 
   const handleChange = useCallback(
-    (values: number[]) => {
-      if (values.length > 0) {
-        setSliderValue(values[0])
-      }
+    (val: number) => {
+      setSliderValue(val)
     },
     [setSliderValue]
   )
 
   return (
-    <div className={cn('flex flex-col gap-2 py-2')}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 0' }}>
       <Slider
-        value={[sliderValue]}
-        onValueChange={handleChange}
+        value={sliderValue}
+        onChange={handleChange}
         min={minValue}
         max={maxValue}
         step={1}
       />
-      <div className="flex justify-between text-sm text-muted-foreground">
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'rgba(0, 0, 0, 0.45)' }}>
         <span>{minValue}</span>
-        <span className="font-medium text-foreground">{sliderValue}</span>
+        <span style={{ fontWeight: 500, color: 'rgba(0, 0, 0, 0.88)' }}>{sliderValue}</span>
         <span>{maxValue}</span>
       </div>
     </div>
