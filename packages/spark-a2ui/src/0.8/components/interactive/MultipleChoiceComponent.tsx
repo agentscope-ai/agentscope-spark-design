@@ -3,19 +3,10 @@
  * Supports both single selection (dropdown) and multi-selection (checkboxes).
  */
 
-import { memo, useCallback } from 'react'
+import React, { memo, useCallback, useMemo } from 'react'
+import { Select, Checkbox } from 'antd'
 import type { MultipleChoiceComponentProps, ValueSource } from '@/0.8/types'
 import { useDataBinding, useFormBinding } from '@/0.8/hooks/useDataBinding'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 
 /**
  * MultipleChoice component - dropdown/select input.
@@ -75,24 +66,21 @@ export const MultipleChoiceComponent = memo(function MultipleChoiceComponent({
   // Single selection mode - use dropdown
   if (maxAllowedSelections === 1) {
     const currentValue = Array.isArray(selectedValue)
-      ? selectedValue[0] || ''
-      : selectedValue
+      ? selectedValue[0] || undefined
+      : selectedValue || undefined
 
     return (
-      <div className={cn('flex flex-col gap-2')}>
-        <Select value={currentValue} onValueChange={handleSingleChange}>
-          <SelectTrigger id={id}>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                <OptionLabel surfaceId={surfaceId} label={option.label} />
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Select
+        id={id}
+        value={currentValue}
+        onChange={handleSingleChange}
+        placeholder="Select an option"
+        style={{ width: '100%' }}
+        options={options.map((option) => ({
+          value: option.value,
+          label: <OptionLabel surfaceId={surfaceId} label={option.label} />,
+        }))}
+      />
     )
   }
 
@@ -108,32 +96,23 @@ export const MultipleChoiceComponent = memo(function MultipleChoiceComponent({
     currentSelections.length >= maxAllowedSelections
 
   return (
-    <div className={cn('flex flex-col gap-2')}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {options.map((option) => {
         const isChecked = currentSelections.includes(option.value)
         const isDisabled = !isChecked && isMaxReached
         const checkboxId = `${id}-${option.value}`
 
         return (
-          <div key={option.value} className="flex items-center gap-2">
-            <Checkbox
-              id={checkboxId}
-              checked={isChecked}
-              disabled={isDisabled}
-              onCheckedChange={(checked) =>
-                handleMultiChange(option.value, checked === true)
-              }
-            />
-            <Label
-              htmlFor={checkboxId}
-              className={cn(
-                'cursor-pointer',
-                isDisabled && 'cursor-not-allowed opacity-50'
-              )}
-            >
-              <OptionLabel surfaceId={surfaceId} label={option.label} />
-            </Label>
-          </div>
+          <Checkbox
+            key={option.value}
+            id={checkboxId}
+            checked={isChecked}
+            disabled={isDisabled}
+            onChange={(e) => handleMultiChange(option.value, e.target.checked)}
+            style={isDisabled ? { opacity: 0.5 } : undefined}
+          >
+            <OptionLabel surfaceId={surfaceId} label={option.label} />
+          </Checkbox>
         )
       })}
     </div>

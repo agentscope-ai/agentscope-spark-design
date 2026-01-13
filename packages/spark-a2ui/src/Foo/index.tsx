@@ -13,7 +13,7 @@ import { Select } from 'antd';
 
 function App() {
 
-  const [index, setIndex] = useState(12);
+  const [index, setIndex] = useState(13);
   const messages: A2UIMessage[] = examples[index].messages;
 
   const handleAction = (action: A2UIAction) => {
