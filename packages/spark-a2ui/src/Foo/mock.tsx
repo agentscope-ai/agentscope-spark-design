@@ -1172,7 +1172,6 @@ export const examples: Example[] = [
               component: {
                 Text: {
                   text: { literalString: 'Modal Title' },
-                  usageHint: 'h3',
                 },
               },
             },

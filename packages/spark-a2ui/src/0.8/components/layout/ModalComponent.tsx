@@ -2,9 +2,9 @@
  * ModalComponent - Modal/Dialog container.
  */
 
-import { memo, useState } from 'react'
+import React, { memo, useState } from 'react'
 import type { ModalComponentProps } from '@/0.8/types'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Modal } from 'antd'
 import { ComponentRenderer } from '../ComponentRenderer'
 
 /**
@@ -22,19 +22,22 @@ export const ModalComponent = memo(function ModalComponent({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="cursor-pointer">
-          <ComponentRenderer
-            surfaceId={surfaceId}
-            componentId={entryPointChild}
-          />
-        </div>
-      </DialogTrigger>
-      <DialogContent>
+    <>
+      <div style={{ cursor: 'pointer' }} onClick={() => setOpen(true)}>
+        <ComponentRenderer
+          surfaceId={surfaceId}
+          componentId={entryPointChild}
+        />
+      </div>
+      <Modal
+        open={open}
+        onCancel={() => setOpen(false)}
+        footer={null}
+        destroyOnClose
+      >
         <ComponentRenderer surfaceId={surfaceId} componentId={contentChild} />
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   )
 })
 
