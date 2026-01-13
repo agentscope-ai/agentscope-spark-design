@@ -12,8 +12,8 @@ group:
 
 To make tools like Cursor and Claude Code understand Spark Design, we support LLMs.txt files, making Spark Design's documentation available for large language models.
 
-- [index.llms.txt](https://g.alicdn.com/code/npm/@ali/agentscope-ai-design/4.7.2/docs-dist/llms/index.llms.txt): The main LLMs.txt index file
-- [all.llms.txt](https://g.alicdn.com/code/npm/@ali/agentscope-ai-design/4.7.2/docs-dist/llms/all.llms.txt): Complete documentation for Spark Design
+- [index.llms.txt](https://unpkg.com/@agentscope-ai/design@1.0.26/llms/index.llms.txt): The main LLMs.txt index file
+- [all.llms.txt](https://unpkg.com/@agentscope-ai/design@1.0.26/llms/all.llms.txt): Complete documentation for Spark Design
 
 Use the @Docs feature in Cursor to include the LLMs.txt files in your project. [Read more](https://docs.cursor.com/en/context/@-symbols/@-docs)
 

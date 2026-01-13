@@ -4,6 +4,24 @@ hero:
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
 
+### 1.0.25
+`2025-01-07`
+
+##### Fixed
+- 修复 Tooltip 弹出框内部样式优先级问题
+
+### 1.0.24
+`2025-01-04`
+
+##### Changed
+- Video 组件添加 enableFullscreen 参数，支持全屏播放
+
+### 1.0.22
+`2025-12-29`
+
+##### Changed
+- Carbon 主题修改 `colorTextOnPrimary` 颜色变量为 '#ffffff'
+
 ### 1.0.21
 `2025-12-25`
 

@@ -29,7 +29,7 @@ export interface CodeBlockProps {
    * @description 值
    * @descriptionEn Value
    */
-  value: string;
+  value?: string;
   /**
    * @description 类名
    * @descriptionEn Class name
@@ -44,7 +44,7 @@ export interface CodeBlockProps {
    * @descriptionEn Read only
    */
   readOnly?: boolean;
-  onChange?: (value: string) => void;
+  onChange?: (value?: string) => void;
 }
 
 export const langExtensionsMap: Record<string, any[]> = {
@@ -113,7 +113,7 @@ const CodeMirrorWrapper = (props: CodeBlockProps) => {
       <CodeMirror
         extensions={extensions}
         value={
-          props.language === 'json' ? beautifulJson(props.value) : props.value
+          props.language === 'json' ? beautifulJson(props.value || '') : (props.value || '')
         }
         theme={getTheme}
         {...omit(props, ['language', 'theme', 'extensions', 'value'])}

@@ -27,6 +27,7 @@
     "build:mcp": "esbuild mcp/index.ts --bundle --platform=node --target=node18 --format=cjs --outfile=scripts/mcp-docs-server.js --banner:js='#!/usr/bin/env node' --external:fs --external:path --external:process",
     "build:watch": "father dev",
     "copy-antd-docs": "node copy-antd-docs.js",
+    "docs:sync-version": "node scripts/sync-doc-unpkg-version.js",
     "dev": "dumi dev",
     "dev:mobile": "ONLY_MOBILE=1 dumi dev",
     "docs:build": "dumi build && node scripts/build-index-llms-txt.js",
