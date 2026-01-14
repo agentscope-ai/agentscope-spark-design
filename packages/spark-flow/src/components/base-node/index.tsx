@@ -42,6 +42,10 @@ interface IProps extends NodeProps<IWorkFlowNode> {
   disableAction?: boolean;
   className?: string;
   hasFailBranch?: boolean;
+  slots?: {
+    label?: React.ReactNode;
+    afterLabel?: React.ReactNode;
+  };
 }
 
 export const NodeStatusIcon = memo(
@@ -213,12 +217,17 @@ function BaseNode(props: IProps) {
         <div className="flex-justify-between">
           <div className="flex gap-[8px] items-center flex-1">
             <FlowIcon nodeType={props.type} />
-            <Typography.Text
-              ellipsis={{ tooltip: true }}
-              className="spark-flow-node-label flex-1 w-1"
-            >
-              {props.data.label}
-            </Typography.Text>
+            {!!props.slots?.label ? (
+              props.slots.label
+            ) : (
+              <Typography.Text
+                ellipsis={{ tooltip: true }}
+                className="spark-flow-node-label flex-1 w-1"
+              >
+                {props.data.label}
+              </Typography.Text>
+            )}
+            {!!props.slots?.afterLabel && props.slots.afterLabel}
           </div>
           {!!nodeResult && showResults ? (
             <NodeStatusIcon status={nodeResult.nodeStatus} />
@@ -351,7 +360,7 @@ export const GroupNode = memo((props: IGroupNodeProps) => {
     event.preventDefault();
     event.stopPropagation();
     // 兼容某些 Windows Chrome 版本 dataTransfer 可能为 undefined 的情况
-    if(!event.dataTransfer){
+    if (!event.dataTransfer) {
       message.warning(
         $i18n.get({
           id: 'spark-flow.components.BaseNode.index.browserDragNotSupported',
