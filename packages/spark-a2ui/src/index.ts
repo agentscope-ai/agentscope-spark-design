@@ -1,1 +1,1 @@
-export *  from './0.8'
+export * from './0.8';

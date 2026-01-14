@@ -1,1 +1,1 @@
-<code src="../src/Foo/index.tsx"></code>
+<code src="../src/playground/index.tsx" iframe></code>
