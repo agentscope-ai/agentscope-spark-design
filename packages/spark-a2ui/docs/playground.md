@@ -1,0 +1,1 @@
+<code src="../src/Foo/index.tsx"></code>
