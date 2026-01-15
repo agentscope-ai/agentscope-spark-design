@@ -56,7 +56,7 @@ export default defineConfig({
           'en-US': 'Icons',
           'zh-CN': '图标',
         },
-        link: '/icons/iconLibrary',
+        link: '/icons/icon-library',
         icon: 'spark-circleArrowDown-line',
         order: 3,
       },

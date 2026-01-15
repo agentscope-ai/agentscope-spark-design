@@ -11,7 +11,6 @@ export default () => {
         <Button>Default</Button>
         <Button type="primary">Primary</Button>
         <Button type="primaryLess">PrimaryLess</Button>
-        <Button type="primary" ghost>Ghost</Button>
       </Flex>
       <Flex gap={16}>
         <Button type="primary" danger disabled>

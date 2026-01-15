@@ -12,5 +12,11 @@
   "components.SlateEditor.utils.editor.WraptagnameCannotBePlacedIn": "[{wrapTagName}] cannot be placed in [{tagName}]",
   "components.SlateEditor.utils.editor.WraptagnameCannotBeNestedIn": "[{wrapTagName}] cannot be nested in [{tagName}]]",
   "components.SlateEditor.utils.withEditor.YouCanEnterAMaximum": "You can enter a maximum of {maxLen} characters.",
-  "components.commonComponents.Image.Preview": "Preview"
+  "components.commonComponents.Image.Preview": "Preview",
+  "docs.icons.IconLibrary.SearchPlaceholder": "Search icons (by export name)",
+  "docs.icons.IconLibrary.CopyName": "Copy name",
+  "docs.icons.IconLibrary.CopyImport": "Copy import",
+  "docs.icons.IconLibrary.CopyJSX": "Copy JSX",
+  "docs.icons.IconLibrary.TotalCount": "{count} total",
+  "docs.icons.IconLibrary.CopySuccess": "Copied"
 }
