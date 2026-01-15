@@ -26,14 +26,24 @@ type CopyMode = 'name' | 'import' | 'jsx';
 
 const useStyles = createStyles(() => ({
   container: {
+    position: 'relative',
     padding: 16,
+    paddingTop: 72,
   },
   toolbar: {
+    position: 'fixed',
+    width: '100%',
+    padding: '16px',
+    top: 0,
+    left: 0,
     display: 'flex',
     gap: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
+    background: 'var(--sps-color-bg-base)',
+    borderBottom: '1px solid var(--sps-color-border-secondary)',
+    marginBottom: '16px',
   },
   toolbarLeft: {
     display: 'flex',
@@ -48,7 +58,7 @@ const useStyles = createStyles(() => ({
     flexWrap: 'wrap',
   },
   search: {
-    maxWidth: 240,
+    maxWidth: 300,
   },
   count: {
     color: 'var(--sps-color-text-tertiary)',
@@ -207,6 +217,15 @@ export default function IconLibrary() {
         </div>
 
         <div className={styles.toolbarRight}>
+          <div className={styles.count}>
+            {$i18n.get(
+              {
+                id: 'docs.icons.IconLibrary.TotalCount',
+                dm: '共 {count} 个',
+              },
+              { count: String(filteredIcons.length) },
+            )}
+          </div>
           <Radio.Group
             value={copyMode}
             onChange={(e) => setCopyMode(e.target.value)}
@@ -236,15 +255,6 @@ export default function IconLibrary() {
               },
             ]}
           />
-          <div className={styles.count}>
-            {$i18n.get(
-              {
-                id: 'docs.icons.IconLibrary.TotalCount',
-                dm: '共 {count} 个',
-              },
-              { count: String(filteredIcons.length) },
-            )}
-          </div>
         </div>
       </div>
 
