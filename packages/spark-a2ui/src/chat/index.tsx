@@ -1,9 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef, ChatInput, IAgentScopeRuntimeWebUIOptions } from '@agentscope-ai/chat';
 import config from './config';
 import A2UIRenderer from './components/A2UIRenderer';
+import { ChatContext } from './context';
 
 export default function Chat() {
+  const ref = useRef<IAgentScopeRuntimeWebUIRef>(null);
   const options = useMemo(() => {
     return {
       ...config(),
@@ -14,8 +16,11 @@ export default function Chat() {
   }, [])
 
   return <div style={{ height: '100dvh' }}>
-    <AgentScopeRuntimeWebUI
-      options={options}
-    />
+    <ChatContext.Provider value={{ ref }}>
+      <AgentScopeRuntimeWebUI
+        ref={ref}
+        options={options}
+      />
+    </ChatContext.Provider>
   </div>
 }
