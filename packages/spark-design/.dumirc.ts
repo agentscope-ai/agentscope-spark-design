@@ -53,12 +53,21 @@ export default defineConfig({
       },
       {
         title: {
+          'en-US': 'Icons',
+          'zh-CN': '图标',
+        },
+        link: '/icons/iconLibrary',
+        icon: 'spark-circleArrowDown-line',
+        order: 3,
+      },
+      {
+        title: {
           'en-US': 'Changelog',
           'zh-CN': '更新日志',
         },
         icon: 'spark-auditLog-line',
         link: '/changelog',
-        order: 3,
+        order: 4,
       },
     ],
   },
