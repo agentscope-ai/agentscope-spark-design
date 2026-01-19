@@ -1,5 +1,9 @@
 import { UploadProps } from 'antd';
-import { IAgentScopeRuntimeResponse } from '../AgentScopeRuntime/types';
+import {
+  IAgentScopeRuntimeMessage,
+  IAgentScopeRuntimeResponse,
+  IContent,
+} from '../AgentScopeRuntime/types';
 import { IAgentScopeRuntimeWebUISession } from './ISessions';
 
 /**
@@ -23,8 +27,16 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @param data
    * @returns
    */
-  fetch?: (data: { input: any[]; biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'] }) => Promise<Response>;
+  fetch?: (data: {
+    input: any[];
+    biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+  }) => Promise<Response>;
+
   enableHistoryMessages?: boolean;
+  
+  responseParser?: (
+    response: Response,
+  ) => IAgentScopeRuntimeResponse | IAgentScopeRuntimeMessage | IContent;
 }
 
 /**
