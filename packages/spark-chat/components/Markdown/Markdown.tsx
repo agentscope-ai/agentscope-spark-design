@@ -103,7 +103,10 @@ export default memo(function (props: MarkdownProps) {
 
   if (raw || !isSupportsLookbehindAssertions) return fallback;
 
-  return <ErrorBoundary fallback={fallback}>
+  return <ErrorBoundary fallbackRender={(...args) => {
+    console.error(args);
+    return fallback;
+  }}>
     <MarkdownX
       dompurifyConfig={dompurifyConfig}
       cursor={props.cursor}
