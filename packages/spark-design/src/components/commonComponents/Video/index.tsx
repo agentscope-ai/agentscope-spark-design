@@ -40,6 +40,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
   const [enableVolume, setEnableVolume] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lockMouseEnterAutoPlayRef = useRef<boolean>(false);
+  const isFirstSrcRef = useRef<boolean>(true);
 
   // 合并refs
   const combinedRef = (element: HTMLVideoElement) => {
@@ -52,6 +53,18 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
       }
     }
   };
+
+  // 监听src变化，重新加载视频
+  useEffect(() => {
+    // 跳过首次设置
+    if (isFirstSrcRef.current) {
+      isFirstSrcRef.current = false;
+      return;
+    }
+    if (videoRef.current && videoProps.src) {
+      videoRef.current.load();
+    }
+  }, [videoProps.src]);
 
   // 监听isPlaying状态来控制定时器
   useEffect(() => {
