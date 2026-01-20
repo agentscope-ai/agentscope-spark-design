@@ -96,6 +96,18 @@ export default createGlobalStyle`
       width: 100%;
       height: 100%;
       object-fit: cover;
+
+      &:fullscreen {
+        object-fit: contain;
+      }
+
+      &:-webkit-full-screen {
+        object-fit: contain;
+      }
+
+      &:-moz-full-screen {
+        object-fit: contain;
+      }
     }
 
     &-overlay {
