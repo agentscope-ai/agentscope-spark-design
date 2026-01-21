@@ -18,17 +18,7 @@ export interface IRagProps {
    * @default ''
    */
   subTitle?: string;
-  /**
-   * @description 检索词
-   * @descriptionEn Query
-   */
-  query: string;
-  /**
-   * @description 检索词前缀
-   * @descriptionEn Query Title
-   * @default '检索 Query：'
-   */
-  queryTitle?: string;
+  input?: [string, string][];
   /**
    * @description 检索图片列表
    * @descriptionEn Query Images
@@ -134,8 +124,7 @@ export default function (props: IRagProps) {
     subTitle,
     defaultOpen = true,
     placeholder = '未查询到与提问相关知识库',
-    query,
-    queryTitle = '检索 Query：',
+    input = [],
     images,
   } = props;
   const { getPrefixCls } = useProviderContext();
@@ -162,11 +151,14 @@ export default function (props: IRagProps) {
       defaultOpen,
       children: <>
         {
-          query ? <div className={`${prefixCls}-rag-query`}>
-            <span className={`${prefixCls}-rag-query-title`}>{queryTitle}</span>
-            {query}
-          </div> : null
+          input.map((item, index) => {
+            return <div key={index} className={`${prefixCls}-rag-query`}>
+              <span className={`${prefixCls}-rag-query-title`}>{item[0]}</span>
+              {item[1]}
+            </div>
+          })
         }
+
         {
           images?.length ? <div className={`${prefixCls}-rag-query-images`}>
             <Images images={images} />

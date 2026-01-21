@@ -4,7 +4,10 @@ import { Flex } from 'antd';
 export default function () {
   return <Flex vertical gap={16}>
     <Rag
-      query='GPT-5技术博客、行业分析、技术特性  AI原生 GPT-5技术博客、行业分析、技术特性  AI原生'
+      input={[
+        ['检索 Query:', 'GPT-5技术博客、行业分析、技术特性  AI原生 GPT-5技术博客、行业分析、技术特性  AI原生'],
+        ['检索 Query:', 'GPT-5技术博客、行业分析、技术特性  AI原生 GPT-5技术博客、行业分析、技术特性  AI原生'],
+      ]}
       subTitle="GPT-5技术博客、行业分析、技术特性"
       images={[
         'https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg',
