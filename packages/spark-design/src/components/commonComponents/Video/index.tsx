@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useState, useRef, useMemo } from 'react';
+import React, { forwardRef, useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import classNames from 'classnames';
 import MediaPlayerController from '../Audio/Control';
 import { useControllableValue } from 'ahooks';
@@ -86,8 +86,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
     };
   }, [isPlaying]);
 
-  // 检测视频是否有音频通道
-  const handleCanPlayThrough = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const checkHasAudio = useCallback(() => {
     if (videoRef.current) {
       // 方法1: 检查mozHasAudio属性 (Firefox)
       if ('mozHasAudio' in videoRef.current) {
@@ -103,7 +102,14 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
         setEnableVolume(false);
       }
     }
+  }, []);
+
+  // 检测视频是否有音频通道
+  const handleCanPlayThrough = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     videoProps.onCanPlayThrough?.(e);
+    setTimeout(() => {
+      checkHasAudio();
+    }, 100);
   };
 
   // 视频加载完成处理
