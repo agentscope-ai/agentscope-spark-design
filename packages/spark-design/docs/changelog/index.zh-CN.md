@@ -4,6 +4,14 @@ hero:
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
 
+### 1.0.26
+`2025-01-21`
+
+##### Changed
+- Audio 组件探测逻辑重构、使用 useCallback 提升性能
+- Audio 与 Video 新增 SVG icons，支持在 FileIcon 组件中透出展示
+- 文档新增 icons 列表展示与复制功能
+
 ### 1.0.25
 `2025-01-07`
 
