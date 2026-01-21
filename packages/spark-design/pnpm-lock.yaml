@@ -122,8 +122,8 @@ importers:
         version: 11.1.0
     devDependencies:
       '@agentscope-ai/dumi-theme-spark':
-        specifier: 0.0.99
-        version: 0.0.99(whopenmdmvqpvqs6cujan66nke)
+        specifier: 0.0.100
+        version: 0.0.100(@agentscope-ai/design@1.0.14(@babel/runtime@7.28.4)(@codemirror/language@6.11.3)(@codemirror/search@6.5.11)(@codemirror/theme-one-dark@6.1.3)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(dumi@2.4.21(@babel/core@7.28.5)(@swc/helpers@0.5.15)(@types/node@24.10.1)(@types/react@18.3.27)(@types/webpack@5.28.5(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4))(eslint@8.57.1)(jest@29.7.0(@types/node@24.10.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.15))(@types/node@24.10.1)(typescript@5.9.3)))(lightningcss@1.30.2)(prettier@3.7.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@3.29.5)(stylelint@14.16.1)(terser@5.44.1)(type-fest@4.41.0)(typescript@5.9.3)(webpack@5.103.0(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@alibot/dumi-plugin-api-parser':
         specifier: 1.0.3
         version: 1.0.3(dumi@2.4.21(@babel/core@7.28.5)(@swc/helpers@0.5.15)(@types/node@24.10.1)(@types/react@18.3.27)(@types/webpack@5.28.5(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4))(eslint@8.57.1)(jest@29.7.0(@types/node@24.10.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.15))(@types/node@24.10.1)(typescript@5.9.3)))(lightningcss@1.30.2)(prettier@3.7.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@3.29.5)(stylelint@14.16.1)(terser@5.44.1)(type-fest@4.41.0)(typescript@5.9.3)(webpack@5.103.0(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4)))
@@ -189,7 +189,7 @@ importers:
         version: 4.6.0(eslint@8.57.1)(jest@29.7.0(@types/node@24.10.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.15))(@types/node@24.10.1)(typescript@5.9.3)))(stylelint@14.16.1)(typescript@5.9.3)
       '@umijs/plugins':
         specifier: ^4.4.4
-        version: 4.6.0(@babel/core@7.28.5)(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(debug@4.4.3)(dva@2.5.0-beta.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(rc-field-form@2.7.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 4.6.0(@babel/core@7.28.5)(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(debug@4.4.3)(dva@2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(rc-field-form@2.7.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd:
         specifier: ^5.23.0
         version: 5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -303,8 +303,8 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  '@agentscope-ai/dumi-theme-spark@0.0.99':
-    resolution: {integrity: sha512-loV2Yw2AGICxGik17kc9Omrr2CqUZV2RIIcpZVZFHTJS278f+MBZtloYIrz0NPitxiR5zDQ4pL66haDNWr9J1w==}
+  '@agentscope-ai/dumi-theme-spark@0.0.100':
+    resolution: {integrity: sha512-r9b+DEHf2xGgdRmK06qRvjXUMwL928qJMyuRnEyOZHdHkuLUzK7WCFkfaDpBM4FiLlX6e8H2G4gI/UmMDAFi4w==}
     peerDependencies:
       '@agentscope-ai/design': ^1
       antd: ^5
@@ -1119,6 +1119,9 @@ packages:
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
+
+  '@babel/runtime@7.0.0-beta.46':
+    resolution: {integrity: sha512-/3a3USMKk54BEHhDgY8rtxtaQOs4bp4aQwo6SDtdwmrXmgSgEusWuXNX5oIs/nwzmTD9o8wz2EyAjA+uHDMmJA==}
 
   '@babel/runtime@7.23.6':
     resolution: {integrity: sha512-zHd0eUrf5GZoOWVCXp6koAKQTfZV07eit6bGPmJgnZdnSAvvZee6zniW2XMF7Cmc4ISOOnPy3QaSiIJGJkVEDQ==}
@@ -4287,6 +4290,10 @@ packages:
   core-js-pure@3.47.0:
     resolution: {integrity: sha512-BcxeDbzUrRnXGYIVAGFtcGQVNpFcUhVjr6W7F8XktvQW2iJP9e66GP6xdKotCRFlrxBvNIBrhwKteRXqMV86Nw==}
 
+  core-js@2.6.12:
+    resolution: {integrity: sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==}
+    deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
+
   core-js@3.34.0:
     resolution: {integrity: sha512-aDdvlDder8QmY91H88GzNi9EtQi2TjvQhpCX6B1v/dAZHU1AuLgHvRh54RiOerpEhEW46Tkf+vgAViB/CWC0ag==}
 
@@ -4729,8 +4736,8 @@ packages:
   duplexify@4.1.3:
     resolution: {integrity: sha512-M3BmBhwJRZsSx38lZyhE53Csddgzl5R7xGJNk7CVddZD6CcmwMCH8J+7AprIrQKH7TonKxaCjcv27Qmf+sQ+oA==}
 
-  dva-core@1.5.0-beta.2:
-    resolution: {integrity: sha512-xmtr/J63EZXBdVXNBW+QCD7p9CaE8kAo2U1faRyv3PIGcy0G3Y6IBDNtoBB/Cj3nzk/jvX0dv96Hnh1kpSnI7Q==}
+  dva-core@1.4.0:
+    resolution: {integrity: sha512-g1CnnF80+oGTUv9qZCc5vndkPHwoODiAGzdcGFMbT78+SmrbYgbvO5wyRBGvebmLYyaTJt4tLqvHIP+UYJoxkQ==}
     peerDependencies:
       redux: 3.x
 
@@ -4749,8 +4756,8 @@ packages:
     peerDependencies:
       dva-core: ^1.1.0 || ^1.5.0-0 || ^1.6.0-0
 
-  dva@2.5.0-beta.2:
-    resolution: {integrity: sha512-kc2+CHhF1cNIU3Rg1miMhHgOKJ/VDrq9d6ynVBZf1EN2YKWU3MVFq/uTTBqMr2qkR0m9f8VKHOFmfKLtfMI93Q==}
+  dva@2.4.1:
+    resolution: {integrity: sha512-ggj/P4lYa+7GBZuNua2Sn8rDjhbb2Mjt9THUKlunSYSBwIVU5xFIBkCB87JBPc274ojL9h/hKOmVFVFlWzlRpg==}
     peerDependencies:
       react: 15.x || ^16.0.0-0
       react-dom: 15.x || ^16.0.0-0
@@ -8127,8 +8134,8 @@ packages:
   react-merge-refs@1.1.0:
     resolution: {integrity: sha512-alTKsjEL0dKH/ru1Iyn7vliS2QRcBp9zZPGoWxUOvRGWPUYgjo+V01is7p04It6KhgrzhJGnIj9GgX8W4bZoCQ==}
 
-  react-redux@5.1.2:
-    resolution: {integrity: sha512-Ns1G0XXc8hDyH/OcBHOxNgQx9ayH3SPxBnFCOidGKSle8pKihysQw2rG/PmciUQRoclhVBO8HMhiRmGXnDja9Q==}
+  react-redux@5.0.7:
+    resolution: {integrity: sha512-5VI8EV5hdgNgyjfmWzBbdrqUkrVRKlyTKk1sGH3jzM2M2Mhj/seQgPXaz6gVAj2lz/nz688AdTqMO18Lr24Zhg==}
     peerDependencies:
       react: ^0.14.0 || ^15.0.0-0 || ^16.0.0-0
       redux: ^2.0.0 || ^3.0.0 || ^4.0.0-0
@@ -8266,6 +8273,9 @@ packages:
 
   regenerate@1.4.2:
     resolution: {integrity: sha512-zrceR/XhGYU/d/opr2EKO7aRHUeiBI8qjtfHqADTwZd6Szfy16la6kqD0MIUs5z5hx6AaKa+PixpPrR289+I0A==}
+
+  regenerator-runtime@0.11.1:
+    resolution: {integrity: sha512-MguG95oij0fC3QV3URf4V2SDYGJhJnJGqvIIgdECeODCT98wSWDAJ94SSuVpYQUoTcGUIL6L4yNB7j1DFFHSBg==}
 
   regenerator-runtime@0.13.11:
     resolution: {integrity: sha512-kY1AZVr2Ra+t+piVaJ4gxaFaReZVH40AKNo7UCX6W+dEwBo/2oZJzqfuN1qLq1oL45o56cPaTXELwrTh8Fpggg==}
@@ -9862,11 +9872,12 @@ snapshots:
       - codemirror
       - supports-color
 
-  '@agentscope-ai/dumi-theme-spark@0.0.99(whopenmdmvqpvqs6cujan66nke)':
-    dependencies:
+  ? '@agentscope-ai/dumi-theme-spark@0.0.100(@agentscope-ai/design@1.0.14(@babel/runtime@7.28.4)(@codemirror/language@6.11.3)(@codemirror/search@6.5.11)(@codemirror/theme-one-dark@6.1.3)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(dumi@2.4.21(@babel/core@7.28.5)(@swc/helpers@0.5.15)(@types/node@24.10.1)(@types/react@18.3.27)(@types/webpack@5.28.5(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4))(eslint@8.57.1)(jest@29.7.0(@types/node@24.10.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.15))(@types/node@24.10.1)(typescript@5.9.3)))(lightningcss@1.30.2)(prettier@3.7.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@3.29.5)(stylelint@14.16.1)(terser@5.44.1)(type-fest@4.41.0)(typescript@5.9.3)(webpack@5.103.0(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)'
+  : dependencies:
       '@agentscope-ai/design': 1.0.14(@babel/runtime@7.28.4)(@codemirror/language@6.11.3)(@codemirror/search@6.5.11)(@codemirror/theme-one-dark@6.1.3)(@rc-component/util@1.2.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(classnames@2.5.1)(codemirror@6.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@agentscope-ai/icons': 1.0.46
       '@agentscope-ai/icons-override-antd': 6.0.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@agentscope-ai/icons-svg-override-antd': 4.4.2
       '@alibot/dumi-plugin-api-parser': 1.0.3(dumi@2.4.21(@babel/core@7.28.5)(@swc/helpers@0.5.15)(@types/node@24.10.1)(@types/react@18.3.27)(@types/webpack@5.28.5(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4))(eslint@8.57.1)(jest@29.7.0(@types/node@24.10.1)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.15))(@types/node@24.10.1)(typescript@5.9.3)))(lightningcss@1.30.2)(prettier@3.7.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rollup@3.29.5)(stylelint@14.16.1)(terser@5.44.1)(type-fest@4.41.0)(typescript@5.9.3)(webpack@5.103.0(@swc/core@1.15.3(@swc/helpers@0.5.15))(esbuild@0.21.4)))
       '@fingerprintjs/fingerprintjs': 4.6.2
       '@makotot/ghostui': 2.0.0(react@18.3.1)
@@ -11034,6 +11045,11 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.28.5(@babel/core@7.28.5)
     transitivePeerDependencies:
       - supports-color
+
+  '@babel/runtime@7.0.0-beta.46':
+    dependencies:
+      core-js: 2.6.12
+      regenerator-runtime: 0.11.1
 
   '@babel/runtime@7.23.6':
     dependencies:
@@ -13516,7 +13532,7 @@ snapshots:
     dependencies:
       tsx: 3.12.2
 
-  '@umijs/plugins@4.6.0(@babel/core@7.28.5)(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(debug@4.4.3)(dva@2.5.0-beta.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(rc-field-form@2.7.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@umijs/plugins@4.6.0(@babel/core@7.28.5)(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(antd@5.29.1(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(debug@4.4.3)(dva@2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(rc-field-form@2.7.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@ahooksjs/use-request': 2.8.15(react@18.3.1)
       '@ant-design/antd-theme-variable': 1.0.0
@@ -13534,7 +13550,7 @@ snapshots:
       babel-plugin-styled-components: 2.1.4(@babel/core@7.28.5)(styled-components@6.1.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       dayjs: 1.11.19
       dva-core: 2.0.4(redux@4.2.1)
-      dva-immer: 1.0.2(dva@2.5.0-beta.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+      dva-immer: 1.0.2(dva@2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       dva-loading: 3.0.25(dva-core@2.0.4(redux@4.2.1))
       event-emitter: 0.3.5
       fast-deep-equal: 3.1.3
@@ -14845,6 +14861,8 @@ snapshots:
 
   core-js-pure@3.47.0: {}
 
+  core-js@2.6.12: {}
+
   core-js@3.34.0: {}
 
   core-util-is@1.0.3: {}
@@ -15404,9 +15422,9 @@ snapshots:
       readable-stream: 3.6.2
       stream-shift: 1.0.3
 
-  dva-core@1.5.0-beta.2(redux@3.7.2):
+  dva-core@1.4.0(redux@3.7.2):
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.0.0-beta.46
       flatten: 1.0.3
       global: 4.4.0
       invariant: 2.2.4
@@ -15426,10 +15444,10 @@ snapshots:
       redux-saga: 0.16.2
       warning: 3.0.0
 
-  dva-immer@1.0.2(dva@2.5.0-beta.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
+  dva-immer@1.0.2(dva@2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
     dependencies:
       '@babel/runtime': 7.28.4
-      dva: 2.5.0-beta.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      dva: 2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       immer: 8.0.4
 
   dva-loading@3.0.25(dva-core@2.0.4(redux@4.2.1)):
@@ -15437,20 +15455,20 @@ snapshots:
       '@babel/runtime': 7.28.4
       dva-core: 2.0.4(redux@4.2.1)
 
-  dva@2.5.0-beta.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  dva@2.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@babel/runtime': 7.28.4
+      '@babel/runtime': 7.0.0-beta.46
       '@types/isomorphic-fetch': 0.0.34
       '@types/react-router-dom': 4.3.5
       '@types/react-router-redux': 5.0.27
-      dva-core: 1.5.0-beta.2(redux@3.7.2)
+      dva-core: 1.4.0(redux@3.7.2)
       global: 4.4.0
       history: 4.10.1
       invariant: 2.2.4
       isomorphic-fetch: 2.2.1
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      react-redux: 5.1.2(react@18.3.1)(redux@3.7.2)
+      react-redux: 5.0.7(react@18.3.1)(redux@3.7.2)
       react-router-dom: 4.3.1(react@18.3.1)
       react-router-redux: 5.0.0-alpha.9(react@18.3.1)
       redux: 3.7.2
@@ -19828,16 +19846,15 @@ snapshots:
 
   react-merge-refs@1.1.0: {}
 
-  react-redux@5.1.2(react@18.3.1)(redux@3.7.2):
+  react-redux@5.0.7(react@18.3.1)(redux@3.7.2):
     dependencies:
-      '@babel/runtime': 7.28.4
-      hoist-non-react-statics: 3.3.2
+      hoist-non-react-statics: 2.5.5
       invariant: 2.2.4
+      lodash: 4.17.21
+      lodash-es: 4.17.21
       loose-envify: 1.4.0
       prop-types: 15.8.1
       react: 18.3.1
-      react-is: 16.13.1
-      react-lifecycles-compat: 3.0.4
       redux: 3.7.2
 
   react-redux@8.1.3(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1):
@@ -20002,6 +20019,8 @@ snapshots:
       regenerate: 1.4.2
 
   regenerate@1.4.2: {}
+
+  regenerator-runtime@0.11.1: {}
 
   regenerator-runtime@0.13.11: {}
 
