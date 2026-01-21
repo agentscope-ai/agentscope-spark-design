@@ -12,6 +12,8 @@ import ppt from './icons/ppt.svg';
 import txt from './icons/txt.svg';
 import web from './icons/web.svg';
 import word from './icons/word.svg';
+import video from './icons/video.svg';
+import audio from './icons/audio.svg';
 import { useStyle } from './index.style';
 
 const maps = {
@@ -27,6 +29,8 @@ const maps = {
   txt,
   web,
   word,
+  video,
+  audio,
 };
 
 export interface SparkFileIconProps {

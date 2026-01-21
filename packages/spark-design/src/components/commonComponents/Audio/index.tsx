@@ -30,6 +30,7 @@ const Audio = forwardRef<HTMLAudioElement, AudioProps>((props, ref) => {
     defaultValue: false,
   });
   const audioRef = useRef<HTMLAudioElement>(null);
+  const isFirstSrcRef = useRef<boolean>(true);
 
   // 合并refs
   const combinedRef = (element: HTMLAudioElement) => {
@@ -42,6 +43,19 @@ const Audio = forwardRef<HTMLAudioElement, AudioProps>((props, ref) => {
       }
     }
   };
+
+  // 监听src变化，重新加载音频
+  useEffect(() => {
+    // 跳过首次设置
+    if (isFirstSrcRef.current) {
+      isFirstSrcRef.current = false;
+      return;
+    }
+    
+    if (audioRef.current && audioProps.src) {
+      audioRef.current.load();
+    }
+  }, [audioProps.src]);
 
   // 监听isPlaying状态来控制定时器
   useEffect(() => {

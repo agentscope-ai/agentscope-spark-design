@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useState, useRef, useMemo } from 'react';
+import React, { forwardRef, useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import classNames from 'classnames';
 import MediaPlayerController from '../Audio/Control';
 import { useControllableValue } from 'ahooks';
@@ -40,6 +40,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
   const [enableVolume, setEnableVolume] = useState<boolean>(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const lockMouseEnterAutoPlayRef = useRef<boolean>(false);
+  const isFirstSrcRef = useRef<boolean>(true);
 
   // 合并refs
   const combinedRef = (element: HTMLVideoElement) => {
@@ -52,6 +53,18 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
       }
     }
   };
+
+  // 监听src变化，重新加载视频
+  useEffect(() => {
+    // 跳过首次设置
+    if (isFirstSrcRef.current) {
+      isFirstSrcRef.current = false;
+      return;
+    }
+    if (videoRef.current && videoProps.src) {
+      videoRef.current.load();
+    }
+  }, [videoProps.src]);
 
   // 监听isPlaying状态来控制定时器
   useEffect(() => {
@@ -73,8 +86,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
     };
   }, [isPlaying]);
 
-  // 检测视频是否有音频通道
-  const handleCanPlayThrough = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const checkHasAudio = useCallback(() => {
     if (videoRef.current) {
       // 方法1: 检查mozHasAudio属性 (Firefox)
       if ('mozHasAudio' in videoRef.current) {
@@ -90,7 +102,14 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>((props, ref) => {
         setEnableVolume(false);
       }
     }
+  }, []);
+
+  // 检测视频是否有音频通道
+  const handleCanPlayThrough = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     videoProps.onCanPlayThrough?.(e);
+    setTimeout(() => {
+      checkHasAudio();
+    }, 100);
   };
 
   // 视频加载完成处理

@@ -22,6 +22,18 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.sparkPrefix}-media-time-text {
     color: var(--${(p) => p.antPrefix}-color-text-white);
   }
+
+  // 进度条样式
+  .${(p) => p.sparkPrefix}-media-progress-bar {
+    .${(p) => p.antPrefix}-progress-inner {
+      --${(p) => p.antPrefix}-progress-remaining-color: var(--${(p) =>
+    p.antPrefix}-color-fill);
+    }
+    
+    .${(p) => p.antPrefix}-progress-bg {
+      background: var(--${(p) => p.antPrefix}-color-text-white) !important;
+    }
+  }
 }
 
 .${(p) => p.sparkPrefix}-video-content {
@@ -54,16 +66,5 @@ export const useStyle = createGlobalStyle`
   right: 0;
   background: linear-gradient(0deg, #000000 2%, rgba(0, 0, 0, 0) 94%);
   transition: opacity 0.3s;
-}
-  // 进度条样式
-.${(p) => p.sparkPrefix}-media-progress-bar {
-  .${(p) => p.antPrefix}-progress-inner {
-    --${(p) => p.antPrefix}-progress-remaining-color: var(--${(p) =>
-  p.antPrefix}-color-fill);
-  }
-  
-  .${(p) => p.antPrefix}-progress-bg {
-    background: var(--${(p) => p.antPrefix}-color-text-white) !important;
-  }
 }
 `;
