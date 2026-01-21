@@ -47,7 +47,7 @@ export default memo(function (props: MarkdownProps) {
   const prefixCls = useProviderContext().getPrefixCls('markdown');
   const {
     raw = false,
-    allowHtml = true,
+    allowHtml = false,
   } = props;
 
   const {
@@ -57,7 +57,7 @@ export default memo(function (props: MarkdownProps) {
   } = useCitationsData({ citations: props.citations, citationsMap: props.citationsMap });
 
   const components = useMemo(() => ({
-    pre: CodeBlock,
+    code: CodeBlock,
     style: Null,
     script: Null,
     img: props.disableImage ? DisabledImage : Media,
@@ -67,12 +67,9 @@ export default memo(function (props: MarkdownProps) {
     ...props.components,
   }), [props.disableImage, CitationComponent, props.components]);
 
-  const dompurifyConfig = useMemo(() =>
-    allowHtml ? {
-      ADD_TAGS: ['custom-cursor', 'citation']
-    } : EMPTY_DOMPURIFY_CONFIG
-    , [allowHtml]);
-
+  const dompurifyConfig = useMemo(() => ({
+    ADD_TAGS: ['custom-cursor', 'citation']
+  }), []);
 
   // 使用 useMemo 缓存 extensions 配置
   const { extensions, walkTokens } = useMemo(() => {
@@ -91,7 +88,16 @@ export default memo(function (props: MarkdownProps) {
   const config = useMemo(() => ({
     extensions,
     walkTokens,
-  }), [extensions]);
+    // 当 allowHtml 为 false 时，转义 HTML 标签使其显示为字符串
+    ...(!allowHtml && {
+      renderer: {
+        html(token: { text?: string; raw?: string }) {
+          const text = token.text || token.raw || '';
+          return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+      }
+    })
+  }), [extensions, allowHtml]);
 
   const fallback = <Raw content={content || ''} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
 

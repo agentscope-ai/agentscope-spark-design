@@ -2,6 +2,7 @@ import { getCommonConfig } from '@/config';
 import useMergedState from '@rc-component/util/lib/hooks/useMergedState';
 import { Segmented, Tabs, TabsProps } from 'antd';
 import classNames from 'classnames';
+import { useCallback, useMemo } from 'react';
 import { useStyle } from './index.style';
 
 export interface SparkTabsProps extends Omit<TabsProps, 'type'> {
@@ -25,40 +26,57 @@ const SparkTabs = (props: SparkTabsProps) => {
   );
 
   const Style = useStyle();
-  if (type === 'segmented') {
-    const handleChange = (key: string) => {
+
+  // 缓存 onChange 回调
+  const handleChange = useCallback(
+    (key: string) => {
       setMergedActiveKey(key);
       props.onChange?.(key);
-    };
+    },
+    [setMergedActiveKey, props.onChange],
+  );
 
+  // 缓存 options 配置
+  const segmentedOptions = useMemo(
+    () =>
+      props.items?.map((item) => ({
+        label: item.label,
+        value: item.key,
+        disabled: item.disabled,
+      })) || [],
+    [props.items],
+  );
+
+  // 缓存 className
+  const segmentedClassName = useMemo(
+    () =>
+      classNames(`${sparkPrefix}-segmented-tab-bar`, {
+        [`${sparkPrefix}-segmented-tab-bar-centered`]: centered,
+      }),
+    [sparkPrefix, centered],
+  );
+
+  // 获取当前选中 tab 的内容
+  const activeContent = useMemo(() => {
+    const activeItem = props.items?.find((item) => item.key === mergedActiveKey);
+    return activeItem?.children;
+  }, [props.items, mergedActiveKey]);
+
+  // segmented 类型：分离 Segmented 和内容渲染，避免 renderTabBar 导致的样式问题
+  if (type === 'segmented') {
     return (
       <>
         <Style />
-        <Tabs
-          animated={false}
-          {...restProps}
-          activeKey={mergedActiveKey}
-          renderTabBar={(tabProps) => {
-            const options =
-              props.items?.map((item) => ({
-                label: item.label,
-                value: item.key,
-                disabled: item.disabled,
-              })) || [];
-
-            return (
-              <Segmented
-                options={options}
-                onChange={handleChange}
-                className={classNames(`${sparkPrefix}-segmented-tab-bar`, {
-                  [`${sparkPrefix}-segmented-tab-bar-centered`]: centered,
-                })}
-                value={mergedActiveKey}
-                size={props.size}
-              />
-            );
-          }}
-        ></Tabs>
+        <Segmented
+          options={segmentedOptions}
+          value={mergedActiveKey}
+          onChange={handleChange}
+          className={segmentedClassName}
+          size={props.size}
+        />
+        <div className={`${sparkPrefix}-segmented-tab-content`}>
+          {activeContent}
+        </div>
       </>
     );
   }

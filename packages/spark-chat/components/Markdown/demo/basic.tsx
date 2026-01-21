@@ -11,6 +11,12 @@ const content = `# 这是一个一级标题
 ##### 这是一个五级标题
 ###### 这是一个六级标题
 
+<div>
+????
+  <h1>这是一个标题</h1>
+</div>
+
+
 ---
 
 这是第一个段落。
@@ -65,6 +71,10 @@ ___这是粗斜体文本___
 ---
 \`hello world\`
 
+\`\`\`
+## title
+\`\`\`
+
 \`\`\`java
 class HelloWorld {
     public static void main(String[] args) {
@@ -102,6 +112,6 @@ export default function () {
         <Input.TextArea value={value} onChange={(e) => setValue(e.target.value)} autoSize={{ minRows: 30, maxRows: 30 }} />
       </Modal>
     </div>
-    <Markdown content={value} />
+    <Markdown content={value} allowHtml={false} disableImage={true} />
   </>;
 }

@@ -360,7 +360,7 @@ export const GroupNode = memo((props: IGroupNodeProps) => {
     event.preventDefault();
     event.stopPropagation();
     // 兼容某些 Windows Chrome 版本 dataTransfer 可能为 undefined 的情况
-    if (!event.dataTransfer) {
+    if(!event.dataTransfer){
       message.warning(
         $i18n.get({
           id: 'spark-flow.components.BaseNode.index.browserDragNotSupported',

@@ -45,7 +45,9 @@ export function InnerHeader({ className }: { className?: string }) {
   return <>
     <div className={cls(`${prefixCls}-header`, className)}>
       <div className={`${prefixCls}-header-left`}>
-        <img src={logo} alt="logo" height={32} />
+        {
+          logo && <img src={logo} alt="logo" height={32} />
+        }
         <span>{title}</span>
       </div>
 
@@ -68,7 +70,7 @@ export function InnerAdder(props: { style?: React.CSSProperties; narrowMode?: bo
   const { toggleCollapsed } = useContext(ChatAnyWhereLayoutContext);
 
   return <div className={`${prefixCls}-adder`} style={props.style}>
-    <Button block type="primary" icon={<SparkPlusLine />} disabled={loading} onClick={async() => {
+    <Button block type="primary" icon={<SparkPlusLine />} disabled={loading} onClick={async () => {
       await createSession();
       if (props.narrowMode) {
         toggleCollapsed();

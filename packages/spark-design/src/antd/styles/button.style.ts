@@ -63,7 +63,8 @@ button[type="button"].${(p) => p.antPrefix}-btn {
   color: var(--${(p) => p.antPrefix}-color-text-on-primary);
 }
 .${(p) => p.antPrefix}-btn-primary.${(p) => 
-  p.antPrefix}-btn-variant-solid:not(:disabled):not(.${(p) => p.antPrefix}-btn-disabled):hover {
+  p.antPrefix}-btn-variant-solid:not(:disabled):not(.${(p) =>
+  p.antPrefix}-btn-background-ghost):not(.${(p) => p.antPrefix}-btn-disabled):hover {
   color: var(--${(p) => p.antPrefix}-color-text-on-primary);
 }
 

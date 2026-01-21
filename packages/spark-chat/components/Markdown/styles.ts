@@ -35,11 +35,48 @@ export default createGlobalStyle`
     border: none;
   }
 
-  pre {
-    background-color: ${(p) => p.theme.colorFillQuaternary};
-    padding: 4px 10px;
+  .${(p) => p.theme.prefixCls}-mermaid,
+  .${(p) => p.theme.prefixCls}-codeHighlighter {
     border: 1px solid ${(p) => p.theme.colorBorderSecondary};
+    border-radius: ${(p) => p.theme.borderRadiusSM}px;
+    
   }
+
+  .${(p) => p.theme.prefixCls}-mermaid-graph,
+  .${(p) => p.theme.prefixCls}-codeHighlighter-code {
+    border: none;
+  }
+
+
+  .${(p) => p.theme.prefixCls}-code-header {
+    display: flex;
+    justify-content: space-between;
+    background: ${(p) => p.theme.colorFillSecondary};
+    border-bottom: 1px solid ${(p) => p.theme.colorBorderSecondary};
+    height: 28px;
+    line-height: 28px;
+    align-items: center;
+    user-select: none;
+    position: relative;
+    padding: 0 12px;
+
+    &-lang {
+      font-weight: bold;
+    }
+
+    &-icon {
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    &-copied {
+      color: ${(p) => p.theme.colorSuccess};
+      cursor: pointer;
+      font-size: 16px;
+    }
+  }
+
+
 
   h1,
   h2,
@@ -166,7 +203,7 @@ export default createGlobalStyle`
 }
 
 
-.${p => p.theme.prefixCls}-markdown-footnote {
+.${(p) => p.theme.prefixCls}-markdown-footnote {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -175,17 +212,17 @@ export default createGlobalStyle`
   height: 16px;
   margin-inline: 2px;
   font-size: 10px;
-  color: ${p => p.theme.colorTextSecondary};
+  color: ${(p) => p.theme.colorTextSecondary};
   text-align: center;
-  background: ${p => p.theme.colorFillSecondary};
+  background: ${(p) => p.theme.colorFillSecondary};
   border-radius: 4px;
-  transition: all 100ms ${p => p.theme.motionEaseOut};
+  transition: all 100ms ${(p) => p.theme.motionEaseOut};
   cursor: pointer;
   line-height: 1;
 
   &:hover {
-    color: ${p => p.theme.colorWhite};
-    background: ${p => p.theme.colorPrimary};
+    color: ${(p) => p.theme.colorWhite};
+    background: ${(p) => p.theme.colorPrimary};
   }
 }
 `;
