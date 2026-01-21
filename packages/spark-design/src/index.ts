@@ -177,6 +177,11 @@ export { default as Upload } from './components/commonComponents/Upload';
 export { default as Video, type VideoProps } from './components/commonComponents/Video';
 export { default as Audio, type AudioProps } from './components/commonComponents/Audio';
 export {
+  default as MediaPreview,
+  type MediaPreviewProps,
+  type MediaItem,
+} from './components/commonComponents/MediaPreview';
+export {
   FileCard,
   default as FileIcon,
   type SparkFileCardProps,
