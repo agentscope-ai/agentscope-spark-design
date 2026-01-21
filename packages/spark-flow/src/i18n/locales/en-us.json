@@ -116,6 +116,7 @@
   "spark-flow.components.VariableInput.index.select": "Select",
   "spark-flow.components.VariableInput.index.yes": "Yes",
   "spark-flow.components.VariableInput.index.no": "No",
+  "spark-flow.components.VariableInput.index.fileTypeNotSupportManualInput": "File type does not support manual input",
   "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.defaultValue": "Default Value",
   "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.defaultOutputWhenExceptionOccurs": "Specify Default Output When Exception Occurs",
   "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.exceptionBranch": "Exceptional Branch",

@@ -1,7 +1,7 @@
 import $i18n from '@/i18n';
 import { IValueType } from '@/types/work-flow';
 import { defaultValueMap } from '@/utils/default-values';
-import { Input, InputNumber, Select, Space } from 'antd';
+import { Flex, Input, InputNumber, Select, Space } from 'antd';
 import React, { memo, useMemo } from 'react';
 import CodeInput from '../code-input';
 import { VariableTypeSelect } from '../custom-outputs-form';
@@ -115,11 +115,9 @@ export const VariableBaseInput = memo(
         case 'Array<String>':
         case 'Array<Number>':
         case 'Array<Boolean>':
-        case 'File':
-        case 'Array<File>':
           return (
             <CodeInput
-              style={{ overflow: 'auto', ...style }}
+              style={{ overflow: 'auto', height: '100%', ...style }}
               className={className}
               isCompact={isCompact}
               disabled={disabled}
@@ -129,6 +127,12 @@ export const VariableBaseInput = memo(
               onErrorChange={onErrorChange}
             />
           );
+        case 'File':
+        case 'Array<File>':
+          return <Flex align="center" className="spark-flow-variable-input-file-tip">{$i18n.get({
+            id: 'spark-flow.components.VariableInput.index.fileTypeNotSupportManualInput',
+            dm: '文件类型不支持手动输入',
+          })}</Flex>;
         default:
           return null;
       }

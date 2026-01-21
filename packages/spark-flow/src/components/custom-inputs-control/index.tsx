@@ -294,8 +294,8 @@ export const VariableFormComp = memo((props: IVariableFormCompProps) => {
     }
     return (
       <VariableInput
-        enabledTypes={props.enabledTypes}
-        disabledTypes={props.disabledTypes}
+        enabledTypes={props.enabledTypes ? props.enabledTypes.filter(type => type !== 'File' && type !== 'Array<File>') : undefined}
+        disabledTypes={[...(props.disabledTypes || []), 'File', 'Array<File>']}
         disabled={props.disabled}
         value={props.data.value}
         type={props.data.type}
@@ -350,56 +350,56 @@ const createVariableNameRules = (
   allValues: INodeDataInputParamItem[],
   currentIndex: number,
 ) => [
-  {
-    validator: (_: any, value: string) => {
-      if (!value || value.trim() === '') {
+    {
+      validator: (_: any, value: string) => {
+        if (!value || value.trim() === '') {
+          return Promise.resolve();
+        }
+
+        // 检查是否以数字开头
+        if (/^\d/.test(value)) {
+          return Promise.reject(
+            new Error(
+              $i18n.get({
+                id: 'spark-flow.components.CustomInputsControl.index.variableNameCannotStartWithNumber',
+                dm: '变量名不能以数字开头',
+              }),
+            ),
+          );
+        }
+
+        // 检查是否包含非法字符
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+          return Promise.reject(
+            new Error(
+              $i18n.get({
+                id: 'spark-flow.components.CustomInputsControl.index.variableNameOnlyAllowLettersNumbersUnderscores',
+                dm: '变量名只能包含字母、数字和下划线',
+              }),
+            ),
+          );
+        }
+
+        // 检查是否重复
+        const isDuplicate = allValues.some(
+          (item, index) =>
+            index !== currentIndex && item.key === value && item.key !== '',
+        );
+        if (isDuplicate) {
+          return Promise.reject(
+            new Error(
+              $i18n.get({
+                id: 'spark-flow.components.CustomInputsControl.index.variableNameDuplicate',
+                dm: '变量名不能重复',
+              }),
+            ),
+          );
+        }
+
         return Promise.resolve();
-      }
-
-      // 检查是否以数字开头
-      if (/^\d/.test(value)) {
-        return Promise.reject(
-          new Error(
-            $i18n.get({
-              id: 'spark-flow.components.CustomInputsControl.index.variableNameCannotStartWithNumber',
-              dm: '变量名不能以数字开头',
-            }),
-          ),
-        );
-      }
-
-      // 检查是否包含非法字符
-      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
-        return Promise.reject(
-          new Error(
-            $i18n.get({
-              id: 'spark-flow.components.CustomInputsControl.index.variableNameOnlyAllowLettersNumbersUnderscores',
-              dm: '变量名只能包含字母、数字和下划线',
-            }),
-          ),
-        );
-      }
-
-      // 检查是否重复
-      const isDuplicate = allValues.some(
-        (item, index) =>
-          index !== currentIndex && item.key === value && item.key !== '',
-      );
-      if (isDuplicate) {
-        return Promise.reject(
-          new Error(
-            $i18n.get({
-              id: 'spark-flow.components.CustomInputsControl.index.variableNameDuplicate',
-              dm: '变量名不能重复',
-            }),
-          ),
-        );
-      }
-
-      return Promise.resolve();
+      },
     },
-  },
-];
+  ];
 
 export default memo(function CustomInputsControl(
   props: ICustomInputsControlProps,
