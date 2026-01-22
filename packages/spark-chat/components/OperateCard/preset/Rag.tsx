@@ -90,7 +90,9 @@ function Item({ item }) {
       </span>
       <span style={{ flex: 1 }}></span>
       {
-        item.score || null
+        item.score ? <Tag color="mauve" size="small" className={`${prefixCls}-rag-item-score`}>
+          得分 <b>{item.score}</b>
+        </Tag> : null
       }
 
       <IconButton

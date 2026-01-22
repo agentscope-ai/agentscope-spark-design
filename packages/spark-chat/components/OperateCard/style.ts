@@ -229,9 +229,14 @@ export default createGlobalStyle`
   }
 
   &-rag-group-title {
-    margin: 8px 0 4px 16px;
+    margin: 16px 0 4px 16px;
     font-size: 12px;
-    color: ${(p) => p.theme.colorText};
+    font-weight: 500;
+    color: ${(p) => p.theme.colorTextSecondary};
+
+    &:first-child {
+      margin-top: 8px;
+    }
   }
 
 
@@ -239,16 +244,13 @@ export default createGlobalStyle`
     margin-left: 16px;
     border-radius: 6px;
     font-size: 12px;
-    color: ${(p) => p.theme.colorText};
+    color: ${(p) => p.theme.colorTextSecondary};
     min-height: 28px;
-    padding: 4px 8px;
     display: flex;
     align-items: center;
     cursor: pointer;
-    background-color: ${(p) => p.theme.colorFillTertiary};
 
     &-images {
-      padding: 8px 4px;
       gap: 8px;
     }
   }
@@ -260,11 +262,21 @@ export default createGlobalStyle`
     overflow: hidden;
     margin-bottom: 4px;
 
+
+    &-score {
+      margin-right: 0;
+
+      b {
+        font-weight: 500;
+        color: ${(p) => p.theme.colorPrimary};
+      }
+    }
+
     &-title {
       font-size: 12px;
-      color: ${(p) => p.theme.colorText};
+      color: ${(p) => p.theme.colorTextSecondary};
       height: 28px;
-      padding: 0 12px;
+      padding: 0 4px 0 12px;
       display: flex;
       align-items: center;
       cursor: pointer;
