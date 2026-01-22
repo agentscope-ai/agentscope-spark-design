@@ -212,7 +212,7 @@ export const ConfigPanel = memo(
                   />
                 </Flex>
               ) : (
-                <Typography.Text
+                typeof nodeInfo?.titleRenderer === 'function' ? nodeInfo?.titleRenderer(selectedNodeData.data) : (<Typography.Text
                   ellipsis={{ tooltip: true }}
                   className="spark-flow-panel-title flex-1 w-1"
                 >
@@ -221,7 +221,7 @@ export const ConfigPanel = memo(
                       id: 'spark-flow.components.FlowPanel.ConfigPanel.nodeNameConfig',
                       dm: '【节点名称】配置',
                     })}
-                </Typography.Text>
+                </Typography.Text>)
               )}
             </div>
           }
@@ -269,38 +269,38 @@ export const ConfigPanel = memo(
                       key: 'rename',
                     },
                     !nodeInfo?.isSystem &&
-                      !nodesReadOnly && {
-                        label: (
-                          <div className="flex items-center gap-[8px]">
-                            <SparkCopyLine />
-                            <span>
-                              {$i18n.get({
-                                id: 'spark-flow.components.FlowPanel.ConfigPanel.copy',
-                                dm: '复制',
-                              })}
-                            </span>
-                          </div>
-                        ),
+                    !nodesReadOnly && {
+                      label: (
+                        <div className="flex items-center gap-[8px]">
+                          <SparkCopyLine />
+                          <span>
+                            {$i18n.get({
+                              id: 'spark-flow.components.FlowPanel.ConfigPanel.copy',
+                              dm: '复制',
+                            })}
+                          </span>
+                        </div>
+                      ),
 
-                        key: 'copy',
-                      },
+                      key: 'copy',
+                    },
                     !nodeInfo?.isSystem &&
-                      !nodesReadOnly && {
-                        label: (
-                          <div className="flex items-center gap-[8px]">
-                            <SparkDeleteLine />
-                            <span>
-                              {$i18n.get({
-                                id: 'spark-flow.components.FlowPanel.ConfigPanel.delete',
-                                dm: '删除',
-                              })}
-                            </span>
-                          </div>
-                        ),
+                    !nodesReadOnly && {
+                      label: (
+                        <div className="flex items-center gap-[8px]">
+                          <SparkDeleteLine />
+                          <span>
+                            {$i18n.get({
+                              id: 'spark-flow.components.FlowPanel.ConfigPanel.delete',
+                              dm: '删除',
+                            })}
+                          </span>
+                        </div>
+                      ),
 
-                        key: 'delete',
-                        danger: true,
-                      },
+                      key: 'delete',
+                      danger: true,
+                    },
                     !nodesReadOnly && {
                       type: 'divider',
                     },

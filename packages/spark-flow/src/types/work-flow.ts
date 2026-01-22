@@ -15,6 +15,8 @@ export interface INodeSchema {
   iconType: (props: SparkIconProps) => ReactNode;
   /* Node title */
   title: string;
+  /** Node title Renderer */
+  titleRenderer?: (data: IWorkFlowNodeData) => ReactNode;
   /* Node description */
   desc: string;
   /* Default parameters, according to backend protocol */

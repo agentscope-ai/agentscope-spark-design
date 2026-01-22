@@ -8,7 +8,7 @@ hero:
 `2025-12-25`
 
 ##### Changed
-- BaseNode: add slots prop to customize.
+- base-node: add slots prop to customize.
 
 ### 1.0.15
 
@@ -17,3 +17,5 @@ hero:
 - Improved validation rules for variable names in both CustomInputsControl and CustomOutputsForm components.
 - Updated styles for variable input components to improve user experience.
 
+### 1.0.16
+- config-panel: add titleRenderer type in INodeSchema to customize the title in config-panel.
