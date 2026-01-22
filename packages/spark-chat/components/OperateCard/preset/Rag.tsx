@@ -3,6 +3,7 @@ import { Empty, IconButton, Tag } from '@agentscope-ai/design';
 import { SparkBookLine, SparkDownLine, SparkUpLine, SparkWarningCircleFill } from '@agentscope-ai/icons';
 import { ConfigProvider, Flex, Image } from 'antd';
 import { Locale } from "antd/es/locale";
+import React from 'react';
 import { ReactNode, useState } from 'react';
 
 export interface IRagProps {
@@ -18,13 +19,8 @@ export interface IRagProps {
    * @default ''
    */
   subTitle?: string;
-  input?: [string, string][];
-  /**
-   * @description 检索图片列表
-   * @descriptionEn Query Images
-   * @default []
-   */
-  images?: string[];
+
+
   /**
    * @description 召回知识列表
    * @descriptionEn RAG List
@@ -50,6 +46,16 @@ export interface IRagProps {
    * @default '暂无数据'
    */
   placeholder?: string;
+
+
+  query: string;
+  /**
+   * @description 检索图片列表
+   * @descriptionEn Query Images
+   * @default []
+   */
+  images?: string[];
+  filters?: string;
 }
 
 function Images({ images }: { images: string[] }) {
@@ -124,22 +130,49 @@ export default function (props: IRagProps) {
     subTitle,
     defaultOpen = true,
     placeholder = '未查询到与提问相关知识库',
-    input = [],
     images,
+    query,
+    filters
   } = props;
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('operate-card');
 
+  const children = <OperateCard.LineBody>
 
-  const children = props.list.length ? <OperateCard.LineBody>
+    <div>
+      <div className={`${prefixCls}-rag-group-title`}>检索 Query</div>
+      <div className={`${prefixCls}-rag-group-content`}>{query}</div>
+    </div>
+
     {
-      props.list.map((item, index) => {
-        return <Item key={index} item={item} />
-      })
+      images?.length ? <div>
+        <div className={`${prefixCls}-rag-group-title`}>检索图片</div>
+        <div className={`${prefixCls}-rag-group-content ${prefixCls}-rag-group-content-images`}>
+          <Images images={images} />
+        </div>
+      </div> : null
     }
-  </OperateCard.LineBody> : <Flex align="center" justify="center" gap={8} className={`${prefixCls}-rag-empty-placeholder`}>
-    <SparkWarningCircleFill /><span>{placeholder}</span>
-  </Flex>
+
+    {
+      filters ? <div>
+        <div className={`${prefixCls}-rag-group-title`}>过滤条件</div>
+        <div className={`${prefixCls}-rag-group-content`}>{filters}</div>
+      </div> : null
+    }
+
+
+
+    {props.list.length ? <div><div className={`${prefixCls}-rag-group-title`}>Output</div>
+      {
+        props.list.map((item, index) => {
+          return <Item key={index} item={item} />
+        })
+      }</div> : <>
+      <div className={`${prefixCls}-rag-group-title`}>Output</div>
+      <Flex align="center" justify="center" gap={8} className={`${prefixCls}-rag-empty-placeholder`}>
+        <SparkWarningCircleFill /><span>{placeholder}</span>
+      </Flex></>}
+  </OperateCard.LineBody>;
 
   return <OperateCard
     header={{
@@ -149,23 +182,9 @@ export default function (props: IRagProps) {
     }}
     body={{
       defaultOpen,
-      children: <>
-        {
-          input.map((item, index) => {
-            return <div key={index} className={`${prefixCls}-rag-query`}>
-              <span className={`${prefixCls}-rag-query-title`}>{item[0]}</span>
-              {item[1]}
-            </div>
-          })
-        }
-
-        {
-          images?.length ? <div className={`${prefixCls}-rag-query-images`}>
-            <Images images={images} />
-          </div> : null
-        }
+      children: <div className={`${prefixCls}-rag-children`}>
         {children}
-      </>
+      </div>
     }}
   />
 }
