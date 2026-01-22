@@ -245,7 +245,6 @@ export default createGlobalStyle`
     border-radius: 6px;
     font-size: 12px;
     color: ${(p) => p.theme.colorTextSecondary};
-    min-height: 28px;
     display: flex;
     align-items: center;
     cursor: pointer;
