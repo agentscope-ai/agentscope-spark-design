@@ -152,7 +152,22 @@ export {
   type SparkSpinnerProps as SpinnerProps,
 } from './components/commonComponents/Spinner';
 
+export {
+  default as Audio,
+  type AudioProps,
+} from './components/commonComponents/Audio';
 export { default as Descriptions } from './components/commonComponents/Descriptions';
+export {
+  FileCard,
+  default as FileIcon,
+  type SparkFileCardProps,
+  type SparkFileIconProps,
+} from './components/commonComponents/FileIcon';
+export {
+  default as MediaPreview,
+  type MediaItem,
+  type MediaPreviewProps,
+} from './components/commonComponents/MediaPreview';
 export { default as SliderSelector } from './components/commonComponents/SliderSelector';
 export { default as Statistic } from './components/commonComponents/Statistic';
 export {
@@ -174,36 +189,26 @@ export {
   type SparkTooltipProps as TooltipProps,
 } from './components/commonComponents/Tooltip';
 export { default as Upload } from './components/commonComponents/Upload';
-export { default as Video, type VideoProps } from './components/commonComponents/Video';
-export { default as Audio, type AudioProps } from './components/commonComponents/Audio';
 export {
-  default as MediaPreview,
-  type MediaPreviewProps,
-  type MediaItem,
-} from './components/commonComponents/MediaPreview';
-export {
-  FileCard,
-  default as FileIcon,
-  type SparkFileCardProps,
-  type SparkFileIconProps,
-} from './components/commonComponents/FileIcon';
+  default as Video,
+  type VideoProps,
+} from './components/commonComponents/Video';
 
 /**
  * 移动端组件
  */
-export { 
-  default as MobileModal,
-  type SparkMobileModalProps as MobileModalProps 
-} from './components/mobileComponents/MobileModal';
-export { 
-  default as MobileDrawer,
-  type SparkMobileDrawerProps as MobileDrawerProps 
-} from './components/mobileComponents/MobileDrawer';
-export { 
+export {
   default as MobileAlertDialog,
-  type MobileAlertDialogProps 
+  type MobileAlertDialogProps,
 } from './components/mobileComponents/MobileAlertDialog';
-
+export {
+  default as MobileDrawer,
+  type SparkMobileDrawerProps as MobileDrawerProps,
+} from './components/mobileComponents/MobileDrawer';
+export {
+  default as MobileModal,
+  type SparkMobileModalProps as MobileModalProps,
+} from './components/mobileComponents/MobileModal';
 
 /**
  * hooks
@@ -215,8 +220,6 @@ export { default as useGlobalStyle } from './hooks/useGlobalStyle';
  */
 export { default as delay } from './libs/delay';
 export { safeHtml } from './libs/dom';
-export { copy, renderTooltip } from './libs/utils';
-export { waitForDom, waitForFunc } from './libs/waitFor';
 export {
   default as requestPop,
   type AliyunPopOptions,
@@ -229,6 +232,8 @@ export {
   type SseResponse,
 } from './libs/requestPopSse';
 export { default as requestSse } from './libs/requestSse';
+export { copy, renderTooltip } from './libs/utils';
+export { waitForDom, waitForFunc } from './libs/waitFor';
 
 /**
  * Spark的ConfigProvider
