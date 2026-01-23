@@ -80,8 +80,6 @@ export const useStyle = createGlobalStyle`
 .${(p) => p.sparkPrefix}-media-preview-zoom-controls {
   display: flex;
   flex-direction: row;
-  gap: 24px;
-  padding: 8px;
   border-radius: 8px;
   background: var(--${(p) => p.antPrefix}-color-bg-mask);
 }
@@ -89,10 +87,8 @@ export const useStyle = createGlobalStyle`
 .${(p) => p.sparkPrefix}-media-preview-close-button {
   display: flex;
   flex-direction: row;
-  gap: 24px;
   padding: 8px;
   border-radius: 8px;
-  background: var(--${(p) => p.antPrefix}-color-bg-mask);
   cursor: pointer;
   border: none;
 }
@@ -141,6 +137,7 @@ export const useStyle = createGlobalStyle`
   flex-shrink: 0;
 
   &:hover {
+    color: var(--${(p) => p.antPrefix}-color-bg-base) !important;
     opacity: 0.8;
   }
 }

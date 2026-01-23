@@ -10,6 +10,7 @@ import {
 import { ConfigProvider } from 'antd';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import IconButton from '../IconButton';
 import Video from '../Video';
 import { useStyle } from './index.style';
 
@@ -221,10 +222,6 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
 
   const currentMedia = mediaList[activeIndex];
 
-  if (!currentMedia) {
-    return null;
-  }
-
   return (
     <ConfigProvider {...configProviderProps}>
       <Style />
@@ -261,80 +258,93 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
           )}
         </div>
 
-        {/* 左箭头 - 问题5: 添加无障碍属性 */}
-        <button
-          type="button"
+        {/* 左箭头 */}
+        <IconButton
           className={`${sparkPrefix}-media-preview-nav-left`}
           onClick={handlePrev}
           aria-label="上一张"
-        >
-          <SparkLeftLine className={`${sparkPrefix}-media-preview-nav-icon`} />
-        </button>
+          bordered={false}
+          icon={<SparkLeftLine className={`${sparkPrefix}-media-preview-nav-icon`} />}
+        />
 
-        {/* 右箭头 - 问题5: 添加无障碍属性 */}
-        <button
-          type="button"
+        {/* 右箭头 */}
+        <IconButton
           className={`${sparkPrefix}-media-preview-nav-right`}
           onClick={handleNext}
           aria-label="下一张"
-        >
-          <SparkRightLine className={`${sparkPrefix}-media-preview-nav-icon`} />
-        </button>
+          bordered={false}
+          icon={<SparkRightLine className={`${sparkPrefix}-media-preview-nav-icon`} />}
+        />
 
-        {/* 顶部工具栏 - 问题5: 添加无障碍属性 */}
+        {/* 顶部工具栏 */}
         <div className={`${sparkPrefix}-media-preview-toolbar`} role="toolbar">
           {/* 缩放控制组 */}
           <div className={`${sparkPrefix}-media-preview-zoom-controls`}>
-            <button
-              type="button"
+            <IconButton
+              size="large"
               aria-label="放大"
               className={`${sparkPrefix}-media-preview-tool-button`}
               onClick={handleZoomIn}
-            >
-              <SparkAmplifyLine
-                className={`${sparkPrefix}-media-preview-tool-icon`}
-              />
-            </button>
-            <button
-              type="button"
+              bordered={false}
+              icon={
+                <SparkAmplifyLine
+                  className={`${sparkPrefix}-media-preview-tool-icon`}
+                />
+              }
+            />
+            <IconButton
+              size="large"
               aria-label="缩小"
               className={`${sparkPrefix}-media-preview-tool-button`}
               onClick={handleZoomOut}
-            >
-              <SparkReduceLine
-                className={`${sparkPrefix}-media-preview-tool-icon`}
-              />
-            </button>
-            <button
-              type="button"
+              bordered={false}
+              icon={
+                <SparkReduceLine
+                  className={`${sparkPrefix}-media-preview-tool-icon`}
+                />
+              }
+            />
+            <IconButton
+              size="large"
               aria-label="重置"
               className={`${sparkPrefix}-media-preview-tool-button`}
               onClick={handleResetAll}
-            >
-              <SparkExitFullscreenLine
-                className={`${sparkPrefix}-media-preview-tool-icon`}
-              />
-            </button>
+              bordered={false}
+              icon={
+                <SparkExitFullscreenLine
+                  className={`${sparkPrefix}-media-preview-tool-icon`}
+                />
+              }
+            />
           </div>
           {/* 关闭按钮 */}
-          <button
-            type="button"
-            className={`${sparkPrefix}-media-preview-close-button`}
-            onClick={onClose}
-            aria-label="关闭预览"
-          >
-            <SparkFalseLine
-              className={`${sparkPrefix}-media-preview-tool-icon`}
+          <div className={`${sparkPrefix}-media-preview-zoom-controls`}>
+
+            <IconButton
+              className={`${sparkPrefix}-media-preview-close-button`}
+              onClick={onClose}
+              aria-label="关闭预览"
+              bordered={false}
+              size="large"
+              icon={
+                <SparkFalseLine
+                  className={`${sparkPrefix}-media-preview-tool-icon`}
+                />
+              }
             />
-          </button>
+          </div>
+
         </div>
 
         {/* 底部缩略图轮播 */}
         <div className={`${sparkPrefix}-media-preview-thumbnail-carousel`}>
           <div className={`${sparkPrefix}-media-preview-thumbnail-wrapper`}>
-            <SparkLeftLine
+            <IconButton
               className={`${sparkPrefix}-media-preview-thumbnail-nav-icon`}
               onClick={handlePrev}
+              aria-label="上一张"
+              bordered={false}
+              icon={<SparkLeftLine />}
             />
             <div className={`${sparkPrefix}-media-preview-thumbnail-list`}>
               {mediaList.map((item, index) => (
@@ -357,9 +367,12 @@ const MediaPreview: React.FC<MediaPreviewProps> = ({
                 </div>
               ))}
             </div>
-            <SparkRightLine
+            <IconButton
               className={`${sparkPrefix}-media-preview-thumbnail-nav-icon`}
               onClick={handleNext}
+              aria-label="下一张"
+              bordered={false}
+              icon={<SparkRightLine />}
             />
           </div>
         </div>
