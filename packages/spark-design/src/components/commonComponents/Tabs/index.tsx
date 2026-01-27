@@ -12,10 +12,16 @@ export interface SparkTabsProps extends Omit<TabsProps, 'type'> {
    * @default true
    */
   type?: 'line' | 'card' | 'editable-card' | 'segmented';
+  /**
+   * @description 类名
+   * @descriptionEn ClassName
+   * @default ''
+   */
+  className?: string;
 }
 
 const SparkTabs = (props: SparkTabsProps) => {
-  const { type, centered, ...restProps } = props;
+  const { type, centered, className,...restProps } = props;
   const { sparkPrefix } = getCommonConfig();
   const [mergedActiveKey, setMergedActiveKey] = useMergedState<string>(
     () => restProps.items?.[0]?.key,
@@ -52,8 +58,8 @@ const SparkTabs = (props: SparkTabsProps) => {
     () =>
       classNames(`${sparkPrefix}-segmented-tab-bar`, {
         [`${sparkPrefix}-segmented-tab-bar-centered`]: centered,
-      }),
-    [sparkPrefix, centered],
+      }, className),
+    [sparkPrefix, centered, className],
   );
 
   // 获取当前选中 tab 的内容
@@ -83,7 +89,7 @@ const SparkTabs = (props: SparkTabsProps) => {
   return (
     <>
       <Style />
-      <Tabs {...props} type={type} ></Tabs>
+      <Tabs {...restProps} type={type} className={className} />
     </>
   );
 };

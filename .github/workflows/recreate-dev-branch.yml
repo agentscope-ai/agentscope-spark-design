@@ -8,8 +8,8 @@ on:
 
 jobs:
   recreate-dev:
-    # 仅在 PR 被合并且来源分支是 dev 时运行
-    if: github.event.pull_request.merged == true && github.event.pull_request.head.ref == 'dev'
+    # 仅在 PR 被合并且来源分支是 dev-* 格式（带时间戳）时运行
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'dev-')
     runs-on: ubuntu-latest
     
     permissions:
@@ -29,9 +29,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       
-      - name: Generate branch name with timestamp
+      - name: Get old branch name and generate new branch name
         id: branch_name
         run: |
+          # 获取旧的 dev 分支名（来源分支）
+          OLD_BRANCH="${{ github.event.pull_request.head.ref }}"
+          echo "old_branch=$OLD_BRANCH" >> $GITHUB_OUTPUT
+          echo "🗂️ 旧分支名: $OLD_BRANCH"
+          
           # 生成 yyyymmdd 格式的时间戳
           TIMESTAMP=$(date +%Y%m%d)
           NEW_BRANCH_NAME="dev-${TIMESTAMP}"
@@ -54,26 +59,18 @@ jobs:
           echo "📥 拉取最新的 main 分支..."
           git pull origin main
       
-      - name: Check if dev branch exists
-        id: check_dev
+      - name: Delete old dev branch
         run: |
-          if git ls-remote --heads origin dev | grep -q dev; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "📌 dev 分支存在，将被删除"
+          OLD_BRANCH="${{ steps.branch_name.outputs.old_branch }}"
+          echo "🗑️ 删除旧的 $OLD_BRANCH 分支..."
+          if git ls-remote --heads origin "$OLD_BRANCH" | grep -q "$OLD_BRANCH"; then
+            git push origin --delete "$OLD_BRANCH"
+            echo "✅ 旧 $OLD_BRANCH 分支已删除"
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "📌 dev 分支不存在，将直接创建"
+            echo "📌 $OLD_BRANCH 分支已不存在，跳过删除"
           fi
       
-      - name: Delete old dev branch
-        if: steps.check_dev.outputs.exists == 'true'
-        run: |
-          echo "🗑️ 删除旧的 dev 分支..."
-          git push origin --delete dev
-          echo "✅ 旧 dev 分支已删除"
-      
       - name: Wait for branch deletion
-        if: steps.check_dev.outputs.exists == 'true'
         run: |
           echo "⏳ 等待 2 秒以确保分支完全删除..."
           sleep 2
@@ -107,12 +104,13 @@ jobs:
       
       - name: Summary
         run: |
+          OLD_BRANCH="${{ steps.branch_name.outputs.old_branch }}"
           NEW_BRANCH="${{ steps.branch_name.outputs.new_branch }}"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "✅ dev 分支重建完成"
           echo "📝 操作摘要："
           echo "   • PR #${{ github.event.pull_request.number }} 已合并"
-          echo "   • 旧 dev 分支已删除"
+          echo "   • 旧 $OLD_BRANCH 分支已删除"
           echo "   • 新 $NEW_BRANCH 分支已从 main 创建"
           echo "   • 新 $NEW_BRANCH 分支与 main 保持同步"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
