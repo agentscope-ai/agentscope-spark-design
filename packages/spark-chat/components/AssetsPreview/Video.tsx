@@ -7,7 +7,7 @@ import { IconButton } from "@agentscope-ai/design";
 
 export default function Video(props: IVideo) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview-video');
-  const { width, height, poster, src, ...rest } = props;
+  const { width = 1, height = 1, poster, src, ...rest } = props;
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);

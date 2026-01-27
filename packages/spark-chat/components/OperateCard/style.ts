@@ -190,7 +190,6 @@ export default createGlobalStyle`
     }
 
     &-content {
-      
       width: 100%;
       display: flex;
       justify-content: space-between;
@@ -211,9 +210,6 @@ export default createGlobalStyle`
       overflow: hidden;
       border: 1px solid ${(p) => p.theme.colorBorderSecondary};
     }
-
-
-    
   }
 
   &-rag-empty-placeholder {
@@ -227,39 +223,67 @@ export default createGlobalStyle`
     margin: 0 12px 12px 12px;
   }
 
-  &-rag-query {
-    margin: 0 12px 8px 12px;
-    line-height: 20px;
+  &-rag-children .${(p) => p.theme.prefixCls}-operate-card-line-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &-rag-group-title {
+    margin: 16px 0 4px 16px;
     font-size: 12px;
+    font-weight: 500;
     color: ${(p) => p.theme.colorTextSecondary};
 
-    &-title {
-      font-weight: 500;
+    &:first-child {
+      margin-top: 8px;
     }
+  }
+
+
+  &-rag-group-content {
+    margin-left: 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: ${(p) => p.theme.colorTextSecondary};
+    display: flex;
+    align-items: center;
+    cursor: pointer;
 
     &-images {
-      margin: 0 12px 8px 12px;
-      display: flex;
       gap: 8px;
     }
   }
 
+
   &-rag-item {
     margin-left: 16px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 4px;
+
+
+    &-score {
+      margin-right: 0;
+
+      b {
+        font-weight: 500;
+        color: ${(p) => p.theme.colorPrimary};
+      }
+    }
 
     &-title {
       font-size: 12px;
-      color: ${(p) => p.theme.colorText};
-      line-height: 20px;
-      margin-bottom: 4px;
+      color: ${(p) => p.theme.colorTextSecondary};
+      height: 28px;
+      padding: 0 4px 0 12px;
       display: flex;
       align-items: center;
       cursor: pointer;
+      background-color: ${(p) => p.theme.colorFillTertiary};
     }
 
     &-content {
-      padding: 8px;
-      border-radius: 6px;
+      padding: 0 12px 12px 12px;
       background-color: ${(p) => p.theme.colorFillTertiary};
 
       &-text {

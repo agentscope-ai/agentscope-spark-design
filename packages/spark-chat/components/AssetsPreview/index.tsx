@@ -8,6 +8,8 @@ import Audio from './Audio';
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { SparkLeftLine, SparkRightLine } from '@agentscope-ai/icons';
 import { IconButton } from '@agentscope-ai/design';
+import { useUpdate, useSize } from 'ahooks';
+
 export interface IAssetsPreviewProps {
   /**
    * @description 类名
@@ -44,6 +46,7 @@ export interface IAssetsPreviewProps {
 }
 
 function AssetsPreview(props: IAssetsPreviewProps) {
+  const update = useUpdate();
   const prefixCls = useProviderContext().getPrefixCls('assets-preview');
   const ref = useRef<HTMLDivElement>(null);
   const { height = 144 } = props;
@@ -51,6 +54,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
   const maxWidth = useRef<number>(0);
   const [scrollLeft, setScrollLeft] = useState<number>(0);
   const deferScrollLeft = useDeferredValue(scrollLeft);
+  const size = useSize(ref);
 
   const onScroll = useCallback((e) => {
     setScrollLeft(e.target.scrollLeft);
@@ -64,7 +68,8 @@ function AssetsPreview(props: IAssetsPreviewProps) {
     if (ref.current && props.type !== 'audio') {
       maxWidth.current = ref.current.scrollWidth - ref.current.clientWidth;
     }
-  }, [])
+    update();
+  }, [props.data.length, size?.width])
 
 
   const toArrow = useCallback((direct: 'left' | 'right') => {
