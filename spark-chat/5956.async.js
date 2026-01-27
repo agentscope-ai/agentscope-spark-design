@@ -1447,6 +1447,12 @@ const content = \`# \u8FD9\u662F\u4E00\u4E2A\u4E00\u7EA7\u6807\u9898
 ##### \u8FD9\u662F\u4E00\u4E2A\u4E94\u7EA7\u6807\u9898
 ###### \u8FD9\u662F\u4E00\u4E2A\u516D\u7EA7\u6807\u9898
 
+<div>
+????
+  <h1>\u8FD9\u662F\u4E00\u4E2A\u6807\u9898</h1>
+</div>
+
+
 ---
 
 \u8FD9\u662F\u7B2C\u4E00\u4E2A\u6BB5\u843D\u3002
@@ -1542,7 +1548,7 @@ export default function () {
         <Input.TextArea value={value} onChange={(e) => setValue(e.target.value)} autoSize={{ minRows: 30, maxRows: 30 }} />
       </Modal>
     </div>
-    <Markdown content={value} />
+    <Markdown content={value} allowHtml={false} disableImage={true} />
   </>;
 }`},92513:function(e,n){n.Z=`import React from 'react';
 import { Markdown } from '@agentscope-ai/chat';
@@ -1819,6 +1825,7 @@ export default function () {
   return <Flex vertical gap={16}>
     <Rag
       query='GPT-5\u6280\u672F\u535A\u5BA2\u3001\u884C\u4E1A\u5206\u6790\u3001\u6280\u672F\u7279\u6027  AI\u539F\u751F GPT-5\u6280\u672F\u535A\u5BA2\u3001\u884C\u4E1A\u5206\u6790\u3001\u6280\u672F\u7279\u6027  AI\u539F\u751F'
+      filters='[{"name": "\u6765\u6E90", "value": "\u6587\u6863\u5E93"}]'
       subTitle="GPT-5\u6280\u672F\u535A\u5BA2\u3001\u884C\u4E1A\u5206\u6790\u3001\u6280\u672F\u7279\u6027"
       images={[
         'https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg',
@@ -1826,6 +1833,7 @@ export default function () {
       ]}
       list={[
         {
+          score: 0.8,
           title: '\u3010\u6587\u6863\u5E93\u3011GPT-5 \u6280\u672F\u535A\u5BA2', content: 'Aliyun Bailianis a product offered by Alibaba Cloud, which is the cloud computing arm of Alibaba Group. Bailian is a high-performance AI development platform designed to help users build, deploy, and manage machine learning models and AI applications more efficiently.', footer: '\u6765\u6E90\u6587\u6863\uFF1A\uFF08\u771F\uFF09\u62DF\u5B9A\u7A3F\u3002GPT \u7684\u5236\u5EA6\u7814\u7A76',
           images: [
             'https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg',

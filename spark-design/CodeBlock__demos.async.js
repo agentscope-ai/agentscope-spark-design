@@ -1,4 +1,4 @@
-"use strict";(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[6707],{55359:function(d,t,n){n.r(t);var s=n(61406),_=n(39971),E=n(49570),e=n(60999),i=n(62548),l=n(90264),o=n(75271),a=n(52676),c=function(){var r=`function main(params) {    
+(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[6707],{55359:function(_,s,n){"use strict";n.r(s);var u=n(61406),c=n(39971),e=n(49570),i=n(60999),a=n(62548),l=n(90264),d=n(75271),t=n(52676),E=function(){var r=`function main(params) {    
   const ret = {        
     "result": {           
       "key0": params.city + params.date,            
@@ -6,7 +6,7 @@
     },    
   };
   return ret;
-}`;return(0,a.jsx)(l.Z,{vertical:!0,gap:16,style:{width:720},align:"center",justify:"center",children:(0,a.jsx)(s.Z,{title:(0,a.jsxs)(l.Z,{align:"center",gap:8,children:[(0,a.jsx)(e.Z,{style:{fontSize:"20px"}}),(0,a.jsx)("span",{style:{fontSize:"14px"},children:"Code demo"})]}),expandOnPanelClick:!0,extra:(0,a.jsx)(i.Z,{style:{fontSize:"18px"},onClick:function(){navigator.clipboard.writeText(r),_.Z.success("\u590D\u5236\u6210\u529F!")}}),children:(0,a.jsx)(E.ZP,{language:"javascript",value:r})})})};t.default=c},35972:function(d,t,n){n.r(t);var s=n(49570),_=n(90264),E=n(75271),e=n(52676),i=function(){var o=`function main(params) {    
+}`;return(0,t.jsx)(l.Z,{vertical:!0,gap:16,style:{width:720},align:"center",justify:"center",children:(0,t.jsx)(u.Z,{title:(0,t.jsxs)(l.Z,{align:"center",gap:8,children:[(0,t.jsx)(i.Z,{style:{fontSize:"20px"}}),(0,t.jsx)("span",{style:{fontSize:"14px"},children:"Code demo"})]}),expandOnPanelClick:!0,extra:(0,t.jsx)(a.Z,{style:{fontSize:"18px"},onClick:function(){navigator.clipboard.writeText(r),c.Z.success("\u590D\u5236\u6210\u529F!")}}),children:(0,t.jsx)(e.ZP,{language:"javascript",value:r})})})};s.default=E},35972:function(_,s,n){"use strict";n.r(s);var u=n(49570),c=n(90264),e=n(75271),i=n(52676),a=function(){var d=`function main(params) {    
   const ret = {        
     "result": {           
       "key0": params.city + params.date,            
@@ -14,7 +14,7 @@
     },    
   }    
   return ret
-}`;return(0,e.jsx)(_.Z,{vertical:!0,gap:16,style:{width:720},children:(0,e.jsx)(s.ZP,{language:"javascript",value:o})})};t.default=i},33433:function(d,t,n){n.r(t);var s=n(61406),_=n(39971),E=n(49570),e=n(60999),i=n(62548),l=n(90264),o=n(75271),a=n(52676),c=function(){var r=`function main(params) {    
+}`;return(0,i.jsx)(c.Z,{vertical:!0,gap:16,style:{width:720},children:(0,i.jsx)(u.ZP,{language:"javascript",value:d})})};s.default=a},33433:function(_,s,n){"use strict";n.r(s);var u=n(61406),c=n(39971),e=n(49570),i=n(60999),a=n(62548),l=n(90264),d=n(75271),t=n(52676),E=function(){var r=`function main(params) {    
     const ret = {        
     "result": {           
         "key0": params.city + params.date,            
@@ -26,4 +26,5 @@
     },    
     }    
     return ret
-}`;return(0,a.jsx)(l.Z,{vertical:!0,gap:16,style:{width:720},children:(0,a.jsx)(s.Z,{title:(0,a.jsxs)("div",{style:{display:"inline-flex",alignItems:"center",gap:8},children:[(0,a.jsx)(e.Z,{style:{fontSize:"20px"}}),(0,a.jsx)("span",{style:{fontSize:"14px"},children:"Code demo"})]}),collapsedHeight:64,expandedHeight:200,expandOnPanelClick:!0,extra:(0,a.jsx)(i.Z,{style:{fontSize:"18px"},onClick:function(){navigator.clipboard.writeText(r),_.Z.success("\u590D\u5236\u6210\u529F!")}}),children:(0,a.jsx)(E.ZP,{language:"javascript",value:r})})})};t.default=c}}]);
+}`;return(0,t.jsx)(l.Z,{vertical:!0,gap:16,style:{width:720},children:(0,t.jsx)(u.Z,{title:(0,t.jsxs)("div",{style:{display:"inline-flex",alignItems:"center",gap:8},children:[(0,t.jsx)(i.Z,{style:{fontSize:"20px"}}),(0,t.jsx)("span",{style:{fontSize:"14px"},children:"Code demo"})]}),collapsedHeight:64,expandedHeight:200,expandOnPanelClick:!0,extra:(0,t.jsx)(a.Z,{style:{fontSize:"18px"},onClick:function(){navigator.clipboard.writeText(r),c.Z.success("\u590D\u5236\u6210\u529F!")}}),children:(0,t.jsx)(e.ZP,{language:"javascript",value:r})})})};s.default=E},335:function(_,s,n){var u=n(31479);function c(e,i){var a=typeof Symbol!="undefined"&&e[Symbol.iterator]||e["@@iterator"];if(!a){if(Array.isArray(e)||(a=u(e))||i&&e&&typeof e.length=="number"){a&&(e=a);var l=0,d=function(){};return{s:d,n:function(){return l>=e.length?{done:!0}:{done:!1,value:e[l++]}},e:function(o){throw o},f:d}}throw new TypeError(`Invalid attempt to iterate non-iterable instance.
+In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`)}var t=!0,E=!1,p;return{s:function(){a=a.call(e)},n:function(){var o=a.next();return t=o.done,o},e:function(o){E=!0,p=o},f:function(){try{!t&&a.return!=null&&a.return()}finally{if(E)throw p}}}}_.exports=c,_.exports.__esModule=!0,_.exports.default=_.exports}}]);
