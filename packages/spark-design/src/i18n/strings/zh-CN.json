@@ -12,5 +12,11 @@
   "components.SlateEditor.utils.editor.WraptagnameCannotBePlacedIn": "【{wrapTagName}】不能在放在【{tagName}】内",
   "components.SlateEditor.utils.editor.WraptagnameCannotBeNestedIn": "【{wrapTagName}】中不能嵌套【{tagName}】",
   "components.SlateEditor.utils.withEditor.YouCanEnterAMaximum": "最多可输入{maxLen}字",
-  "components.commonComponents.Image.Preview": "预览"
+  "components.commonComponents.Image.Preview": "预览",
+  "docs.icons.IconLibrary.SearchPlaceholder": "搜索图标（按导出名）",
+  "docs.icons.IconLibrary.CopyName": "复制名称",
+  "docs.icons.IconLibrary.CopyImport": "复制 import",
+  "docs.icons.IconLibrary.CopyJSX": "复制 JSX",
+  "docs.icons.IconLibrary.TotalCount": "共 {count} 个",
+  "docs.icons.IconLibrary.CopySuccess": "已复制"
 }

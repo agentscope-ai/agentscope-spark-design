@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/design",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "description": "AgentScope Spark Design - UI Library for AgentScope AI",
   "repository": {
     "type": "git",
@@ -86,7 +86,7 @@
   "devDependencies": {
     "@alibot/dumi-plugin-llms": "1.0.4",
     "@alibot/dumi-plugin-api-parser": "1.0.3",
-    "@agentscope-ai/dumi-theme-spark": "0.0.99",
+    "@agentscope-ai/dumi-theme-spark": "0.0.100",
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.28.5",

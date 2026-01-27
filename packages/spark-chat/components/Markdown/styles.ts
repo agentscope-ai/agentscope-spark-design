@@ -45,6 +45,11 @@ export default createGlobalStyle`
   .${(p) => p.theme.prefixCls}-mermaid-graph,
   .${(p) => p.theme.prefixCls}-codeHighlighter-code {
     border: none;
+    background-color: ${(p) => p.theme.colorBgBase};
+
+    * {
+      background-color: transparent !important;
+    }
   }
 
 

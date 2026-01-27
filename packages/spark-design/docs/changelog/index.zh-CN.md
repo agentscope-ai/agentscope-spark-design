@@ -4,6 +4,25 @@ hero:
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
 
+### 1.0.27
+`2025-01-27`
+
+##### Changed
+- 补充 InputSearch 组件文档
+
+##### Fixed
+- Table 组件在表头固定时，表头样式默认圆角改为直角
+- Empty 组件修复了引入多个 Empty 组件的情况下，可能导致的 svg 丢失的问题
+- 文档搜索白屏问题修复
+
+### 1.0.26
+`2025-01-21`
+
+##### Changed
+- Audio 组件探测逻辑重构、使用 useCallback 提升性能
+- Audio 与 Video 新增 SVG icons，支持在 FileIcon 组件中透出展示
+- 文档新增 icons 列表展示与复制功能
+
 ### 1.0.25
 `2025-01-07`
 

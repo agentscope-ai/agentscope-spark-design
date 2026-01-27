@@ -8,6 +8,7 @@ import { useButtonStyle } from './button.style';
 import { useDropdownStyle } from './dropdown.style';
 import { useFloatButtonStyle } from './floatButton.style';
 import { useInputNumberStyle } from './inputNumber.style';
+import { useInputSearchStyle } from './inputSearch.style';
 import { useMessageStyle } from './message.style';
 import { useNotificationStyle } from './notification.style';
 import { usePopoverStyle } from './popover.style';
@@ -51,6 +52,7 @@ export const useIndexStyle = () => {
   const DropdownStyle = useDropdownStyle();
   const FloatButtonStyle = useFloatButtonStyle();
   const InputNumberStyle = useInputNumberStyle();
+  const InputSearchStyle = useInputSearchStyle();
   const MessageStyle = useMessageStyle();
   const NotificationStyle = useNotificationStyle();
   const PopoverStyle = usePopoverStyle();
@@ -74,6 +76,7 @@ export const useIndexStyle = () => {
       React.createElement(DropdownStyle),
       React.createElement(FloatButtonStyle),
       React.createElement(InputNumberStyle),
+      React.createElement(InputSearchStyle),
       React.createElement(MessageStyle),
       React.createElement(NotificationStyle),
       React.createElement(PopoverStyle),

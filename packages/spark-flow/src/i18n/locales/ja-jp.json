@@ -116,6 +116,7 @@
     "spark-flow.components.VariableInput.index.select": "選択してください",
     "spark-flow.components.VariableInput.index.yes": "はい",
     "spark-flow.components.VariableInput.index.no": "いいえ",
+    "spark-flow.components.VariableInput.index.fileTypeNotSupportManualInput": "ファイルタイプは手動入力をサポートしていません",
     "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.defaultValue": "デフォルト値",
     "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.defaultOutputWhenExceptionOccurs": "例外が発生した場合、デフォルトの出力内容を指定します",
     "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.exceptionBranch": "例外ブランチ",

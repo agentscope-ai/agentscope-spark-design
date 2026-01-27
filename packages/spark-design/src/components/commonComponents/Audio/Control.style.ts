@@ -22,10 +22,13 @@ export const useStyle = createGlobalStyle`
 .${(p) => p.sparkPrefix}-media-progress-container {
   flex-grow: 1;
   cursor: pointer;
+
 }
 
 // 进度条样式
 .${(p) => p.sparkPrefix}-media-progress-bar {
+  display: flex;
+  align-items: center;
   width: 100%;
 
   .${(p) => p.antPrefix}-progress-bg {

@@ -4,6 +4,25 @@ hero:
   description: Release versions follow Semantic Versioning 2.0.0.
 ---
 
+### 1.0.27
+`2025-01-27`
+
+##### Changed
+- Added InputSearch component documentation
+
+##### Fixed
+- Table: changed default header border-radius from rounded to square when header is fixed
+- Empty: fixed the issue where SVG might be missing when multiple Empty components are imported
+- Fixed documentation search white screen issue
+
+### 1.0.26
+`2025-01-21`
+
+##### Changed
+- Audio: refactored detection logic and improved performance using useCallback
+- Audio & Video: added SVG icons, supporting display in FileIcon component
+- Documentation: added icons list display and copy functionality
+
 ### 1.0.25
 `2025-01-07`
 

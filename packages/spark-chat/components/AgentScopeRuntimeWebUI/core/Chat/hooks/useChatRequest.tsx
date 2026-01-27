@@ -134,7 +134,8 @@ export default function useChatRequest(options: UseChatRequestOptions) {
             break;
           }
 
-          const chunkData = JSON.parse(chunk.data);
+          const responseParser = apiOptionsRef.current.responseParser || JSON.parse;
+          const chunkData = responseParser(chunk.data);
           const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
 
 

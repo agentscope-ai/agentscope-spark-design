@@ -6,15 +6,16 @@ import { Locale } from "antd/es/locale";
 
 export default function (props: IImage) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview-image');
+  const { width = 1, height = 1, src } = props;
 
   return <div className={prefixCls} style={{
-    aspectRatio: `${props.width}/${props.height}`,
+    aspectRatio: `${width}/${height}`,
   }}>
     <ConfigProvider
       locale={{
         Image: { preview: '' }
       } as Locale}
-    ><Image src={props.src} width={"100%"} height={"100%"} /></ConfigProvider>
+    ><Image src={src} width={"100%"} height={"100%"} /></ConfigProvider>
   </div>;
 }
 

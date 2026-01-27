@@ -116,6 +116,7 @@
   "spark-flow.components.VariableInput.index.select": "请选择",
   "spark-flow.components.VariableInput.index.yes": "是",
   "spark-flow.components.VariableInput.index.no": "否",
+  "spark-flow.components.VariableInput.index.fileTypeNotSupportManualInput": "文件类型不支持手动输入",
   "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.defaultValue": "默认值",
   "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.defaultOutputWhenExceptionOccurs": "当发生异常时，指定默认输出内容",
   "spark-flow.demos.spark-flow-1.components.ErrorCatchForm.index.exceptionBranch": "异常分支",

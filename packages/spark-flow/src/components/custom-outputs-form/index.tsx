@@ -70,29 +70,47 @@ export const VariableTypeSelect = memo((props: IVariableTypeSelectProps) => {
     }
 
     const list: IValueTypeOption[] = [];
-
-    // 白名单优先：如果设置了enabledTypes，只有在白名单中的类型才可用
     if (enabledTypes && enabledTypes.length > 0) {
+      // 白名单优先：如果设置了enabledTypes，只有在白名单中的类型才可用
       VALUE_TYPE_OPTIONS.forEach((item) => {
-        if (!enabledTypes.includes(item.value)) return;
-        list.push({
-          ...item,
-          children: item.children?.filter((child) =>
-            enabledTypes.includes(child.value),
-          ),
-        });
+        if (!enabledTypes.includes(item.value) && item.value !== 'Array') return;
+        const children = item.children?.filter((child) =>
+          enabledTypes.includes(child.value),
+        );
+        if (item.value === 'Array') {
+          if (children?.length) {
+            list.push({
+              ...item,
+              children,
+            });
+          }
+        } else {
+          list.push({
+            ...item,
+            children,
+          });
+        }
       });
-    }
-    // 黑名单策略：如果没有设置enabledTypes，使用disabledTypes
-    else if (disabledTypes && disabledTypes.length > 0) {
+    } else if (disabledTypes && disabledTypes.length > 0) {
+      // 黑名单策略：如果没有设置enabledTypes，使用disabledTypes
       VALUE_TYPE_OPTIONS.forEach((item) => {
         if (disabledTypes.includes(item.value)) return;
-        list.push({
-          ...item,
-          children: item.children?.filter(
-            (child) => !disabledTypes.includes(child.value),
-          ),
-        });
+        const children = item.children?.filter(
+          (child) => !disabledTypes.includes(child.value),
+        );
+        if(item.value === 'Array'){
+          if(children?.length){
+            list.push({
+              ...item,
+              children,
+            });
+          }
+        } else {
+          list.push({
+            ...item,
+            children,
+          });
+        }
       });
     }
 
@@ -162,56 +180,56 @@ const createVariableNameRules = (
   allValues: INodeDataOutputParamItem[],
   currentIndex: number,
 ) => [
-  {
-    validator: (_: any, value: string) => {
-      if (!value || value.trim() === '') {
+    {
+      validator: (_: any, value: string) => {
+        if (!value || value.trim() === '') {
+          return Promise.resolve();
+        }
+
+        // 检查是否以数字开头
+        if (/^\d/.test(value)) {
+          return Promise.reject(
+            new Error(
+              $i18n.get({
+                id: 'spark-flow.components.CustomOutputsForm.index.variableNameCannotStartWithNumber',
+                dm: '变量名不能以数字开头',
+              }),
+            ),
+          );
+        }
+
+        // 检查是否包含非法字符
+        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
+          return Promise.reject(
+            new Error(
+              $i18n.get({
+                id: 'spark-flow.components.CustomOutputsForm.index.variableNameOnlyAllowLettersNumbersUnderscores',
+                dm: '变量名只能包含字母、数字和下划线',
+              }),
+            ),
+          );
+        }
+
+        // 检查是否重复
+        const isDuplicate = allValues.some(
+          (item, index) =>
+            index !== currentIndex && item.key === value && item.key !== '',
+        );
+        if (isDuplicate) {
+          return Promise.reject(
+            new Error(
+              $i18n.get({
+                id: 'spark-flow.components.CustomOutputsForm.index.variableNameDuplicate',
+                dm: '变量名不能重复',
+              }),
+            ),
+          );
+        }
+
         return Promise.resolve();
-      }
-
-      // 检查是否以数字开头
-      if (/^\d/.test(value)) {
-        return Promise.reject(
-          new Error(
-            $i18n.get({
-              id: 'spark-flow.components.CustomOutputsForm.index.variableNameCannotStartWithNumber',
-              dm: '变量名不能以数字开头',
-            }),
-          ),
-        );
-      }
-
-      // 检查是否包含非法字符
-      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)) {
-        return Promise.reject(
-          new Error(
-            $i18n.get({
-              id: 'spark-flow.components.CustomOutputsForm.index.variableNameOnlyAllowLettersNumbersUnderscores',
-              dm: '变量名只能包含字母、数字和下划线',
-            }),
-          ),
-        );
-      }
-
-      // 检查是否重复
-      const isDuplicate = allValues.some(
-        (item, index) =>
-          index !== currentIndex && item.key === value && item.key !== '',
-      );
-      if (isDuplicate) {
-        return Promise.reject(
-          new Error(
-            $i18n.get({
-              id: 'spark-flow.components.CustomOutputsForm.index.variableNameDuplicate',
-              dm: '变量名不能重复',
-            }),
-          ),
-        );
-      }
-
-      return Promise.resolve();
+      },
     },
-  },
-];
+  ];
 
 export const CustomOutputsForm = memo(function ({
   value = [] as INodeDataOutputParamItem[],
@@ -364,9 +382,9 @@ export const CustomOutputsForm = memo(function ({
           title={
             maxTier !== -1 && tier >= maxTier
               ? $i18n.get({
-                  id: 'spark-flow.components.CustomOutputsForm.index.maxTierReached',
-                  dm: '最大层级已达到，无法添加子变量',
-                })
+                id: 'spark-flow.components.CustomOutputsForm.index.maxTierReached',
+                dm: '最大层级已达到，无法添加子变量',
+              })
               : null
           }
         >
@@ -380,13 +398,13 @@ export const CustomOutputsForm = memo(function ({
           >
             {isRoot
               ? $i18n.get({
-                  id: 'spark-flow.components.CustomOutputsForm.index.addVariable',
-                  dm: '添加变量',
-                })
+                id: 'spark-flow.components.CustomOutputsForm.index.addVariable',
+                dm: '添加变量',
+              })
               : $i18n.get({
-                  id: 'spark-flow.components.CustomOutputsForm.index.addSubVariable',
-                  dm: '添加子变量',
-                })}
+                id: 'spark-flow.components.CustomOutputsForm.index.addSubVariable',
+                dm: '添加子变量',
+              })}
           </Button>
         </Tooltip>
       )}
