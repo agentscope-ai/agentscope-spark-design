@@ -162,7 +162,7 @@ export interface PromptsEditorProps {
    * @description 输入的内容
    * @descriptionEn Input content value
    */
-  value: string;
+  value?: string;
   /**
    * @description 输入内容的类名
    * @descriptionEn CSS class name for the input content
@@ -281,7 +281,7 @@ const Editor = (props: PromptsEditorProps) => {
         {tips}
         {props.maxLength ? (
           <div>
-            {props.value.length}/{props.maxLength}
+            {props.value?.length || 0}/{props.maxLength}
           </div>
         ) : null}
       </div>
