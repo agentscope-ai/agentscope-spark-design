@@ -1,0 +1,15 @@
+{
+  "name": "@agentscope-ai/clawd-chat-ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "cd web && npm run build && cd ../native && npm run android:release && mkdir -p ../build && mv ./android/app/build/outputs/apk/release/app-release.apk ../build/app.apk"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://gitlab.alibaba-inc.com/liveme-console/clawd.git"
+  },
+  "author": "",
+  "license": "ISC"
+}
