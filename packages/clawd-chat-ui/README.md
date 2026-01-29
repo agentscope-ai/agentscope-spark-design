@@ -1,5 +1,7 @@
 # Clawd Chat UI
 
+<img src="https://img.alicdn.com/imgextra/i2/O1CN01DrecKC1PrxfK6SGjU_!!6000000001895-2-tps-1080-2400.png"  width="375" />
+
 Clawd Chat UI is a hybrid chat application project built with React, Expo, and agentscope-spark-design. It features a React-based web chat core wrapped in a React Native WebView for native Android/iOS apps, achieving "write once, run anywhere".
 
 You can download `build/app.apk` directly to use it, or modify the code to implement your own Clawd Chat UI.
@@ -97,3 +99,6 @@ Upon launching the app, if it is the first time or no connection info is configu
 
 After configuration, the app will automatically connect and enter the chat interface.
 
+
+## How to Quickly Deploy Moltbot (formerly Clawdbot)
+https://help.aliyun.com/zh/simple-application-server/use-cases/quickly-deploy-and-use-moltbot

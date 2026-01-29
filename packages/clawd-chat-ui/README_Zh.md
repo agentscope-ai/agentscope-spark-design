@@ -1,5 +1,7 @@
 # Clawd Chat UI
 
+<img src="https://img.alicdn.com/imgextra/i2/O1CN01DrecKC1PrxfK6SGjU_!!6000000001895-2-tps-1080-2400.png"  width="375" />
+
 Clawd Chat UI 是一个使用 React 、Expo 和 agentscope-spark-design 的混合开发聊天应用项目。它包含一个基于 Web 技术的聊天界面核心，并通过 React Native WebView 封装为原生应用（Android/iOS），实现了“一次开发，多端运行”。
 
 你可以直接下载 `build/app.apk` 直接使用，或者修改代码实现自己的 Clawd Chat UI
@@ -97,3 +99,6 @@ See Clawdbot Gateway Protocol for details. https://docs.molt.bot/gateway/protoco
 
 配置完成后，应用将自动连接并进入聊天界面。
 
+
+## 如何快速部署 Moltbot（原Clawdbot）
+https://help.aliyun.com/zh/simple-application-server/use-cases/quickly-deploy-and-use-moltbot
