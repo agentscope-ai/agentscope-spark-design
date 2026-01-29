@@ -97,6 +97,3 @@ Upon launching the app, if it is the first time or no connection info is configu
 
 After configuration, the app will automatically connect and enter the chat interface.
 
-## 📄 License
-
-ISC

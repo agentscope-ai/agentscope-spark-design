@@ -97,6 +97,3 @@ See Clawdbot Gateway Protocol for details. https://docs.molt.bot/gateway/protoco
 
 配置完成后，应用将自动连接并进入聊天界面。
 
-## 📄 License
-
-ISC
