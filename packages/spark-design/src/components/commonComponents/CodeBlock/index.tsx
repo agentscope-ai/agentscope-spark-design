@@ -18,6 +18,7 @@ import cls from 'classnames';
 import { omit } from 'lodash-es';
 import React, { useMemo } from 'react';
 import { useStyle } from './index.style';
+import { Extension } from '@codemirror/state';
 
 export interface CodeBlockProps {
   /**
@@ -45,6 +46,12 @@ export interface CodeBlockProps {
    */
   readOnly?: boolean;
   onChange?: (value?: string) => void;
+  /**
+   * @description 扩展
+   * @descriptionEn Extensions
+   * @default []
+   */
+  extensions?: Extension[];
 }
 
 export const langExtensionsMap: Record<string, any[]> = {
@@ -95,7 +102,7 @@ const CodeMirrorWrapper = (props: CodeBlockProps) => {
     return props.theme === 'dark' ? vscodeDark : vscodeLight;
   }, [isDarkMode, props.theme]);
 
-  const extensions =
+  const extensions = (props.extensions || []).concat(
     typeof props.language === 'string'
       ? [
           ...(langExtensionsMap[props.language] || []),
@@ -106,7 +113,7 @@ const CodeMirrorWrapper = (props: CodeBlockProps) => {
       : props.language.reduce(
           (ext, lang) => [...ext, langExtensionsMap[lang]],
           [],
-        );
+        ));
 
   const codeMirrorElement = (
     <div className={cls(`${sparkPrefix}-code-block`, props.className)}>

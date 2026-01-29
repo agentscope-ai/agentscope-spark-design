@@ -6,9 +6,9 @@ const App: React.FC = () => {
   return (
     <Flex align="center" vertical justify="center" gap={50}>
       <Pagination 
-      hideSwitchButton 
-      total={50} 
-      defaultCurrent={2}
+        hideSwitchButton 
+        total={50} 
+        defaultCurrent={2}
       />
     </Flex>
   );

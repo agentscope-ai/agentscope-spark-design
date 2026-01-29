@@ -193,6 +193,12 @@ export interface PromptsEditorProps {
    * @descriptionEn Text of the tips, set to false to hide the tips
    */
   tipsText?: string | React.ReactNode | false;
+  /**
+   * @description 仅可读
+   * @descriptionEn Read only
+   * @default false
+   */
+  readOnly?: boolean;
 }
 
 export const langExtensionsMap: Record<string, any[]> = {
@@ -268,6 +274,7 @@ const Editor = (props: PromptsEditorProps) => {
           foldGutter: false,
           highlightActiveLine: false,
         }}
+        readOnly={props.readOnly}
       />
 
       <div className={styles.footer}>
