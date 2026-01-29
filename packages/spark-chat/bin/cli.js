@@ -31,7 +31,7 @@ async function startServer() {
     
 
     execSync(
-      `cd ${__dirname}/starter_webui && npm install && BASE_URL=${
+      `cd ${__dirname}/starter_webui && npm install && npx cross-env BASE_URL=${
         options.url || 'BASE_URL'
       } TOKEN=${options.token || 'TOKEN'} npm run dev`,
       {
