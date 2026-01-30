@@ -2,6 +2,7 @@ import { CodeBlock, CollapsePanel, message } from '@agentscope-ai/design';
 import { SparkCode01Line, SparkCopyLine } from '@agentscope-ai/icons';
 import { Flex } from 'antd';
 import React from 'react';
+import { EditorView } from '@codemirror/view'
 
 const App: React.FC = () => {
   const value = `function main(params) {    
@@ -39,7 +40,18 @@ const App: React.FC = () => {
           />
         }
       >
-        <CodeBlock language={'javascript'} value={value} />
+        {/* <CodeBlock language={'javascript'} value={value} /> */}
+
+        <CodeBlock
+              language="json"
+              value={` {
+                "name": "John Press ENTER to open in the browser...",
+                "age": 30,
+                "city": "New York"
+              }`}
+              readOnly
+              extensions={[EditorView.lineWrapping]}
+            />
       </CollapsePanel>
     </Flex>
   );
