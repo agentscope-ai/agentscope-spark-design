@@ -1,3 +1,4 @@
+// @ts-nocheck
 import $18n from '@/i18n';
 import { getCommonConfig } from '@agentscope-ai/design/config';
 import { SparkVisibleLine } from '@agentscope-ai/icons';

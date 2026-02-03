@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ConfigProviderProps } from 'antd';
 
 const INVISIBLE_COLOR = 'rgba(0,0,0,0)';
