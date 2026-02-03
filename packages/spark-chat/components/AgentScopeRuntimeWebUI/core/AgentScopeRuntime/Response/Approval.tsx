@@ -1,8 +1,9 @@
 import { StatusCard } from '@agentscope-ai/chat';
-import { Button } from '@agentscope-ai/design';
+import { Button, Popover } from '@agentscope-ai/design';
 import { Flex } from 'antd';
 import { useMemo, useState } from 'react';
 import { createStyles } from 'antd-style'
+import ApprovalCancelPopover from './ApprovalCancelPopover';
 
 const useStyles = createStyles(({ css, token }) => ({
   desc: css`
@@ -25,7 +26,9 @@ export default function Approval() {
   const actions = useMemo(() => {
     if (status === 'pending') {
       return <Flex gap={8}>
-        <Button size="small" onClick={() => setStatus('canceled')}>取消执行</Button>
+        <Popover trigger="click" content={<ApprovalCancelPopover />}>
+          <Button size="small">取消执行</Button>
+        </Popover>
         <Button size="small" type="primary" onClick={() => setStatus('confirmed')}>确认执行</Button>
       </Flex>
     }
