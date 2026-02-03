@@ -6,7 +6,7 @@ export const useStyle = createGlobalStyle`
     min-height: 24px;
   }
   
-  .${(p) => p.antPrefix}-modal-content {
+  .${(p) => p.antPrefix}-modal-container {
     padding: 0;
     border: 1px solid var(--${(p) => p.antPrefix}-color-border-secondary);
     
@@ -80,7 +80,7 @@ export const useStyle = createGlobalStyle`
 }
 
 .${(p) => p.sparkPrefix}-show-divider {
-  .${(p) => p.antPrefix}-modal-content {
+  .${(p) => p.antPrefix}-modal-container {
     .${(p) => p.antPrefix}-modal-header {
       border-bottom: 1px solid var(--${(p) =>
         p.antPrefix}-color-border-secondary);

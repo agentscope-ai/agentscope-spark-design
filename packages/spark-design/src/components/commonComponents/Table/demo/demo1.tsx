@@ -78,7 +78,7 @@ const App: React.FC = () => {
     },
   ];
 
-  const data = new Array(3).fill(0).map((_, index) => ({
+  const data = new Array(100).fill(0).map((_, index) => ({
     key: index.toString(),
     title: `First Column Row ${index + 1}`,
     content: `Content Row ${index + 1}`,

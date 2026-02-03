@@ -65,7 +65,7 @@ export const useStyle = createGlobalStyle`
 
 .${(p) => p.sparkPrefix}-media-preview-nav-icon {
   font-size: 48px;
-  color: var(--${(p) => p.antPrefix}-color-bg-base);
+  color: var(--${(p) => p.antPrefix}-color-text-on-primary);
 }
 
 .${(p) => p.sparkPrefix}-media-preview-toolbar {
@@ -105,7 +105,7 @@ export const useStyle = createGlobalStyle`
 
 .${(p) => p.sparkPrefix}-media-preview-tool-icon {
   font-size: 24px;
-  color: var(--${(p) => p.antPrefix}-color-bg-base);
+  color: var(--${(p) => p.antPrefix}-color-text-on-primary);
   cursor: pointer;
 
   &:hover {
@@ -132,12 +132,12 @@ export const useStyle = createGlobalStyle`
 
 .${(p) => p.sparkPrefix}-media-preview-thumbnail-nav-icon {
   font-size: 16px;
-  color: var(--${(p) => p.antPrefix}-color-bg-base);
+  color: var(--${(p) => p.antPrefix}-color-text-on-primary);
   cursor: pointer;
   flex-shrink: 0;
 
   &:hover {
-    color: var(--${(p) => p.antPrefix}-color-bg-base) !important;
+    color: var(--${(p) => p.antPrefix}-color-text-on-primary);
     opacity: 0.8;
   }
 }
@@ -166,7 +166,7 @@ export const useStyle = createGlobalStyle`
   box-sizing: border-box;
 
   &.active {
-    border-color: var(--${(p) => p.antPrefix}-color-bg-base);
+    border-color: var(--${(p) => p.antPrefix}-color-text-on-primary);
   }
 
   img,

@@ -15,7 +15,7 @@ export interface SparkTooltipProps {
   /**
    * @description 最大高度
    * @descriptionEn max height
-   * @default '90vh'
+   * @default '60vh'
    */
   maxHeight?: number | string;
 }
@@ -25,8 +25,8 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
     const Style = useStyle();
     const {
       mode = 'dark',
-      maxHeight = '90vh',
-      styles = {},
+      maxHeight = '60vh',
+      styles,
       arrow,
       overlayClassName,
       getPopupContainer,
@@ -34,19 +34,24 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
       ...restProps
     } = props;
     const { sparkPrefix, antPrefix } = getCommonConfig();
+
+    // 处理 styles 可能是函数的情况
+    const stylesObj = typeof styles === 'function' ? {} : (styles ?? {});
+    const mergedStyles = {
+      ...stylesObj,
+      container: {
+        overflow: 'auto' as const,
+        ...stylesObj.container,
+        maxHeight, // maxHeight 放最后，确保优先级最高
+      },
+    };
+
     return (
       <>
         <Style />
         <Tooltip
           {...restProps}
-          styles={{
-            ...styles,
-            body: {
-              maxHeight,
-              overflow: 'auto',
-              ...styles.body,
-            },
-          }}
+          styles={mergedStyles}
           arrow={arrow ?? false}
           overlayClassName={classNames(
             overlayClassName,

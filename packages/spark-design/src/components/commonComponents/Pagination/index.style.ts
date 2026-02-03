@@ -41,13 +41,12 @@ export const useStyle = createGlobalStyle`
   }
 }
 
-.${(p) => p.antPrefix}-pagination {
-  .${(p) => p.antPrefix}-pagination-prev,
-  .${(p) => p.antPrefix}-pagination-next,
-  .${(p) => p.antPrefix}-pagination-jump-prev,
-  .${(p) => p.antPrefix}-pagination-jump-next {
-    font-family: Montserrat;
-    display: inline-block !important;
-  }
+.${(p) => p.antPrefix}-pagination 
+.${(p) => p.antPrefix}-pagination-jump-next 
+.${(p) => p.antPrefix}-pagination-item-container 
+.${(p) => p.antPrefix}-pagination-item-ellipsis {
+  color: var(--${(p) => p.antPrefix}-color-text);
+  left: -4px;
+  font-family: serif;
 }
 `;

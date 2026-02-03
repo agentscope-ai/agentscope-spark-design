@@ -93,7 +93,7 @@
     "@babel/preset-typescript": "^7.28.5",
     "@jest/test-sequencer": "^29.7.0",
     "@modelcontextprotocol/sdk": "1.17.3",
-    "@rc-component/util": "1.2.1",
+    "@rc-component/util": "1.6.2",
     "@react-spring/web": "^9.7.5",
     "@tailwindcss/postcss": "^4.0.6",
     "@testing-library/dom": "^10.4.1",
@@ -108,7 +108,7 @@
     "@umijs/lint": "^4.0.0",
     "@umijs/plugins": "^4.4.4",
     "ahooks": "^3.8.1",
-    "antd": "^5.23.0",
+    "antd": "^6.1.1",
     "babel-jest": "^29.7.0",
     "classnames": "^2.5.1",
     "conventional-changelog-cli": "^5.0.0",
@@ -144,7 +144,7 @@
   },
   "peerDependencies": {
     "@rc-component/util": "1.2.1",
-    "antd": "^5.18.0",
+    "antd": "^6.1.1",
     "classnames": "^2.5.1",
     "react": ">=16.9.0",
     "react-dom": ">=16.9.0"

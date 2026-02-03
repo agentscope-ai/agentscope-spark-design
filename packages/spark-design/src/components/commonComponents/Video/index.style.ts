@@ -19,19 +19,23 @@ export const useStyle = createGlobalStyle`
       p.antPrefix}-button-text-hover-bg: rgba(231, 231, 237, 0.08) !important;
   }
 
+  .${(p) => p.antPrefix}-btn {
+    color: var(--${(p) => p.antPrefix}-button-text-text-color);
+  }
+
   .${(p) => p.sparkPrefix}-media-time-text {
     color: var(--${(p) => p.antPrefix}-color-text-white);
   }
 
-  // 进度条样式
-  .${(p) => p.sparkPrefix}-media-progress-bar {
-    .${(p) => p.antPrefix}-progress-inner {
-      --${(p) => p.antPrefix}-progress-remaining-color: var(--${(p) =>
-    p.antPrefix}-color-fill);
-    }
-    
-    .${(p) => p.antPrefix}-progress-bg {
-      background: var(--${(p) => p.antPrefix}-color-text-white) !important;
+  // 进度条容器样式
+  .${(p) => p.antPrefix}-progress {
+    .${(p) => p.antPrefix}-progress-body {
+      .${(p) => p.antPrefix}-progress-rail {
+        background: var(--${(p) => p.antPrefix}-color-fill) !important;
+      }
+      .${(p) => p.antPrefix}-progress-track {
+        background: var(--${(p) => p.antPrefix}-color-text-white) !important;
+      }
     }
   }
 }

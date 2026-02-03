@@ -41,6 +41,9 @@ export const useStyle = createGlobalStyle`
         margin-left: 8px;
       }
     }
+    & > .${(p) => p.antPrefix}-collapse-panel {
+      border-top: 1px solid var(--${(p) => p.antPrefix}-color-border-secondary);
+    }
   }
 }
 `;

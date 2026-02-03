@@ -30,6 +30,9 @@ button[type="button"].${(p) => p.antPrefix}-btn {
 
 .${(p) => p.antPrefix}-btn-default {
   border-color: var(--${(p) => p.antPrefix}-color-border-secondary);
+  &.${(p) => p.antPrefix}-btn:not(:disabled):not(.${(p) => p.antPrefix}-btn-disabled):hover {
+    color: var(--${(p) => p.antPrefix}-color-text);
+  }
 }
 
 .${(p) => p.antPrefix}-btn-textCompact:hover {

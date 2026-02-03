@@ -34,7 +34,8 @@ export const useStyle = createGlobalStyle`
     align-items: center;
   }
   
-  .${(p) => p.sparkPrefix}-breadcrumb-dropdown {
+  .${(p) => p.sparkPrefix}-breadcrumb-dropdown,
+  .${(p) => p.antPrefix}-dropdown-trigger {
     cursor: pointer;
     display: flex;
     align-items: center;
