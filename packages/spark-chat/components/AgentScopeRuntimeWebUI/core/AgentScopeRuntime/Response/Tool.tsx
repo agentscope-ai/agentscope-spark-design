@@ -2,8 +2,9 @@ import React from "react";
 import { AgentScopeRuntimeRunStatus, IAgentScopeRuntimeMessage, IDataContent } from "../types";
 import { ToolCall } from '@agentscope-ai/chat';
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
+import Approval from "./Approval";
 
-const Tool = React.memo(function ({ data }: { data: IAgentScopeRuntimeMessage }) {
+const Tool = React.memo(function ({ data, isApproval = false }: { data: IAgentScopeRuntimeMessage, isApproval?: boolean }) {
   const customToolRenderConfig = useChatAnywhereOptions(v => v.customToolRenderConfig) || {};
 
   if (!data.content?.length) return null;
@@ -18,13 +19,21 @@ const Tool = React.memo(function ({ data }: { data: IAgentScopeRuntimeMessage })
   const serverLabel = `${content[0].data.server_label ? content[0].data.server_label + ' / ' : ''}`
   const title = `${serverLabel}${toolName}`
 
+  let node
+
   if (customToolRenderConfig[toolName]) {
     const C = customToolRenderConfig[toolName];
-    return <C data={data} />
+    node = <C data={data} />
   } else {
-    return <ToolCall loading={loading} defaultOpen={false} title={title === 'undefined' ? '' : title} input={content[0]?.data?.arguments} output={content[1]?.data?.output}></ToolCall>
+    node = <ToolCall loading={loading} defaultOpen={false} title={title === 'undefined' ? '' : title} input={content[0]?.data?.arguments} output={content[1]?.data?.output}></ToolCall>
   }
+
+  return <>
+    {node}
+    {isApproval && <Approval />}
+  </>;
 })
+
 
 export default Tool;
 
