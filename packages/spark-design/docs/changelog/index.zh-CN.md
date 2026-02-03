@@ -4,6 +4,17 @@ hero:
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
 
+### 1.0.28
+`2025-01-29`
+
+#### Changed
+- PromptsEditor 组件支持了 readOnly 参数
+- CodeBlock 组件支持了 extensions 参数，自定已传入 code-mirror 扩展
+- MCP 工具名称升级，优化日志功能
+
+#### Fixed
+- Pagination 组件，修复了 showSizeChanger 和 pageSizeOptions 同时传入时，pageSizeOptions 不生效的问题
+
 ### 1.0.27
 `2025-01-27`
 

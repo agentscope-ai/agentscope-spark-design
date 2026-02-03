@@ -13,8 +13,7 @@ const App: React.FC = () => {
       <RadioButton
         onChange={onChange}
         defaultValue="a"
-        buttonStyle="solid"
-        ghost={false}
+        bordered={true}
         options={[
           {
             value: 'a',
