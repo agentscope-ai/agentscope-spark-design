@@ -26,9 +26,8 @@ export default function Approval() {
   const actions = useMemo(() => {
     if (status === 'pending') {
       return <Flex gap={8}>
-        <Popover trigger="click" content={<ApprovalCancelPopover />}>
-          <Button size="small">取消执行</Button>
-        </Popover>
+        
+        <ApprovalCancelPopover />
         <Button size="small" type="primary" onClick={() => setStatus('confirmed')}>确认执行</Button>
       </Flex>
     }
