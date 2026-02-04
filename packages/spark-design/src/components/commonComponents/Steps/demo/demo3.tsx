@@ -1,4 +1,5 @@
 import { Steps } from '@agentscope-ai/design';
+import { Flex } from 'antd';
 import React, { useState } from 'react';
 
 const App: React.FC = () => {
@@ -10,7 +11,7 @@ const App: React.FC = () => {
   };
   
   return (
-    <div style={{ width: '50%'}}>
+    <Flex style={{ width: '50%'}} align='center' justify='center'>
       <Steps
         current={current}
         onChange={onChange}
@@ -20,11 +21,11 @@ const App: React.FC = () => {
             title: 'A Step',
           },
           {
-            title: 'B Step',
+            title: 'B Step xxxxx',
           }
         ]}
       />
-    </div>
+    </Flex>
   );
 };
 
