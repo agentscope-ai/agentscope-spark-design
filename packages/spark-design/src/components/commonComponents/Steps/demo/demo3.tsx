@@ -21,7 +21,7 @@ const App: React.FC = () => {
             title: 'A Step',
           },
           {
-            title: 'B Step xxxxx',
+            title: 'B Step Extra',
           }
         ]}
       />

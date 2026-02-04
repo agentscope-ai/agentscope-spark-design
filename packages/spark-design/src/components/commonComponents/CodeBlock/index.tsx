@@ -12,7 +12,7 @@ import { python } from '@codemirror/lang-python';
 import { yaml } from '@codemirror/lang-yaml';
 import { linter, lintGutter } from '@codemirror/lint';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorProps } from '@uiw/react-codemirror';
 import { theme } from 'antd';
 import cls from 'classnames';
 import { omit } from 'lodash-es';
@@ -20,7 +20,11 @@ import React, { useMemo } from 'react';
 import { useStyle } from './index.style';
 import { Extension } from '@codemirror/state';
 
-export interface CodeBlockProps {
+/**
+ * CodeBlock 组件属性
+ * 继承自 ReactCodeMirrorProps，支持传入 CodeMirror 的所有属性（如 height、width 等）
+ */
+export interface CodeBlockProps extends Omit<ReactCodeMirrorProps, 'theme' | 'extensions'> {
   /**
    * @description 语言
    * @descriptionEn Language

@@ -14,7 +14,7 @@ const App: React.FC = () => {
 }`;
   return (
     <Flex vertical gap={16} style={{ width: 720 }}>
-      <CodeBlock language={'javascript'} value={value} />
+      <CodeBlock language={'javascript'} value={value} height="200px" />
     </Flex>
   );
 };
