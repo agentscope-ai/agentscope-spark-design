@@ -70,7 +70,6 @@ export default function useChatController() {
     // 3. 创建用户请求消息
     messageHandler.createRequestMessage(data);
     setLoading(true);
-
     await sleep(100);
 
     // 4. 创建助手响应消息
@@ -82,6 +81,20 @@ export default function useChatController() {
 
     await request(historyMessages, data.biz_params);
     // mockRequest(mockdata);
+  }, [messageHandler, sessionHandler, request]);
+
+
+  const handleApproval = useCallback(async ({ input }) => {
+    messageHandler.createApprovalMessage(input);
+
+    setLoading(true);
+    await sleep(100);
+
+    messageHandler.createResponseMessage();
+    const historyMessages = messageHandler.getHistoryMessages();
+    await sessionHandler.syncSessionMessages(messageHandler.getMessages());
+
+    await request(historyMessages);
   }, [messageHandler, sessionHandler, request]);
 
   /**
@@ -132,6 +145,13 @@ export default function useChatController() {
       await handleSubmit(data.detail);
     }
   }, [handleSubmit]);
+
+  useChatAnywhereEventEmitter({
+    type: 'handleApproval',
+    callback: async (data) => {
+      await handleApproval(data.detail);
+    }
+  }, [handleApproval]);
 
 
   return {

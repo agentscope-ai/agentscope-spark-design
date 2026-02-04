@@ -6,6 +6,7 @@ import { createStyles } from 'antd-style'
 import ApprovalCancelPopover from './ApprovalCancelPopover';
 import { AgentScopeRuntimeContentType, AgentScopeRuntimeMessageRole, AgentScopeRuntimeMessageType, IAgentScopeRuntimeMessage, IDataContent } from '../types';
 import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
+import { emit } from "../../Context/useChatAnywhereEventEmitter";
 
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -32,6 +33,8 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
     inputContext.setDisabled(false);
 
     const request = data
+    // @ts-ignore
+    const id = request.content[0]?.data?.id;
     const response = {
       type: AgentScopeRuntimeMessageType.MCP_APPROVAL_RESPONSE,
       role: AgentScopeRuntimeMessageRole.USER,
@@ -39,10 +42,9 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
         {
           type: AgentScopeRuntimeContentType.DATA,
           data: {
-            "approval_request_id": "approval_request_id",
             "approve": status === 'confirmed',
-            // @ts-ignore
-            "id": request.content[0]?.data?.id,
+            "id": id,
+            "approval_request_id": id,
             "reason": reason
           }
 
@@ -50,12 +52,14 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
       ],
     }
 
-
-    const input = [
-      request,
-      response,
-    ]
-
+    emit({
+      type: 'handleApproval', data: {
+        input: [
+          request,
+          response,
+        ]
+      }
+    })
 
   }, [data]);
 

@@ -50,7 +50,11 @@ class AgentScopeRuntimeRequestBuilder {
 
 
 
-  constructor(data: IAgentScopeRuntimeWebUIInputData) {
+  constructor() { }
+
+  handle(data: IAgentScopeRuntimeWebUIInputData) {
+    this.data = { input: [] };
+
     const content: IContent[] = [
       this.buildTextContent(data.query),
     ];
@@ -74,7 +78,12 @@ class AgentScopeRuntimeRequestBuilder {
         }
       ],
     };
+    return this.data
+  }
 
+  handleApproval(input) {
+    this.data = { input };
+    return this.data;
   }
 }
 
