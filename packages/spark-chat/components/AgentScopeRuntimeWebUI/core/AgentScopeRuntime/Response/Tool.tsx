@@ -30,7 +30,7 @@ const Tool = React.memo(function ({ data, isApproval = false }: { data: IAgentSc
 
   return <>
     {node}
-    {isApproval && <Approval />}
+    {isApproval && <Approval data={data}/>}
   </>;
 })
 

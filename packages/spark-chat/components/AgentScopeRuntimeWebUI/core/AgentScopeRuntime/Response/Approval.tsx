@@ -1,9 +1,11 @@
 import { StatusCard } from '@agentscope-ai/chat';
 import { Button, Popover } from '@agentscope-ai/design';
 import { Flex } from 'antd';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { createStyles } from 'antd-style'
 import ApprovalCancelPopover from './ApprovalCancelPopover';
+import { AgentScopeRuntimeContentType, AgentScopeRuntimeMessageRole, AgentScopeRuntimeMessageType, IAgentScopeRuntimeMessage, IDataContent } from '../types';
+
 
 const useStyles = createStyles(({ css, token }) => ({
   desc: css`
@@ -13,7 +15,7 @@ const useStyles = createStyles(({ css, token }) => ({
 }));
 
 
-export default function Approval() {
+export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) {
   const { styles } = useStyles();
   const [status, setStatus] = useState<'pending' | 'confirmed' | 'canceled'>('pending');
   const title = '人工干预'
@@ -22,13 +24,44 @@ export default function Approval() {
     return status === 'pending' ? '请确认是否执行该操作' : status === 'confirmed' ? '确认执行任务' : '取消执行任务';
   }, [status]);
 
+  const handleConfirm = useCallback((status: 'confirmed' | 'canceled', reason?: string) => {
+    setStatus(status);
+
+    const request = data
+    const response = {
+      type: AgentScopeRuntimeMessageType.MCP_APPROVAL_RESPONSE,
+      role: AgentScopeRuntimeMessageRole.USER,
+      content: [
+        {
+          type: AgentScopeRuntimeContentType.DATA,
+          data: {
+            "approval_request_id": "approval_request_id",
+            "approve": status === 'confirmed',
+            // @ts-ignore
+            "id": request.content[0]?.data?.id,
+            "reason": reason
+          }
+
+        },
+      ],
+    }
+
+
+    const input = [
+      request,
+      response,
+    ]
+
+
+
+  }, [data]);
+
 
   const actions = useMemo(() => {
     if (status === 'pending') {
       return <Flex gap={8}>
-        
-        <ApprovalCancelPopover />
-        <Button size="small" type="primary" onClick={() => setStatus('confirmed')}>确认执行</Button>
+        <ApprovalCancelPopover onConfirm={(reason) => handleConfirm('canceled', reason)} />
+        <Button size="small" type="primary" onClick={() => handleConfirm('confirmed')}>确认执行</Button>
       </Flex>
     }
     return null;
@@ -43,4 +76,9 @@ export default function Approval() {
     </Flex>}
     actions={actions}
   />
+}
+
+
+function copy(data) {
+  return JSON.parse(JSON.stringify(data));
 }

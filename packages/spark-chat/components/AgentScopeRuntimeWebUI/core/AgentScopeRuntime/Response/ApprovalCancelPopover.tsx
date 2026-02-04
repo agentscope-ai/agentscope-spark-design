@@ -58,11 +58,6 @@ export interface ApprovalCancelPopoverProps {
    */
   options?: string[];
   /**
-   * @description 取消回调
-   * @descriptionEn Cancel callback
-   */
-  onCancel?: () => void;
-  /**
    * @description 确认回调
    * @descriptionEn Confirm callback
    */
@@ -114,7 +109,6 @@ function TabSelect(props: TabSelectProps) {
 export default function ApprovalCancelPopover(props: ApprovalCancelPopoverProps) {
   const {
     options = DEFAULT_OPTIONS,
-    onCancel,
     onConfirm,
     title = '取消原因',
     placeholder = '请输入原因，以便大模型做进一步规划',
@@ -126,8 +120,7 @@ export default function ApprovalCancelPopover(props: ApprovalCancelPopoverProps)
   const [reason, setReason] = useState<string>('');
 
   const handleConfirm = () => {
-    // const reason = customReason.trim() || selectedOption;
-    // onConfirm?.(reason);
+    onConfirm?.(reason.trim());
   };
 
   const content = <div className={styles.container}>
@@ -150,6 +143,7 @@ export default function ApprovalCancelPopover(props: ApprovalCancelPopoverProps)
         </Button>
         <Button size="small" type="primary" onClick={() => {
           setOpen(false);
+          handleConfirm();
         }}>
           确认
         </Button>
