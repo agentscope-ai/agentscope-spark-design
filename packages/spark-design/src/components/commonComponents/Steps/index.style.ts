@@ -95,7 +95,6 @@ export const useStyle = createGlobalStyle`
 .${(p) => p.antPrefix}-steps-vertical {
   display: flex;
   min-height: 182px;
-  align-items: center;
   justify-content: center;
   
   .${(p) => p.antPrefix}-steps-item {
