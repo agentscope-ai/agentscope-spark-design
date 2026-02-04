@@ -2,6 +2,7 @@
 
 const { program } = require('commander');
 const { execSync } = require('child_process');
+const path = require('path');
 
 function execSyncSafe(command) {
   try {
@@ -28,14 +29,18 @@ async function startServer() {
     execSyncSafe(
       `npx decompress-cli ${__dirname}/starter_webui.zip --out-dir ${__dirname}`,
     );
-    
 
+    const targetDir = path.join(__dirname, 'starter_webui');
     execSync(
-      `cd ${__dirname}/starter_webui && npm install && npx cross-env BASE_URL=${
-        options.url || 'BASE_URL'
-      } TOKEN=${options.token || 'TOKEN'} npm run dev`,
+      `npm install && npm run dev`,
       {
+        cwd: targetDir,
         stdio: 'inherit',
+        env: {
+          ...process.env,
+          BASE_URL: options.url || 'BASE_URL',
+          TOKEN: options.token || 'TOKEN'
+        }
       },
     );
 
