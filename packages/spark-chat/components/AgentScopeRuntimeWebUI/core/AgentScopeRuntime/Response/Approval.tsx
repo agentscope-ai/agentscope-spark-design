@@ -1,10 +1,11 @@
 import { StatusCard } from '@agentscope-ai/chat';
 import { Button, Popover } from '@agentscope-ai/design';
 import { Flex } from 'antd';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createStyles } from 'antd-style'
 import ApprovalCancelPopover from './ApprovalCancelPopover';
 import { AgentScopeRuntimeContentType, AgentScopeRuntimeMessageRole, AgentScopeRuntimeMessageType, IAgentScopeRuntimeMessage, IDataContent } from '../types';
+import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
 
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -16,6 +17,7 @@ const useStyles = createStyles(({ css, token }) => ({
 
 
 export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) {
+  const inputContext = useChatAnywhereInput(v => v);
   const { styles } = useStyles();
   const [status, setStatus] = useState<'pending' | 'confirmed' | 'canceled'>('pending');
   const title = '人工干预'
@@ -26,6 +28,8 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
 
   const handleConfirm = useCallback((status: 'confirmed' | 'canceled', reason?: string) => {
     setStatus(status);
+    inputContext.setLoading(false);
+    inputContext.setDisabled(false);
 
     const request = data
     const response = {
@@ -53,7 +57,6 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
     ]
 
 
-
   }, [data]);
 
 
@@ -65,6 +68,14 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
       </Flex>
     }
     return null;
+  }, [status]);
+
+
+  useEffect(() => {
+    if (status === 'pending') {
+      inputContext.setLoading(true);
+      inputContext.setDisabled(true);
+    }
   }, [status]);
 
   return <StatusCard.HITL
