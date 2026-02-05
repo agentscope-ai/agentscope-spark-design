@@ -80,6 +80,7 @@ export default function () {
   return <div style={{ height: '100dvh' }}>
     <AgentScopeRuntimeWebUI
       ref={chatRef}
+      // @ts-ignore
       options={options}
     />
   </div>;
