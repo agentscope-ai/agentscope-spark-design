@@ -386,7 +386,7 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 加载状态
    * @descriptionEn Loading state
    */
-  loading: boolean;
+  loading: boolean | string;
   /**
    * @description 设置加载状态
    * @descriptionEn Set loading state
@@ -396,12 +396,12 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 获取加载状态
    * @descriptionEn Get loading state
    */
-  getLoading: () => boolean;
+  getLoading: () => boolean | string;
   /**
    * @description 禁用状态
    * @descriptionEn Disabled state
    */
-  disabled: boolean;
+  disabled: boolean | string;
   /**
    * @description 设置禁用状态
    * @descriptionEn Set disabled state
@@ -411,7 +411,7 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 获取禁用状态
    * @descriptionEn Get disabled state
    */
-  getDisabled: () => boolean;
+  getDisabled: () => boolean | string;
 }
 
 /**
