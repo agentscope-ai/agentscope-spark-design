@@ -5,6 +5,7 @@ import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import CodeMirror from '@uiw/react-codemirror';
 import { ConfigProvider, theme } from 'antd';
 import classNames from 'classnames';
+import { Extension } from '@codemirror/state';
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useStyles } from './index.style';
 import VarRender from './VarRender';
@@ -57,6 +58,11 @@ export interface PromptsEditorProps {
    * @default false
    */
   readOnly?: boolean;
+  /**
+   * @description 自定义扩展
+   * @descriptionEn Custom extensions
+   */
+  extensions?: Extension[];
 }
 
 export const langExtensionsMap: Record<string, any[]> = {
@@ -81,7 +87,7 @@ const Editor = (props: PromptsEditorProps) => {
   }, [isDarkMode]);
 
   const extensions = useMemo(
-    () => [
+    () => props.extensions || [
       ...langExtensionsMap['markdown'],
       ...VarRender,
       VarSelectInput(
