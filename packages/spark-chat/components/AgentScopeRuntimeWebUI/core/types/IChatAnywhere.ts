@@ -89,12 +89,17 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    * @descriptionEn Typography configuration
    */
   typography?: IAgentScopeRuntimeWebUITypography;
-
   /**
    * @description 背景色
    * @descriptionEn Background color
    */
   background?: string;
+  /**
+   * @description 语言
+   * @descriptionEn Language
+   * @default 'en'
+   */
+  locale?: 'en' | 'cn';
 }
 
 export interface IAgentScopeRuntimeWebUITypography {

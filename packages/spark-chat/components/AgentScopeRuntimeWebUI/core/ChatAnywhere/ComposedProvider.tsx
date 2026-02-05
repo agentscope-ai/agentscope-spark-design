@@ -4,10 +4,12 @@ import { ChatAnywhereOptionsContextProvider } from "../Context/ChatAnywhereOptio
 import { ChatAnywhereSessionsContextProvider } from "../Context/ChatAnywhereSessionsContext";
 import { ChatAnywhereMessagesContextProvider } from "../Context/ChatAnywhereMessagesContext";
 import { ChatAnyWhereLayoutContextProvider } from "../Context/ChatAnywhereLayoutContext";
+import { ChatAnywhereI18nContextProvider, Locale } from "../Context/ChatAnywhereI18nContext";
 
 function ComposedProvider(props: { options, cards, children }) {
   const { options, cards, children } = props;
   const providers = [
+    [ChatAnywhereI18nContextProvider, { defaultLocale: options.theme.locale }],
     [ChatAnywhereOptionsContextProvider, { options }],
     [CustomCardsProvider, { cardConfig: cards }],
     [ChatAnywhereSessionsContextProvider, {}],

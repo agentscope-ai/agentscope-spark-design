@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Form, Input, ColorPicker, Flex, Splitter, Divider, InputNumber } from 'antd';
+import { Form, Input, ColorPicker, Flex, Splitter, Divider, InputNumber, Select } from 'antd';
 import { createStyles } from 'antd-style';
 import { Button, IconButton, Switch } from '@agentscope-ai/design'
 import { SparkDeleteLine, SparkPlusLine } from '@agentscope-ai/icons';
@@ -61,6 +61,17 @@ const OptionsEditor: React.FC<OptionsEditorProps> = ({
         initialValues={value}
       >
 
+
+        <Divider orientation="left">General</Divider>
+
+        <FormItem name={['theme', 'locale']} label="Language">
+          <Select
+            options={[
+              { label: '中文', value: 'cn' },
+              { label: 'English', value: 'en' },
+            ]}
+          />
+        </FormItem>
 
         <Divider orientation="left">Theme</Divider>
 
