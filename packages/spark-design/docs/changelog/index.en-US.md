@@ -4,6 +4,17 @@ hero:
   description: Release versions follow Semantic Versioning 2.0.0.
 ---
 
+### 1.0.28
+`2025-01-29`
+
+#### Changed
+- PromptsEditor: added `readOnly` prop support
+- CodeBlock: added `extensions` prop to allow custom CodeMirror extensions
+- MCP: upgraded tool names and optimized logging functionality
+
+#### Fixed
+- Pagination: fixed the issue where `pageSizeOptions` was not effective when both `showSizeChanger` and `pageSizeOptions` were passed
+
 ### 1.0.27
 `2025-01-27`
 

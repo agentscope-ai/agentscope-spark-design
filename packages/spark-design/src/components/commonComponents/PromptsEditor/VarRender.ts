@@ -5,33 +5,10 @@ import {
   MatchDecorator,
   ViewPlugin,
   ViewUpdate,
-  WidgetType,
 } from '@codemirror/view';
 
-// Placeholder Widget 类
-class PlaceholderWidget extends WidgetType {
-  constructor(readonly name: string) {
-    super();
-  }
-
-  eq(other: PlaceholderWidget) {
-    return other.name === this.name;
-  }
-
-  toDOM() {
-    let wrap = document.createElement('span');
-    wrap.setAttribute('aria-hidden', 'true');
-    wrap.className = 'cm-prompt-var';
-    wrap.textContent = `\${${this.name}}`;
-    return wrap;
-  }
-
-  ignoreEvent() {
-    return false;
-  }
-}
-
-// Placeholder 匹配器
+// 使用 Mark Decoration 而不是 Replace Decoration
+// 这样文本保持可编辑，只添加样式高亮
 const placeholderMatcher = new MatchDecorator({
   // 该正则用于匹配形如 ${变量名} 的占位符，变量名允许为中文、字母、数字、下划线
   // \${         匹配字符 "${"
@@ -39,9 +16,9 @@ const placeholderMatcher = new MatchDecorator({
   // \}          匹配字符 "}"
   // g           全局匹配
   regexp: /\$\{([\w\u4e00-\u9fa5]+)\}/g,
-  decoration: (match) =>
-    Decoration.replace({
-      widget: new PlaceholderWidget(match[1]),
+  decoration: () =>
+    Decoration.mark({
+      class: 'cm-prompt-var',
     }),
 });
 
@@ -63,10 +40,7 @@ const placeholders = ViewPlugin.fromClass(
   },
   {
     decorations: (instance) => instance.placeholders,
-    provide: (plugin) =>
-      EditorView.atomicRanges.of((view) => {
-        return view.plugin(plugin)?.placeholders || Decoration.none;
-      }),
+    // 移除 atomicRanges，允许用户在变量内部编辑
   },
 );
 
