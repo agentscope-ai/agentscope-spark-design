@@ -1,7 +1,8 @@
-import { SparkSettingLine } from "@agentscope-ai/icons";
+import { SparkFileCodeLine, SparkSettingLine } from "@agentscope-ai/icons";
 import { IconButton, Drawer } from "@agentscope-ai/design";
 import { useState } from "react";
 import OptionsEditor from "./OptionsEditor";
+import { Flex } from "antd";
 
 interface OptionsPanelProps {
   value?: any;
