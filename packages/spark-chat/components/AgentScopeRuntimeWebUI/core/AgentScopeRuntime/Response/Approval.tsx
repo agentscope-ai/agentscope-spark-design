@@ -83,10 +83,10 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
 
   useEffect(() => {
     if (status === 'pending') {
-      inputContext.setLoading(true);
+      inputContext.setLoading(t?.('approval.taskRunning') || '当前有正在执行的任务，无法发送新的任务');
       inputContext.setDisabled(true);
     }
-  }, [status]);
+  }, [status, t]);
 
   return <StatusCard.HITL
     done={status !== 'pending'}

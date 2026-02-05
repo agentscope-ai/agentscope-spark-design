@@ -13,6 +13,7 @@ const messages = {
     'approval.canceled': '取消执行任务',
     'approval.cancel': '取消执行',
     'approval.confirm': '确认执行',
+    'approval.taskRunning': '当前有正在执行的任务，无法发送新的任务',
     
     // ApprovalCancelPopover 相关
     'cancelPopover.title': '取消原因',
@@ -50,6 +51,7 @@ const messages = {
     'approval.canceled': 'Canceled task execution',
     'approval.cancel': 'Cancel',
     'approval.confirm': 'Confirm',
+    'approval.taskRunning': 'A task is currently running, cannot send new task',
     
     // ApprovalCancelPopover related
     'cancelPopover.title': 'Cancel Reason',

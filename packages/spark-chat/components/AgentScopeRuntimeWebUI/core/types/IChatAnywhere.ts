@@ -391,7 +391,7 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 设置加载状态
    * @descriptionEn Set loading state
    */
-  setLoading: (loading: boolean) => void;
+  setLoading: (loading: boolean | string) => void;
   /**
    * @description 获取加载状态
    * @descriptionEn Get loading state
