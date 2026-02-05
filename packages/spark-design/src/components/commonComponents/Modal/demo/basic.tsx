@@ -4,6 +4,17 @@ import { useState } from 'react';
 export default function () {
   const [open, setOpen] = useState(false);
 
+  const model = Modal.info({
+    className: '',
+    closable: true,
+    width: 640,
+    footer: null,
+    icon: null,
+    content: (
+      <div>Content</div>
+    ),
+  });
+
   return (
     <>
       <Button onClick={() => setOpen(true)}>Open Modal</Button>

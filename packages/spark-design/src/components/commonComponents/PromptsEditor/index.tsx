@@ -2,7 +2,7 @@
 import { SparkEnterLine } from '@agentscope-ai/icons';
 import { markdown } from '@codemirror/lang-markdown';
 import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { ReactCodeMirrorProps } from '@uiw/react-codemirror';
 import { ConfigProvider, theme } from 'antd';
 import classNames from 'classnames';
 import { Extension } from '@codemirror/state';
@@ -11,27 +11,16 @@ import { useStyles } from './index.style';
 import VarRender from './VarRender';
 import VarSelectInput from './VarSelectInput';
 
-export interface PromptsEditorProps {
+/**
+ * PromptsEditor 组件属性
+ * 继承自 ReactCodeMirrorProps，支持传入 CodeMirror 的所有属性（如 height、width 等）
+ */
+export interface PromptsEditorProps extends Omit<ReactCodeMirrorProps, 'theme' | 'extensions'> {
   /**
    * @description 可以输入内容的最大长度
    * @descriptionEn Maximum length of input content
    */
   maxLength?: number;
-  /**
-   * @description 输入的内容
-   * @descriptionEn Input content value
-   */
-  value?: string;
-  /**
-   * @description 输入内容的类名
-   * @descriptionEn CSS class name for the input content
-   */
-  className?: string;
-  /**
-   * @description 输入内容的回调
-   * @descriptionEn Callback function when input value changes
-   */
-  onChange?: (value: string) => void;
   /**
    * @description 可以插入的变量列表
    * @descriptionEn Available variables for insertion
@@ -53,14 +42,8 @@ export interface PromptsEditorProps {
    */
   tipsText?: string | React.ReactNode | false;
   /**
-   * @description 仅可读
-   * @descriptionEn Read only
-   * @default false
-   */
-  readOnly?: boolean;
-  /**
-   * @description 自定义扩展
-   * @descriptionEn Custom extensions
+   * @description 自定义扩展，会与内置扩展合并
+   * @descriptionEn Custom extensions, will be merged with built-in extensions
    */
   extensions?: Extension[];
 }
@@ -69,15 +52,30 @@ export const langExtensionsMap: Record<string, any[]> = {
   markdown: [markdown()],
 };
 
-const empty = [];
+const empty: Array<{ code: string }> = [];
 const Editor = (props: PromptsEditorProps) => {
+  const {
+    // 自定义属性
+    maxLength,
+    variables = empty,
+    onCreate,
+    createBtnText = '+ 新增变量',
+    tipsText,
+    extensions: customExtensions,
+    // CodeMirror 属性
+    className,
+    value,
+    onChange,
+    readOnly,
+    basicSetup,
+    // 剩余属性透传给 CodeMirror
+    ...restProps
+  } = props;
+
   const { styles } = useStyles();
-  const variables = props.variables || empty;
   const [ready, setReady] = useState(false);
-  const onCreate = props.onCreate;
   const context = React.useContext(ConfigProvider.ConfigContext);
-  const isDarkMode = context.theme.algorithm === theme.darkAlgorithm;
-  const createBtnText = props.createBtnText || '+ 新增变量';
+  const isDarkMode = context.theme?.algorithm === theme.darkAlgorithm;
 
   const getTheme = useMemo(() => {
     if (isDarkMode) {
@@ -87,7 +85,7 @@ const Editor = (props: PromptsEditorProps) => {
   }, [isDarkMode]);
 
   const extensions = useMemo(
-    () => props.extensions || [
+    () => customExtensions || [
       ...langExtensionsMap['markdown'],
       ...VarRender,
       VarSelectInput(
@@ -98,7 +96,7 @@ const Editor = (props: PromptsEditorProps) => {
         { onCreate, createBtnText },
       ),
     ],
-    [variables],
+    [variables, customExtensions, onCreate, createBtnText],
   );
 
   useEffect(() => {
@@ -109,15 +107,15 @@ const Editor = (props: PromptsEditorProps) => {
   }, []);
 
   const tips = React.useMemo(() => {
-    if (props.tipsText === false) return <div className={styles.tips} />;
-    return props.tipsText ? (
-      props.tipsText
+    if (tipsText === false) return <div className={styles.tips} />;
+    return tipsText ? (
+      tipsText
     ) : (
       <div className={styles.tips}>
         输入/&quot;/&quot;引用变量，支持 <SparkEnterLine size={16} /> 回车新增
       </div>
     );
-  }, [props.tipsText]);
+  }, [tipsText, styles.tips]);
 
   if (!ready) return null;
 
@@ -125,28 +123,30 @@ const Editor = (props: PromptsEditorProps) => {
     <div className={styles.root}>
       <CodeMirror
         key={getTheme}
-        className={classNames(props.className, styles.cm, {
+        className={classNames(className, styles.cm, {
           [styles.onCreate]: onCreate,
         })}
         extensions={extensions}
-        value={props.value}
+        value={value}
         theme={getTheme}
         lang="markdown"
-        onChange={props.onChange}
+        onChange={onChange}
         basicSetup={{
           lineNumbers: false,
           foldGutter: false,
           highlightActiveLine: false,
+          ...basicSetup,
         }}
-        readOnly={props.readOnly}
-        editable={!props.readOnly}
+        readOnly={readOnly}
+        editable={!readOnly}
+        {...restProps}
       />
 
       <div className={styles.footer}>
         {tips}
-        {props.maxLength ? (
+        {maxLength ? (
           <div>
-            {props.value?.length || 0}/{props.maxLength}
+            {value?.length || 0}/{maxLength}
           </div>
         ) : null}
       </div>
