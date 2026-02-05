@@ -4,11 +4,12 @@ import { useLocalStorageState } from 'ahooks';
 export interface ClawdConfig {
   host: string;
   token: string;
+  clientId: string;
 }
 
 export function useClawdConfig() {
   const [config, setConfig] = useLocalStorageState<ClawdConfig>('clawd_config', {
-    defaultValue: { host: '', token: '' }
+    defaultValue: { host: '', token: '', clientId: '' }
   });
   return [config, setConfig] as const;
 }
@@ -21,7 +22,7 @@ interface SettingProps {
 export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
   const [config, setConfig] = useClawdConfig();
 
-  const { host, token } = config || { host: '', token: '' };
+  const { host, token, clientId } = config || { host: '', token: '', clientId: '' };
 
   const setHost = (newHost: string) => {
     setConfig(prev => ({ ...prev!, host: newHost }));
@@ -29,6 +30,10 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
 
   const setToken = (newToken: string) => {
     setConfig(prev => ({ ...prev!, token: newToken }));
+  };
+
+  const setClientId = (newClientId: string) => {
+    setConfig(prev => ({ ...prev!, clientId: newClientId }));
   };
 
   const handleSave = () => {
@@ -55,7 +60,7 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
       `,
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       color: 'white',
       zIndex: 2000,
     }}>
@@ -63,7 +68,8 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        padding: '48px',
+        padding: '24px',
+        marginTop: '10vh',
         borderRadius: '24px',
         border: '1px solid rgba(255, 255, 255, 0.1)',
         width: '440px',
@@ -130,6 +136,37 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
             value={token}
             onChange={(e) => setToken(e.target.value)}
             placeholder="Enter your token"
+            style={{
+              width: '100%',
+              padding: '14px 16px',
+              backgroundColor: 'rgba(0, 0, 0, 0.2)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              color: 'white',
+              fontSize: '15px',
+              outline: 'none',
+              transition: 'all 0.2s',
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Client ID
+          </label>
+          <input
+            type="text"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Enter your client ID"
             style={{
               width: '100%',
               padding: '14px 16px',

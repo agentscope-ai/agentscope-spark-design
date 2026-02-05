@@ -187,13 +187,28 @@ export class GatewayClient {
     }
   }
 
+  private getClientId(): string {
+    try {
+      const configStr = localStorage.getItem('clawd_config');
+      if (configStr) {
+        const config = JSON.parse(configStr);
+        if (config?.clientId) {
+          return config.clientId;
+        }
+      }
+    } catch (e) {
+      console.warn('[Gateway] Failed to read clientId from localStorage:', e);
+    }
+    return 'moltbot-control-ui';
+  }
+
   private sendConnect(): void {
     // 完全匹配原页面的请求格式
     const params = {
       minProtocol: PROTOCOL_VERSION,
       maxProtocol: PROTOCOL_VERSION,
       client: {
-        id: 'clawdbot-control-ui',
+        id: this.getClientId(),
         version: 'dev',
         platform: navigator.platform,
         mode: 'webchat',
