@@ -8,3 +8,4 @@ node_modules
 .DS_Store
 .unit_test_reporter
 .ci
+.env
