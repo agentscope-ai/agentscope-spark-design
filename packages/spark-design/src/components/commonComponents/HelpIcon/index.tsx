@@ -8,10 +8,30 @@ import { useStyle as useIconFontStyle } from '../IconFont/index.style';
 import Tooltip from '../Tooltip';
 import { useStyle } from './index.style';
 
+/**
+ * HelpIcon 组件属性
+ * @id SparkHelpIconProps
+ */
 export interface HelpIconProps {
+  /**
+   * @description 提示内容
+   * @descriptionEn Tooltip content
+   */
   content: ReactNode;
+  /**
+   * @description 自定义类名
+   * @descriptionEn Custom class name
+   */
   className?: string;
+  /**
+   * @description Tooltip 组件的额外属性
+   * @descriptionEn Additional props for Tooltip component
+   */
   popoverProps?: PopoverProps;
+  /**
+   * @description 自定义样式
+   * @descriptionEn Custom style
+   */
   style?: CSSProperties;
 }
 export default function HelpIcon(props: HelpIconProps) {

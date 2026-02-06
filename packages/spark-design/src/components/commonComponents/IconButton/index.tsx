@@ -1,7 +1,7 @@
 import IconFont from '@/components/commonComponents/IconFont';
 import { Button, ButtonProps, getCommonConfig } from '@agentscope-ai/design';
 import classNames from 'classnames';
-import { ReactNode, useMemo } from 'react';
+import { forwardRef, ReactNode, useMemo } from 'react';
 import { useStyle } from './index.style';
 
 export interface SparkIconButtonProps extends ButtonProps {
@@ -23,7 +23,7 @@ export interface SparkIconButtonProps extends ButtonProps {
   shape?: 'default' | 'circle';
 }
 
-export default (props: SparkIconButtonProps) => {
+const IconButton = forwardRef<HTMLButtonElement, SparkIconButtonProps>((props, ref) => {
   const { className, iconType, bordered = true, icon: iconProp, ...restProps } = props;
   const config = getCommonConfig();
   const { iconfont } = config;
@@ -44,6 +44,7 @@ export default (props: SparkIconButtonProps) => {
     <>
       <Style />
       <Button
+        ref={ref}
         className={classNames(className, `${config.sparkPrefix}-icon-button`)}
         style={{ lineHeight: 1 }}
         type={bordered ? 'default' : 'text'}
@@ -52,4 +53,6 @@ export default (props: SparkIconButtonProps) => {
       />
     </>
   );
-};
+});
+
+export default IconButton;
