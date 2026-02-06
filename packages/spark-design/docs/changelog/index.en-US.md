@@ -4,6 +4,15 @@ hero:
   description: Release versions follow Semantic Versioning 2.0.0.
 ---
 
+### 1.0.29
+`2025-02-06`
+
+#### Fixed
+- CodeBlock: removed `!important` from style file, props now support ReactCodeMirrorProps type passthrough
+- Steps: fixed vertical alignment issue in vertical mode
+- SlateEditor: normalized CRLF to LF in pasted text for better compatibility with Windows line endings
+- Tab: segment type now supports className passthrough
+
 ### 1.0.28
 `2025-01-29`
 
