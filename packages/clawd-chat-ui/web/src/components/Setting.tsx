@@ -192,6 +192,7 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
         <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
           {onCancel && (
             <button
+              type="button"
               onClick={onCancel}
               style={{
                 flex: 1,
@@ -212,6 +213,7 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
             </button>
           )}
           <button
+            type="button"
             onClick={handleSave}
             style={{
               flex: 1,
