@@ -19,6 +19,8 @@ group:
 
 <code src="./demo/demo3.tsx" center>禁用状态</code>
 
+<code src="./demo/demo4.tsx" center>Bordered</code>
+
 #### API
 
 <ApiParser source="./index.tsx" id="SparkRadioButtonProps"></ApiParser>

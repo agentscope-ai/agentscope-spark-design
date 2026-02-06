@@ -7,5 +7,9 @@ export const useStyle = createGlobalStyle`
     justify-content: center;
     align-items: center;
   }
+
+  &.${(p) => p.antPrefix}-btn-variant-outlined:not(:disabled):not(.${(p) => p.antPrefix}-btn-disabled):hover {
+    border-color: transparent;
+  }
 }
 `;

@@ -14,8 +14,8 @@ export const ChatAnywhereInputContext = createContext<IAgentScopeRuntimeWebUIInp
 export function ChatAnywhereInputContextProvider(props: {
   children: React.ReactNode | React.ReactNode[];
 }) {
-  const [loading, setLoading, getLoading] = useGetState<boolean>(false);
-  const [disabled, setDisabled, getDisabled] = useGetState<boolean>(false);
+  const [loading, setLoading, getLoading] = useGetState<boolean | string>(false);
+  const [disabled, setDisabled, getDisabled] = useGetState<boolean | string>(false);
 
   return <ChatAnywhereInputContext.Provider value={{ loading, setLoading, getLoading, disabled, setDisabled, getDisabled }}>
     {props.children}

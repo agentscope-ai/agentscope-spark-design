@@ -6,6 +6,7 @@ import { copy, Tooltip } from "@agentscope-ai/design";
 import compact from 'lodash/compact';
 import { emit } from "../../Context/useChatAnywhereEventEmitter";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
+import { useTranslation } from "../../Context/ChatAnywhereI18nContext";
 import React from "react";
 
 
@@ -24,6 +25,7 @@ export default function Tools(props: {
   data: IAgentScopeRuntimeResponse
   isLast?: boolean;
 }) {
+  const { t } = useTranslation();
   const actionsOptionsList = useChatAnywhereOptions(v => v.actions?.list) || [
     {
       icon: <SparkCopyLine />,
@@ -49,7 +51,7 @@ export default function Tools(props: {
       }
     }),
     replace && props.isLast ? {
-      icon: <Tooltip title="重新生成"><SparkReplaceLine /></Tooltip>,
+      icon: <Tooltip title={t?.('actions.regenerate') || '重新生成'}><SparkReplaceLine /></Tooltip>,
       onClick: () => {
         emit({
           type: 'handleReplace',

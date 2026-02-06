@@ -13,6 +13,7 @@
 - [ ] `@agentscope-ai/design`（packages/spark-design）
 - [ ] `@agentscope-ai/chat`（packages/spark-chat）
 - [ ] `@agentscope-ai/flow`（packages/spark-flow）
+- [ ] `@agentscope-ai/clawd-chat-ui`（packages/clawd-chat-ui）
 - [ ] 仅仓库工程（不影响 npm 包）
 
 ## 变更说明

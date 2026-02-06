@@ -50,7 +50,7 @@ function startMcpServer() {
     version: config.version,
   });
 
-  server.registerTool("get component docs", 
+  server.registerTool("get_component_docs", 
     {
       title: '获取组件文档',
       description: `输入 ${config.name} 组件名称，获取组件API文档`,
@@ -71,7 +71,7 @@ function startMcpServer() {
     }
   );
 
-  server.registerTool("get component list", 
+  server.registerTool("get_component_list", 
     {
       title: '获取组件列表',
       description: `获取${config.name}组件列表`,
@@ -97,7 +97,7 @@ function startMcpServer() {
 if (require.main === module) {
   startMcpServer()
   .then(() => {
-    console.log('MCP server started');
+    // console.info("Doc Info MCP Server running on stdio");
   })
   .catch(console.error);
 }

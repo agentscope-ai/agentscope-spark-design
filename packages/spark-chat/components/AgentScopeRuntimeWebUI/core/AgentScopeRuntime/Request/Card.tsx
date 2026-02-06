@@ -6,7 +6,6 @@ import { Bubble } from '@agentscope-ai/chat';
 export default function AgentScopeRuntimeRequestCard(props: {
   data: IAgentScopeRuntimeRequest;
 }) {
-
   const cards = useMemo(() => {
 
     return props.data.input[0].content.reduce<any>((p, c) => {
@@ -47,6 +46,8 @@ export default function AgentScopeRuntimeRequestCard(props: {
       return p;
     }, []);
   }, [props.data.input]);
+
+  if (!cards?.length) return null;
 
   return <Bubble role="user" cards={cards}></Bubble>;
 }

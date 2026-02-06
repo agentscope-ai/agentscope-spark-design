@@ -1,5 +1,5 @@
 ---
-title: MdEditor
+title: PromptsEditor
 group:
   title: Data Entry
   order: 5

@@ -25,9 +25,9 @@ export enum AgentScopeRuntimeMessageType {
   COMPONENT_CALL_OUTPUT = "component_call_output",
   MCP_LIST_TOOLS = "mcp_list_tools",
   MCP_APPROVAL_REQUEST = "mcp_approval_request",
+  MCP_APPROVAL_RESPONSE = "mcp_approval_response",
   MCP_CALL = "mcp_call",
   MCP_CALL_OUTPUT = "mcp_call_output",
-  MCP_APPROVAL_RESPONSE = "mcp_approval_response",
   HEARTBEAT = "heartbeat",
   ERROR = "error",
 }
