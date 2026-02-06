@@ -8,7 +8,8 @@ hero:
 `2025-02-06`
 
 #### Fixed
-- CodeBlock 组件样式文件移除 !important 类型样式，props 支持 ReactCodeMirrorProps 类型参数透传
+- CodeBlock 组件样式文件移除 !important 类型样式，外层添加 .spark-code-block 容器类；props 支持 ReactCodeMirrorProps 类型参数透传
+- PromptsEditor 组件支持了 ReactCodeMirrorProps 类型参数透传，VarRender 修复了 ${} 类型变量输入识别问题
 - Steps 组件 vertical 类型垂直对齐问题修复
 - SlateEditor 组件将粘贴文本中的 CRLF 规范化为 LF，以便在 Windows 换行符环境下具有更好的兼容性
 - Tab 组件 segment 类型支持 className 透传

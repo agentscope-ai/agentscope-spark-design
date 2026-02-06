@@ -8,7 +8,8 @@ hero:
 `2025-02-06`
 
 #### Fixed
-- CodeBlock: removed `!important` from style file, props now support ReactCodeMirrorProps type passthrough
+- CodeBlock: removed `!important` from style file, added `.spark-code-block` container class wrapper; props now support ReactCodeMirrorProps type passthrough
+- PromptsEditor: added ReactCodeMirrorProps type passthrough support; fixed `${}` variable input recognition issue in VarRender
 - Steps: fixed vertical alignment issue in vertical mode
 - SlateEditor: normalized CRLF to LF in pasted text for better compatibility with Windows line endings
 - Tab: segment type now supports className passthrough
