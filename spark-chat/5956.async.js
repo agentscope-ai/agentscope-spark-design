@@ -2019,7 +2019,7 @@ export default function () {
     ]}>
   </ChatInput>
 }
-`},5686:function(e,n){n.Z=`import React from 'react';
+`},89223:function(e,n){n.Z=`import React from 'react';
 import { Attachments, ChatInput } from '@agentscope-ai/chat';
 import { Button, GetProp, Upload } from 'antd';
 import { IconButton } from '@agentscope-ai/design';
