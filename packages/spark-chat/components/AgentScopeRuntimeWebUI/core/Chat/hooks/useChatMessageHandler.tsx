@@ -32,7 +32,7 @@ export default function useChatMessageHandler(options: UseChatMessageHandlerOpti
       role: 'user',
       cards: [{
         code: 'AgentScopeRuntimeRequestCard',
-        data: new AgentScopeRuntimeRequestBuilder(data).data,
+        data: new AgentScopeRuntimeRequestBuilder().handle(data),
       }]
     };
 
@@ -41,6 +41,27 @@ export default function useChatMessageHandler(options: UseChatMessageHandlerOpti
     });
 
     return currentQARef.current.request;
+  }, [currentQARef, updateMessage]);
+
+
+  const createApprovalMessage = useCallback((data) => {
+    currentQARef.current.abortController = new AbortController();
+
+    currentQARef.current.request = {
+      id: uuid(),
+      role: 'user',
+      cards: [{
+        code: 'AgentScopeRuntimeRequestCard',
+        data: new AgentScopeRuntimeRequestBuilder().handleApproval(data),
+      }]
+    };
+
+    ReactDOM.flushSync(() => {
+      updateMessage(currentQARef.current.request!);
+    });
+
+    return currentQARef.current.request;
+
   }, [currentQARef, updateMessage]);
 
   /**
@@ -77,6 +98,7 @@ export default function useChatMessageHandler(options: UseChatMessageHandlerOpti
 
   return {
     createRequestMessage,
+    createApprovalMessage,
     createResponseMessage,
     getHistoryMessages,
     updateMessage,

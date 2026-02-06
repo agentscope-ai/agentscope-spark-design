@@ -36,12 +36,12 @@ export default createGlobalStyle`
   }
 
   &-header-icon {
-    font-size: 20px;
+    font-size: 16px;
   }
 
 
   &-header-title {
-    font-size: 16px;
+    font-size: 13px;
     color: ${(p) => p.theme.colorText};
   }
 
@@ -52,15 +52,15 @@ export default createGlobalStyle`
   &-header-top {
     display: flex;
     align-items: center;
-    margin: 8px 0;
     gap: 8px;
+    height: 32px;
   }
 
 
   &-header-description {
     margin-top: -6px;
     margin-bottom: 8px;
-    margin-left: 30px;
+    margin-left: 24px;
     font-size: 12px;
     color: ${(p) => p.theme.colorTextTertiary};
   }

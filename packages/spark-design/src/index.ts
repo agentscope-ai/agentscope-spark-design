@@ -128,6 +128,7 @@ export { default as Popover } from './components/commonComponents/Popover';
 export {
   default as MdEditor,
   default as PromptsEditor,
+  langExtensionsMap as MdEditorLangExtensionsMap,
   type PromptsEditorProps as MdEditorProps,
   type PromptsEditorProps,
 } from './components/commonComponents/PromptsEditor';

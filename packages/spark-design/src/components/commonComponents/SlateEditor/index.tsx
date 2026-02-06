@@ -300,7 +300,9 @@ const SlateEditor = forwardRef<EditorRefProps | undefined, EditorProps>(
 
     const handlePaste = (e) => {
       const pastedText = e.clipboardData.getData('text/plain');
-      insertFragment(pastedText, false);
+      // 将 CRLF 转换为 LF，处理 Windows 换行符
+      const normalizedText = pastedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      insertFragment(normalizedText, false);
       e.preventDefault();
     };
 

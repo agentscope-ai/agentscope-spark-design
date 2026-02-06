@@ -10,7 +10,7 @@ export interface IStatusCardProps {
    * @description 标题
    * @descriptionEn Title
    */
-  title: string;
+  title: string | React.ReactNode;
   /**
    * @description 状态
    * @descriptionEn Status
@@ -72,7 +72,7 @@ export interface IStatusCardHITLProps {
    * @description 标题
    * @descriptionEn Title
    */
-  title: string;
+  title: string | React.ReactNode;
   /**
    * @description 描述
    * @descriptionEn Description
@@ -101,6 +101,11 @@ export interface IStatusCardHITLProps {
    * @descriptionEn Done Callback
    */
   onDone: () => void;
+  /**
+   * @description 操作按钮
+   * @descriptionEn Actions
+   */
+  actions?: React.ReactNode;
 }
 
 
@@ -110,25 +115,26 @@ StatusCard.HITL = function (props: IStatusCardHITLProps) {
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('status-card');
 
-  const button = props.done ?
+  const button = props.actions !== undefined ? props.actions : (props.done ?
     <Button onClick={props.onDone} type="primary" disabled icon={<SparkTrueLine />}>{doneButtonText}</Button> :
-    <Button onClick={props.onDone} type="primary" >{waitButtonText}</Button>;
+    <Button onClick={props.onDone} type="primary" >{waitButtonText}</Button>);
 
 
   return <StatusCard
-    status='info'
+    status={props.done ? 'success' : 'info'}
     title={title}
-
   >
-    <div className={`${prefixCls}-HITL`}>
-      {
-        description && <div className={`${prefixCls}-HITL-desc`}>{description}</div>
-      }
+    {
+      description || button ? <div className={`${prefixCls}-HITL`}>
+        {
+          description && <div className={`${prefixCls}-HITL-desc`}>{description}</div>
+        }
 
-      <div className={`${prefixCls}-HITL-button`}>
-        {button}
-      </div>
-    </div>
+        <div className={`${prefixCls}-HITL-button`}>
+          {button}
+        </div>
+      </div> : null
+    }
   </StatusCard>
 }
 

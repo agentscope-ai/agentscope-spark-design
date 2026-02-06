@@ -6,6 +6,7 @@ import defaultConfig from './OptionsPanel/defaultConfig';
 import { useLocalStorageState } from 'ahooks';
 import Weather from './Weather';
 import { Flex } from 'antd';
+import MessageImport from './MessageImport';
 
 
 export default function () {
@@ -20,12 +21,16 @@ export default function () {
   });
 
   const options = useMemo(() => {
-    const rightHeader = <OptionsPanel value={optionsConfig} onChange={v => {
-      setOptionsConfig(prev => ({
-        ...prev,
-        ...v,
-      }));
-    }} />;
+    const rightHeader = <Flex gap={16}>
+      <OptionsPanel value={optionsConfig} onChange={v => {
+        setOptionsConfig(prev => ({
+          ...prev,
+          ...v,
+        }));
+      }} />
+
+      <MessageImport />
+    </Flex>;
 
     return {
       ...optionsConfig,
