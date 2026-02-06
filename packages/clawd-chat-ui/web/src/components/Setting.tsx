@@ -25,15 +25,15 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
   const { host, token, clientId } = config || { host: '', token: '', clientId: '' };
 
   const setHost = (newHost: string) => {
-    setConfig(prev => ({ ...prev!, host: newHost }));
+    setConfig((prev: ClawdConfig | undefined) => ({ ...prev!, host: newHost }));
   };
 
   const setToken = (newToken: string) => {
-    setConfig(prev => ({ ...prev!, token: newToken }));
+    setConfig((prev: ClawdConfig | undefined) => ({ ...prev!, token: newToken }));
   };
 
   const setClientId = (newClientId: string) => {
-    setConfig(prev => ({ ...prev!, clientId: newClientId }));
+    setConfig((prev: ClawdConfig | undefined) => ({ ...prev!, clientId: newClientId }));
   };
 
   const handleSave = () => {
@@ -103,7 +103,7 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
           <input
             type="text"
             value={host}
-            onChange={(e) => setHost(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHost(e.target.value)}
             placeholder="ws(s?)://0.0.0.0:18789"
             style={{
               width: '100%',
@@ -116,11 +116,11 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
               outline: 'none',
               transition: 'all 0.2s',
             }}
-            onFocus={(e) => {
+            onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
               e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
               e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
             }}
-            onBlur={(e) => {
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
               e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
               e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
             }}
@@ -134,7 +134,7 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
           <input
             type="password"
             value={token}
-            onChange={(e) => setToken(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setToken(e.target.value)}
             placeholder="Enter your token"
             style={{
               width: '100%',
@@ -147,11 +147,11 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
               outline: 'none',
               transition: 'all 0.2s',
             }}
-            onFocus={(e) => {
+            onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
               e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
               e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
             }}
-            onBlur={(e) => {
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
               e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
               e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
             }}
@@ -165,7 +165,7 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
           <input
             type="text"
             value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientId(e.target.value)}
             placeholder="Enter your client ID"
             style={{
               width: '100%',
@@ -178,11 +178,11 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
               outline: 'none',
               transition: 'all 0.2s',
             }}
-            onFocus={(e) => {
+            onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
               e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
               e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
             }}
-            onBlur={(e) => {
+            onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
               e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
               e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
             }}
@@ -205,8 +205,8 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
                 cursor: 'pointer',
                 transition: 'all 0.2s',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+              onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+              onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
             >
               Cancel
             </button>
@@ -227,16 +227,16 @@ export const Setting: React.FC<SettingProps> = ({ onSave, onCancel }) => {
               transition: 'all 0.2s',
               boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
             }}
-            onMouseEnter={(e) => {
+            onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.currentTarget.style.transform = 'translateY(-1px)';
               e.currentTarget.style.boxShadow = '0 6px 16px rgba(99, 102, 241, 0.4)';
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.3)';
             }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'translateY(1px)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.transform = 'translateY(1px)'}
+            onMouseUp={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.transform = 'translateY(-1px)'}
           >
             Save Changes
           </button>
