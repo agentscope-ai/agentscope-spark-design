@@ -33,7 +33,7 @@ export default function Input(props: InputProps) {
     setFileList,
     uploadIconButton,
     uploadFileListHeader
-  } = useAttachments(attachments, { disabled: inputContext.disabled });
+  } = useAttachments(attachments, { disabled: !!inputContext.disabled });
 
 
   const handleSubmit = useCallback(async () => {

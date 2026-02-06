@@ -75,9 +75,12 @@ export default function () {
     };
   }, [optionsConfig]);
 
+
+
   return <div style={{ height: '100dvh' }}>
     <AgentScopeRuntimeWebUI
       ref={chatRef}
+      // @ts-ignore
       options={options}
     />
   </div>;

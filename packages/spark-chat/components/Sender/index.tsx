@@ -58,7 +58,7 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    * @description 是否显示回复中的加载状态，影响按钮和输入框的交互
    * @descriptionEn Whether to display loading state during reply, affects button and input interaction
    */
-  loading?: boolean;
+  loading?: boolean | string;
   /**
    * @description 是否将输入框设置为只读模式，禁止用户编辑
    * @descriptionEn Whether to set the input field to read-only mode, preventing user editing
@@ -75,7 +75,7 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    * @description 是否禁用整个发送器组件，包括输入框和按钮
    * @descriptionEn Whether to disable the entire sender component, including input field and buttons
    */
-  disabled?: boolean;
+  disabled?: boolean | string;
 
   /**
    * @description 是否禁用发送按钮
@@ -439,7 +439,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
-      {loading ? <LoadingButton /> : <SendButton />}
+      {loading ? <LoadingButton loading={loading} /> : <SendButton />}
     </Flex>
   );
 
@@ -466,7 +466,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     onSpeech: () => triggerSpeech(false),
     onSpeechDisabled: !speechPermission,
     speechRecording,
-    disabled,
+    disabled: !!disabled,
 
   }
 
@@ -481,7 +481,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
       <div className={`${prefixCls}-content`}>
         <InputTextArea
           {...inputProps}
-          disabled={disabled}
+          disabled={!!disabled}
           style={styles.input}
           className={classnames(inputCls, classNames.input)}
           autoSize={autoSize}
