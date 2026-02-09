@@ -224,8 +224,11 @@ export const getParentInputParams = (node: IWorkFlowNode) => {
   const list: IVarItem[] = [];
 
   inputParams.forEach((item) => {
-    if (item.type?.includes('Array') && !!item.value) {
-      const arrayType = item.type.replace(/^Array<(.+)>$/, '$1') as IValueType;
+    // check if item.value is the children property of an array, for example: ${DocumentParse_AKQK.layout.[markdownContent]
+    const matches = item.value?.match(/\[[^\[\]]+\]/g);
+    const isSubPropertyInArray = matches?.length;
+    if ((item.type?.includes('Array') || isSubPropertyInArray) && !!item.value) {
+      const arrayType = item.type!.replace(/^Array<(.+)>$/, '$1') as IValueType;
       list.push({
         label: `item (in ${item.key})`,
         value: `\${${node.id}.${item.key}}`,

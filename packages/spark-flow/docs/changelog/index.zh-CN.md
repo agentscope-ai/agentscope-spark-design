@@ -19,3 +19,6 @@ hero:
 
 ### 1.0.16
 - config-panel: 新增 INodeSchema 中的 titleRenderer 参数，用于自定义渲染配置面板中的标题。
+
+### 1.0.17
+- utils: 支持子画布中的节点引用父画布的嵌套变量

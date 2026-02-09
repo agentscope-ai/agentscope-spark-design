@@ -19,3 +19,6 @@ hero:
 
 ### 1.0.16
 - config-panel: add titleRenderer type in INodeSchema to customize the title in config-panel.
+
+### 1.0.17
+- utils: allow the sub-flow reference the nested variables from the parent-flow.
