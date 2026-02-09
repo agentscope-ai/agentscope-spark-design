@@ -8,19 +8,26 @@ export const useStyle = createGlobalStyle`
   &.${(p) => p.antPrefix}-picker-disabled {
     color: var(--${(p) => p.antPrefix}-color-text-quaternary);
     border-color: var(--${(p) =>
-      p.antPrefix}-color-border-secondary) !important;
+      p.antPrefix}-color-border-secondary);
     background-color: var(--${(p) =>
-      p.antPrefix}-color-fill-tertiary) !important;
+      p.antPrefix}-color-fill-tertiary);
     cursor: not-allowed;
+
+    &:hover:not([disabled]) {
+      border-color: var(--${(p) =>
+        p.antPrefix}-color-border-secondary);
+      background-color: var(--${(p) =>
+        p.antPrefix}-color-fill-tertiary);
+    }
     
     .${(p) => p.antPrefix}-picker-suffix {
-      color: var(--${(p) => p.antPrefix}-color-text-quaternary) !important;
+      color: var(--${(p) => p.antPrefix}-color-text-quaternary);
     }
   }
   
   .${(p) => p.antPrefix}-picker-suffix {
     margin-left: 8px;
-    color: var(--${(p) => p.antPrefix}-color-text-tertiary) !important;
+    color: var(--${(p) => p.antPrefix}-color-text-tertiary);
   }
   
   .${(p) => p.antPrefix}-picker-clear {
@@ -39,6 +46,12 @@ export const useStyle = createGlobalStyle`
         display: none;
       }
     }
+  }
+}
+
+.${(p) => p.antPrefix}-picker-outlined.${(p) => p.antPrefix}-picker-status-error:not(.${(p) => p.antPrefix}-picker-disabled) {
+  .${(p) => p.antPrefix}-picker-suffix {
+    color: var(--${(p) => p.antPrefix}-color-text-tertiary);
   }
 }
 
@@ -63,9 +76,10 @@ export const useStyle = createGlobalStyle`
   }
 }
 
-.${(p) => p.antPrefix}-picker-selection-item {
-  border-radius: 4px;
-  background-color: var(--${(p) => p.antPrefix}-color-mauve-bg) !important;
+.${(p) => p.antPrefix}-picker-outlined.${(p) => p.antPrefix}-picker-multiple {
+  .${(p) => p.antPrefix}-picker-selection-item {
+    background-color: var(--${(p) => p.antPrefix}-color-fill-tertiary);
+  }
 }
 
 .${(p) => p.antPrefix}-picker-selection-item-content {

@@ -11,12 +11,18 @@ export const useStyle = createGlobalStyle`
   }
   
   &::before {
-    display: none !important;
+    display: none;
   }
   
   &:not(:last-child) {
     margin-right: 12px;
   }
+}
+
+.${(p) => p.antPrefix}-radio-group-large .${(p) => p.antPrefix}-radio-button-wrapper:first-child,
+.${(p) => p.antPrefix}-radio-group-small .${(p) => p.antPrefix}-radio-button-wrapper:first-child {
+  border-start-start-radius: 6px;
+  border-end-start-radius: 6px;
 }
 
 .${(p) => p.antPrefix}-radio-group-ghost {

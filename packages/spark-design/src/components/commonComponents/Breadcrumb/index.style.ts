@@ -57,10 +57,6 @@ export const useStyle = createGlobalStyle`
     align-items: center;
     gap: 4px;
     height: 100%;
-    
-    .${(p) => p.sparkPrefix}-breadcrumb-dropdown-icon {
-      font-size: 16px !important;
-    }
   }
   
   .${(p) => p.sparkPrefix}-breadcrumb-dropdown-overlay {
