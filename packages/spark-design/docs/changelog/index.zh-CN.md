@@ -4,6 +4,27 @@ hero:
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
 
+### 1.0.29
+`2025-02-06`
+
+#### Fixed
+- CodeBlock 组件样式文件移除 !important 类型样式，外层添加 .spark-code-block 容器类；props 支持 ReactCodeMirrorProps 类型参数透传
+- PromptsEditor 组件支持了 ReactCodeMirrorProps 类型参数透传，VarRender 修复了 ${} 类型变量输入识别问题
+- Steps 组件 vertical 类型垂直对齐问题修复
+- SlateEditor 组件将粘贴文本中的 CRLF 规范化为 LF，以便在 Windows 换行符环境下具有更好的兼容性
+- Tab 组件 segment 类型支持 className 透传
+
+### 1.0.28
+`2025-01-29`
+
+#### Changed
+- PromptsEditor 组件支持了 readOnly 参数
+- CodeBlock 组件支持了 extensions 参数，props 支持 ReactCodeMirrorProps 类型参数透传
+- MCP 工具名称升级，优化日志功能
+
+#### Fixed
+- Pagination 组件，修复了 showSizeChanger 和 pageSizeOptions 同时传入时，pageSizeOptions 不生效的问题
+
 ### 1.0.27
 `2025-01-27`
 

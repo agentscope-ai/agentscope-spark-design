@@ -47,6 +47,10 @@ export const useStyle = createGlobalStyle`
       border-inline-start-width: 1px;
     }
   }
+
+  .${(p) => p.antPrefix}-radio-button-wrapper-checked.${(p) => p.antPrefix}-radio-button-wrapper {
+    border-color: var(--${(p) => p.antPrefix}-color-primary);
+  }
 }
 
 .${(p) => p.antPrefix}-radio-button-wrapper-disabled {

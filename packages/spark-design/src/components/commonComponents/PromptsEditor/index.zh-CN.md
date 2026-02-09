@@ -1,5 +1,5 @@
 ---
-title: MdEditor
+title: PromptsEditor 提示词编辑器
 group:
   title: 数据录入
   order: 5

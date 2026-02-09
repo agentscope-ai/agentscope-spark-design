@@ -70,7 +70,7 @@ export function InnerAdder(props: { style?: React.CSSProperties; narrowMode?: bo
   const { toggleCollapsed } = useContext(ChatAnyWhereLayoutContext);
 
   return <div className={`${prefixCls}-adder`} style={props.style}>
-    <Button block type="primary" icon={<SparkPlusLine />} disabled={loading} onClick={async () => {
+    <Button block type="primary" icon={<SparkPlusLine />} disabled={!!loading} onClick={async () => {
       await createSession();
       if (props.narrowMode) {
         toggleCollapsed();

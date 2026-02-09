@@ -7,10 +7,17 @@ import classNames from 'classnames';
 import { useStyle } from './index.style';
 
 /**
- * 获取默认的分页大小选择器配置
- * 使用函数形式以支持动态国际化
+ * 获取默认的分页大小选项
  */
-const getDefaultShowSizeChange = () => {
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+/**
+ * 根据 pageSizeOptions 生成带国际化文案的选项配置
+ * @param pageSizeOptions 分页大小选项数组
+ */
+const getShowSizeChangeOptions = (
+  pageSizeOptions: (string | number)[] = DEFAULT_PAGE_SIZE_OPTIONS,
+) => {
   const itemsText = $i18n.get({
     id: 'components.commonComponents.Pagination.Items',
     dm: '条',
@@ -21,24 +28,10 @@ const getDefaultShowSizeChange = () => {
   });
 
   return {
-    options: [
-      {
-        label: `10 ${itemsText} / ${pageText}`,
-        value: 10,
-      },
-      {
-        label: `20 ${itemsText} / ${pageText}`,
-        value: 20,
-      },
-      {
-        label: `50 ${itemsText} / ${pageText}`,
-        value: 50,
-      },
-      {
-        label: `100 ${itemsText} / ${pageText}`,
-        value: 100,
-      },
-    ],
+    options: pageSizeOptions.map((size) => ({
+      label: `${size} ${itemsText} / ${pageText}`,
+      value: Number(size),
+    })),
   };
 };
 
@@ -117,21 +110,21 @@ export default (props: SparkPaginationProps) => {
     shouldShowSizeChanger = restProps.total && restProps.total > 50;
   }
   const getMergedShowSizeChange = () => {
-    if (props.showSizeChanger === true) {
-      // 用户手动设置为 true，使用预置选项（动态获取以支持国际化）
-      return getDefaultShowSizeChange();
-    }
     if (props.showSizeChanger === false) {
       // 用户手动设为 false
       return false;
     }
     if (typeof props.showSizeChanger === 'object' && props.showSizeChanger) {
-      // 用户手动传入的优先
+      // 用户手动传入对象配置，优先使用
       return props.showSizeChanger;
     }
+    if (props.showSizeChanger === true) {
+      // 用户手动设置为 true，使用 pageSizeOptions 或预置选项
+      return getShowSizeChangeOptions(restProps.pageSizeOptions);
+    }
     if (restProps.total && restProps.total > 50) {
-      // 数据量大于 50，使用预置选项（动态获取以支持国际化）
-      return getDefaultShowSizeChange();
+      // 数据量大于 50，使用 pageSizeOptions 或预置选项
+      return getShowSizeChangeOptions(restProps.pageSizeOptions);
     }
     return false;
   };

@@ -19,6 +19,8 @@ Below are examples and variants of this component
 
 <code src="./demo/demo3.tsx" center>Disabled State</code>
 
+<code src="./demo/demo4.tsx" center>Bordered</code>
+
 #### API
 
 <ApiParser source="./index.tsx" id="SparkRadioButtonProps"></ApiParser>

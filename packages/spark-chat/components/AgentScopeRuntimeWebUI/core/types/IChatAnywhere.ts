@@ -89,12 +89,17 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    * @descriptionEn Typography configuration
    */
   typography?: IAgentScopeRuntimeWebUITypography;
-
   /**
    * @description 背景色
    * @descriptionEn Background color
    */
   background?: string;
+  /**
+   * @description 语言
+   * @descriptionEn Language
+   * @default 'en'
+   */
+  locale?: 'en' | 'cn';
 }
 
 export interface IAgentScopeRuntimeWebUITypography {
@@ -381,22 +386,22 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 加载状态
    * @descriptionEn Loading state
    */
-  loading: boolean;
+  loading: boolean | string;
   /**
    * @description 设置加载状态
    * @descriptionEn Set loading state
    */
-  setLoading: (loading: boolean) => void;
+  setLoading: (loading: boolean | string) => void;
   /**
    * @description 获取加载状态
    * @descriptionEn Get loading state
    */
-  getLoading: () => boolean;
+  getLoading: () => boolean | string;
   /**
    * @description 禁用状态
    * @descriptionEn Disabled state
    */
-  disabled: boolean;
+  disabled: boolean | string;
   /**
    * @description 设置禁用状态
    * @descriptionEn Set disabled state
@@ -406,7 +411,7 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 获取禁用状态
    * @descriptionEn Get disabled state
    */
-  getDisabled: () => boolean;
+  getDisabled: () => boolean | string;
 }
 
 /**
