@@ -428,7 +428,7 @@ export interface IAgentScopeRuntimeWebUIInputData {
    * @description 文件列表
    * @descriptionEn File list
    */
-  fileList?: UploadProps['fileList'];
+  fileList?: (UploadProps['fileList'][number] & { file_id?: string })[];
   /**
    * @description 业务参数
    * @descriptionEn Business parameters
