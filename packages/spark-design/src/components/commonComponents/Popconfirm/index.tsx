@@ -1,5 +1,4 @@
 import { ButtonProps, getCommonConfig } from '@/index';
-import { findClosestBySelector } from '@/libs/dom';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -19,7 +18,7 @@ export interface SparkPopconfirmProps extends PopconfirmProps {
 }
 const SparkPopconfirm = React.forwardRef<any, SparkPopconfirmProps>(
   (props, ref) => {
-    const { icon, type = 'confirm', okButtonProps, getPopupContainer, ...rest } = props;
+    const { icon, type = 'confirm', okButtonProps, children, ...rest } = props;
     const { antPrefix } = getCommonConfig();
 
     const getMergedIcon = () => {
@@ -77,13 +76,9 @@ const SparkPopconfirm = React.forwardRef<any, SparkPopconfirmProps>(
         icon={getMergedIcon()}
         // @ts-ignore
         okButtonProps={getMergedOkButtonProps()}
-        getPopupContainer={
-          getPopupContainer ||
-          ((triggerNode) => {
-            return findClosestBySelector(triggerNode, `.${antPrefix}-app`); // 默认放到App组件下，获取自定义css变量
-          })
-        }
-      />
+      >
+        <span>{children}</span>
+      </Popconfirm>
     );
   },
 );
