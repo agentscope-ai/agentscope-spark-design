@@ -34,27 +34,14 @@ export const useStyle = createGlobalStyle`
     }
   }
 
-  .sps-steps-item-custom >.sps-steps-item-container>.sps-steps-item-icon {
-    height: 20px;
-  }
-  
   .${(p) => p.antPrefix}-steps-item-finish {
+    .${(p) => p.antPrefix}-steps-item-icon {
+      background-color: var(--${(p) => p.antPrefix}-color-primary-bg);
+      border-color: transparent;
+    }
+
     .${(p) => p.antPrefix}-steps-icon {
-      max-width: 20px;
-      max-height: 20px;
-      font-size: 20px;
-      line-height: 20px;
-      top: -0.5px;
-      
-      .${(p) => p.sparkPrefix}-finish-icon {
-        background-color: var(--${(p) => p.antPrefix}-color-primary-bg);
-        border-radius: 50%;
-        font-size: 20px;
-        line-height: 20px;
-        width: 20px;
-        height: 20px;
-        color: var(--${(p) => p.antPrefix}-color-primary);
-      }
+      color: var(--${(p) => p.antPrefix}-color-primary);
     }
   }
   
