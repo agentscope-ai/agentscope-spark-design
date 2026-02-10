@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/flow",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "A powerful and flexible flow canvas rendering engine designed for AI applications. Provides comprehensive workflow visualization and interaction capabilities for platforms like Bailian and AgentScope, enabling seamless creation and management of complex AI agent workflows with an intuitive drag-and-drop interface.",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -89,6 +89,7 @@
     "spark-flow.components.NodeResultPanel.index.paused": "一時停止",
     "spark-flow.components.NodeResultPanel.index.input": "入力",
     "spark-flow.components.NodeResultPanel.index.output": "出力",
+    "spark-flow.components.NodeResultPanel.index.locateNodeInTestPanel": "テストパネルでノード位置を表示",
     "spark-flow.components.NodeTree.index.searchNodeName": "ノード名を検索",
     "spark-flow.components.ShortMemoryForm.index.nodeCache": "このノードのキャッシュ",
     "spark-flow.components.ShortMemoryForm.index.customCache": "カスタムキャッシュ",

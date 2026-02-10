@@ -89,6 +89,7 @@
   "spark-flow.components.NodeResultPanel.index.paused": "暂停",
   "spark-flow.components.NodeResultPanel.index.input": "输入",
   "spark-flow.components.NodeResultPanel.index.output": "输出",
+  "spark-flow.components.NodeResultPanel.index.locateNodeInTestPanel": "定位到测试窗中节点位置",
   "spark-flow.components.NodeTree.index.searchNodeName": "搜索节点名称",
   "spark-flow.components.ShortMemoryForm.index.nodeCache": "本节点缓存",
   "spark-flow.components.ShortMemoryForm.index.customCache": "自定义缓存",

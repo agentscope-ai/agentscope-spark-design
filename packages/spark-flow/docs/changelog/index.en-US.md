@@ -22,3 +22,6 @@ hero:
 
 ### 1.0.17
 - utils: allow the sub-flow reference the nested variables from the parent-flow.
+
+### 1.0.18
+- node-result-panel: Add nodeResultTargetClick event to locate node in test panel.
