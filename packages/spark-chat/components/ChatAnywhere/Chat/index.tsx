@@ -1,7 +1,7 @@
 import React, { forwardRef, useState } from 'react';
 import Bubble from '../../Bubble';
 import Input from '../Input';
-import { useProviderContext } from '@agentscope-ai/chat';
+import { useInput, useProviderContext } from '@agentscope-ai/chat';
 import cls from 'classnames';
 import { useTimeout } from 'ahooks';
 import { Disclaimer } from '@agentscope-ai/chat';
@@ -14,6 +14,7 @@ export default forwardRef(function (_, ref) {
   const prefixCls = getPrefixCls('chat-anywhere');
   const uiConfig = useChatAnywhere(v => v.uiConfig);
   const [ready, setReady] = useState(false);
+  const inputContext = useInput();
 
   useTimeout(() => {
     setReady(true);
@@ -33,6 +34,7 @@ export default forwardRef(function (_, ref) {
     <Style />
     <div className={chatClassName}>
       <Bubble.List
+        smooth={!!inputContext.loading}
         style={{ height: 0, flex: emptyMessage ? 0 : 1 }}
         // @ts-ignore
         ref={ref.chatRef}
@@ -46,7 +48,7 @@ export default forwardRef(function (_, ref) {
         style={uiConfig?.disclaimer ? { marginBottom: 16 } : {}}
       >
         {/* @ts-ignore */}
-        <Input ref={ref.inputRef}/>
+        <Input ref={ref.inputRef} />
       </div>
       {
         uiConfig?.disclaimer && <Disclaimer style={{ position: 'absolute', bottom: 0, width: '100%' }} desc={uiConfig?.disclaimer} />

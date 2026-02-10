@@ -1,7 +1,7 @@
 import Bubble from './Bubble';
 import type { BubbleProps } from './interface';
 import ScrollToBottom from './ScrollToBottom';
-import { StickToBottom } from 'use-stick-to-bottom';
+import { StickToBottom } from '../StickToBottom';
 import Style from './style/list';
 import { useProviderContext } from '@agentscope-ai/chat';
 import React, { useEffect, useRef, useState } from 'react';
@@ -77,6 +77,7 @@ const BubbleList: React.ForwardRefRenderFunction<BubbleListRef, BubbleListProps>
   return <>
     <Style />
     <StickToBottom
+      enabled={!!smooth}
       id={props.id}
       className={cls(`${prefixCls}-wrapper`, props.classNames?.wrapper)}
       resize={resize}
