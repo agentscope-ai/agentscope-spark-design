@@ -127,9 +127,12 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
 function Label(props) {
   const { editable, prefixCls, info, setEditable, onEdit } = props;
   const [label, setLabel] = useState(info.label);
-  useEffect(() => {
+  const [prevInfoLabel, setPrevInfoLabel] = useState(info.label);
+
+  if (info.label !== prevInfoLabel) {
+    setPrevInfoLabel(info.label);
     setLabel(info.label);
-  }, [info.label]);
+  }
 
   return editable ? <Input
     prefixCls={prefixCls}

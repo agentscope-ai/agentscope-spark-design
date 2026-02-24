@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import MarkdownX from './core';
 import type { MarkdownProps } from './types';
 import useTyping from './core/hooks/useTyping';
@@ -99,26 +99,32 @@ export default memo(function (props: MarkdownProps) {
     })
   }), [extensions, allowHtml]);
 
-  const fallback = <Raw content={content || ''} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
+  const resolvedContent = content || '';
+  const fallback = <Raw content={resolvedContent} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
+
+  const fallbackRender = useCallback((...args: unknown[]) => {
+    console.error(args);
+    return <Raw content={resolvedContent} baseFontSize={baseFontSize} baseLineHeight={baseLineHeight} />;
+  }, [resolvedContent, baseFontSize, baseLineHeight]);
+
+  const markdownStyle = useMemo(() => ({ fontSize: baseFontSize, lineHeight: baseLineHeight }), [baseFontSize, baseLineHeight]);
 
   if (raw || !isSupportsLookbehindAssertions) return fallback;
 
-  return <ErrorBoundary fallbackRender={(...args) => {
-    console.error(args);
-    return fallback;
-  }}>
+  return <ErrorBoundary fallbackRender={fallbackRender}>
     <MarkdownX
       dompurifyConfig={dompurifyConfig}
       cursor={props.cursor}
       animation={props.animation}
       // @ts-ignore
       components={components}
-      style={{ fontSize: baseFontSize, lineHeight: baseLineHeight }}
+      style={markdownStyle}
       openLinksInNewTab={true}
       className={classNames(prefixCls, props.className)}
-      content={content || ''}
+      content={resolvedContent}
       config={config}
     />
   </ErrorBoundary>
 
 });
+
