@@ -1,0 +1,14 @@
+name: deploy-pages
+
+triggers:
+  push:
+
+jobs:
+  deploy:
+    image: alios-8u
+    steps:
+      - uses: checkout                            # 下载代码
+      - uses: deploy-pages                        # 部署到Aone Pages
+        inputs:
+          deploy-dir: build/                      # 构建后的静态资源目录
+          production-branch: aone-pages             # 触发部署[正式版本]的分支，否则为[预览版本]

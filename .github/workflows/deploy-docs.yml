@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  deploy-gh-pages:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,5 +51,50 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: dist
+
+  deploy-aone-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Build docs (spark-design) for aone
+        run: |
+          cd packages/spark-design
+          pnpm install --frozen-lockfile
+          pnpm run docs:build
+
+      - name: Build docs (spark-chat) for aone
+        run: |
+          cd packages/spark-chat
+          npm ci
+          npm run docs:build
+
+      - name: Generate root index.html redirect
+        run: node scripts/generate-docs-index.js
+
+      - name: Copy dist to build
+        run: |
+          mkdir -p build
+          cp -r dist/* build/
+          cp -r .aoneci build/
+
+      - name: Deploy to aone-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: aone-pages
+          publish_dir: build
 
 
