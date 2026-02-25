@@ -29,7 +29,6 @@ export default function Basic() {
       value={value}
       onChange={setValue}
       maxLength={5000}
-      className="promptsEditor-demo"
       variables={[
         { code: 'city' },
         { code: 'foo' },
