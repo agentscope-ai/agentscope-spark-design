@@ -87,7 +87,7 @@ export default defineConfig({
   },
   metas: [{ name: 'aplus-core', content: 'aplus.js' }],
   history: {
-    type: isGhPages ? 'browser' : 'hash',
+    type: 'browser',
   },
   base: isGhPages ? ghPagesChatBase : '/spark-chat/',
   headScripts: [
