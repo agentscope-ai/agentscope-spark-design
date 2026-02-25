@@ -84,17 +84,17 @@ jobs:
       - name: Generate root index.html redirect
         run: node scripts/generate-docs-index.js
 
-      - name: Copy dist to build
+      - name: Prepare aone-pages output
         run: |
-          mkdir -p build
-          cp -r dist/* build/
-          cp -r .aoneci build/
+          mkdir -p aone-output/build
+          cp -r dist/* aone-output/build/
+          cp -r .aoneci aone-output/
 
       - name: Deploy to aone-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: aone-pages
-          publish_dir: build
+          publish_dir: aone-output
 
 
