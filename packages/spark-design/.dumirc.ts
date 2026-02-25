@@ -15,10 +15,10 @@ export default defineConfig({
   },
   base: process.env.GITHUB_PAGES
     ? '/agentscope-spark-design/spark-design/'
-    : '/',
+    : '/spark-design/',
   publicPath: process.env.GITHUB_PAGES
     ? '/agentscope-spark-design/spark-design/'
-    : '/',
+    : '/spark-design/',
   outputPath: '../../dist/spark-design',
   favicons: ['https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg'],
   hash: false,
