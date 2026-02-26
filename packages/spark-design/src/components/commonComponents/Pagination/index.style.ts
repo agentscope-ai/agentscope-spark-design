@@ -46,7 +46,9 @@ export const useStyle = createGlobalStyle`
 .${(p) => p.antPrefix}-pagination-item-container 
 .${(p) => p.antPrefix}-pagination-item-ellipsis {
   color: var(--${(p) => p.antPrefix}-color-text);
-  left: -4px;
   font-family: serif;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 `;
