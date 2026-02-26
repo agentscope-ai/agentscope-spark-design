@@ -23,6 +23,12 @@ export default () => {
           <Tag color={color} size="small">
             Tag SM
           </Tag>
+          <Tag color={color} bordered={true}>
+            Tag MD
+          </Tag>
+          <Tag color={color} size="small" bordered={false}>
+            Tag SM
+          </Tag>
         </Flex>
       ))}
     </Flex>

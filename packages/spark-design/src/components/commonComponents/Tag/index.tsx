@@ -57,7 +57,7 @@ const SparkTag = forwardRef<any, SparkTagProps>((props, ref) => {
           `${sparkPrefix}-tag ${sparkPrefix}-tag-${color} ${sparkPrefix}-tag-${size}`,
           className,
         )}
-        bordered={bordered}
+        variant={bordered ? 'outlined' : 'filled'}
         color={isSparkTagColor ? undefined : color}
         {...restProps}
         ref={ref}

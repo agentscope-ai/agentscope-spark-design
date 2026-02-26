@@ -31,6 +31,10 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-purple);
   }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-purple);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-pink {
@@ -38,6 +42,10 @@ export const useStyle = createGlobalStyle`
   background: var(--${(p) => p.antPrefix}-color-pink-bg);
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-pink);
+  }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-pink);
   }
 }
 
@@ -47,6 +55,10 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-yellow);
   }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-yellow);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-teal {
@@ -55,6 +67,10 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-teal);
   }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-teal);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-blue {
@@ -62,7 +78,11 @@ export const useStyle = createGlobalStyle`
   background: var(--${(p) => p.antPrefix}-color-blue-bg);
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-blue);
-}
+  }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-blue);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-mauve {
@@ -70,6 +90,10 @@ export const useStyle = createGlobalStyle`
   background: var(--${(p) => p.antPrefix}-color-mauve-bg);
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-mauve);
+  }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-mauve);
   }
 }
 
@@ -79,6 +103,10 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-success);
   }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-success);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-error {
@@ -86,6 +114,10 @@ export const useStyle = createGlobalStyle`
   background: var(--${(p) => p.antPrefix}-color-error-bg);
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-error);
+  }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-error);
   }
 }
 
@@ -95,6 +127,10 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-warning);
   }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-warning);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-info {
@@ -103,11 +139,19 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-tag-close-icon {
     color: var(--${(p) => p.antPrefix}-color-info);
   }
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-info);
+  }
 }
 
 .${(p) => p.sparkPrefix}-tag-transparent {
   color: var(--${(p) => p.antPrefix}-color-text-tertiary);
   background: transparent;
   border-color: var(--${(p) => p.antPrefix}-color-border-secondary);
+
+  &.${(p) => p.antPrefix}-tag-outlined {
+    border-color: var(--${(p) => p.antPrefix}-color-border-secondary);
+  }
 }
 `;
