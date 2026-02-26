@@ -6,6 +6,7 @@ export const useStyle = createGlobalStyle`
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-inline-end: var(--${(p) => p.antPrefix}-margin-xs);
   
   .${(p) => p.antPrefix}-tag-close-icon {
     margin-left: 0;

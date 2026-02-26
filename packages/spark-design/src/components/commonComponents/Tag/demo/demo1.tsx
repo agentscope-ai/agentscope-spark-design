@@ -18,7 +18,7 @@ export default () => {
   return (
     <Flex align="center" vertical gap={16}>
       {COLOR_LIST.map((color) => (
-        <Flex key={color} gap={16} align="center">
+        <Flex key={color}  align="center">
           <Tag color={color}>Tag MD</Tag>
           <Tag color={color} size="small">
             Tag SM
@@ -26,8 +26,8 @@ export default () => {
           <Tag color={color} bordered={true}>
             Tag MD
           </Tag>
-          <Tag color={color} size="small" bordered={false}>
-            Tag SM
+          <Tag color={color} bordered={true} size="small">
+            Tag MD
           </Tag>
         </Flex>
       ))}
