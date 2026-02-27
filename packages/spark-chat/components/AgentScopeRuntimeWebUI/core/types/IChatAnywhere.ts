@@ -32,6 +32,10 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
   }) => Promise<Response>;
 
+  cancel?: (data: {
+    session_id: string;
+  }) => void;
+
   enableHistoryMessages?: boolean;
   
   responseParser?: (

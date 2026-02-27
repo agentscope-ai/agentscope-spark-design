@@ -122,6 +122,11 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           // 检查是否被中断
           if (currentQARef.current.response?.msgStatus === 'interrupted') {
             currentQARef.current.abortController?.abort();
+            if (currentApiOptions.cancel) {
+              currentApiOptions.cancel({
+                session_id: getCurrentSessionId(),
+              });
+            }
 
             currentQARef.current.response.cards = [
               {
