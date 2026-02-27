@@ -5,11 +5,12 @@ import { vscodeDark, vscodeLight } from '@uiw/codemirror-theme-vscode';
 import CodeMirror, { ReactCodeMirrorProps } from '@uiw/react-codemirror';
 import { ConfigProvider, theme } from 'antd';
 import classNames from 'classnames';
-import { Extension } from '@codemirror/state';
+import { ChangeSpec, EditorState, Extension } from '@codemirror/state';
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { useStyles } from './index.style';
 import VarRender from './VarRender';
 import VarSelectInput from './VarSelectInput';
+import { getCommonConfig } from '@/config';
 
 /**
  * PromptsEditor 组件属性
@@ -76,6 +77,7 @@ const Editor = (props: PromptsEditorProps) => {
   const [ready, setReady] = useState(false);
   const context = React.useContext(ConfigProvider.ConfigContext);
   const isDarkMode = context.theme?.algorithm === theme.darkAlgorithm;
+  const { antPrefix } = getCommonConfig();
 
   const getTheme = useMemo(() => {
     if (isDarkMode) {
@@ -84,19 +86,46 @@ const Editor = (props: PromptsEditorProps) => {
     return vscodeLight;
   }, [isDarkMode]);
 
+  const maxLengthExtension = useMemo(() => {
+    if (!maxLength) return [];
+    return [
+      EditorState.transactionFilter.of((tr) => {
+        if (!tr.docChanged || tr.newDoc.length <= maxLength) return tr;
+        const over = tr.newDoc.length - maxLength;
+        const changes: ChangeSpec[] = [];
+        tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+          const insertedText = inserted.toString();
+          if (insertedText.length > 0) {
+            const allowed = Math.max(0, insertedText.length - over);
+            changes.push({ from: fromA, to: toA, insert: insertedText.slice(0, allowed) });
+          } else {
+            changes.push({ from: fromA, to: toA, insert: '' });
+          }
+        });
+        return [{
+          changes,
+          sequential: true,
+        }];
+      }),
+    ];
+  }, [maxLength]);
+
   const extensions = useMemo(
-    () => customExtensions || [
-      ...langExtensionsMap['markdown'],
-      ...VarRender,
-      VarSelectInput(
-        [...variables].map((item) => ({
-          label: `/${item.code}`,
-          info: item.label,
-        })) || [],
-        { onCreate, createBtnText },
-      ),
+    () => [
+      ...(customExtensions || [
+        ...langExtensionsMap['markdown'],
+        ...VarRender,
+        VarSelectInput(
+          [...variables].map((item) => ({
+            label: `/${item.code}`,
+            info: item.label,
+          })) || [],
+          { onCreate, createBtnText },
+        ),
+      ]),
+      ...maxLengthExtension,
     ],
-    [variables, customExtensions, onCreate, createBtnText],
+    [variables, customExtensions, onCreate, createBtnText, maxLengthExtension],
   );
 
   useEffect(() => {
@@ -145,7 +174,7 @@ const Editor = (props: PromptsEditorProps) => {
       <div className={styles.footer}>
         {tips}
         {maxLength ? (
-          <div>
+          <div style={(value?.length || 0) > maxLength ? { color: `var(--${antPrefix}-color-error)` } : undefined}>
             {value?.length || 0}/{maxLength}
           </div>
         ) : null}
