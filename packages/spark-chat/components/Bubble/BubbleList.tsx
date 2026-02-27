@@ -97,11 +97,12 @@ function LoadMore({ handleLoadMore }: { handleLoadMore: () => Promise<void> }) {
   useEffect(() => {
     if (inViewport && previousInViewport === undefined) return;
     if (loading) return;
-    setLoading(true);
-    handleLoadMore().finally(() => {
-      setLoading(false);
-    });
-
+    if (inViewport) {
+      setLoading(true);
+      handleLoadMore().finally(() => {
+        setLoading(false);
+      });
+    }
 
   }, [previousInViewport, inViewport, loading, handleLoadMore])
 
