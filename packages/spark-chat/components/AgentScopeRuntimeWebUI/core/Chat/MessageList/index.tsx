@@ -19,6 +19,7 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
 
   return <Bubble.List
     smooth={!!loading}
+    pagination={true}
     key={currentSessionId}
     classNames={{
       wrapper: prefixCls,

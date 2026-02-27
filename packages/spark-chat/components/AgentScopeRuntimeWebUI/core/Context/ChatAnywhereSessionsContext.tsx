@@ -91,12 +91,17 @@ export const useChatAnywhereSessions = () => {
 
 
   useAsyncEffect(async () => {
-    // ReactDOM.flushSync(() => {
-    //   setMessages([])
-    // })
+    ReactDOM.flushSync(() => {
+      setMessages([])
+    })
 
     const messages = (await options.api.getSession(currentSessionId))?.messages || [];
-    setMessages(messages);
+    setMessages(messages.map(item => {
+      return {
+        ...item,
+        history: true,
+      }
+    }));
   }, [currentSessionId]);
 
 

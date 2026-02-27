@@ -19,6 +19,12 @@ export default createGlobalStyle`
   }
 }
 
+.${(p) => p.theme.prefixCls}-bubble-list-load-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .${(p) => p.theme.prefixCls}-bubble-list-scroll-to-bottom {
   position: absolute;
   left: 0;
