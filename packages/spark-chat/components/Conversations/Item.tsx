@@ -4,7 +4,7 @@ import type { DirectionType } from 'antd/es/config-provider';
 import pickAttrs from 'rc-util/lib/pickAttrs';
 import type { Conversation } from './interface';
 import { SparkMoreLine } from '@agentscope-ai/icons';
-import { Button, IconButton, Popover } from '@agentscope-ai/design';
+import { Button, Checkbox, IconButton, Popover } from '@agentscope-ai/design';
 
 export interface ConversationsItemProps
   extends Omit<React.HTMLAttributes<HTMLLIElement>, 'onClick'> {
@@ -56,7 +56,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
     `${prefixCls}-item`,
     { [`${prefixCls}-item-active`]: active && !disabled },
     { [`${prefixCls}-item-disabled`]: disabled },
-    { [`${prefixCls}-item-timeline`]: info.timeline },
+    { [`${prefixCls}-item-timeline`]: info.timeline || info.selectable },
   );
 
   const onInternalClick: React.MouseEventHandler<HTMLLIElement> = () => {
@@ -70,7 +70,14 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
       <div className={`${prefixCls}-content`}>
         {info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
         {
-          info.timeline && <div className={`${prefixCls}-timeline`} />
+          info.timeline || info.selectable && <div className={`${prefixCls}-timeline`}>
+            
+            {
+              info.selectable ? 
+                <div className={`${prefixCls}-timeline-checkbox`}><Checkbox  checked={info.selected} onChange={() => info.onSelect?.(info.key, !info.selected)} /></div> : 
+                <div className={`${prefixCls}-timeline-dot`} />
+            }
+          </div>
         }
         <Label
           editable={editable}
@@ -118,7 +125,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
         }
       </div>
       {
-        info.desc && <div className={`${prefixCls}-desc`} style={info.timeline ? { marginLeft: 16 } : {}} >{info.desc}</div>
+        info.desc && <div className={`${prefixCls}-desc`} style={info.timeline || info.selectable ? { marginLeft: 16 } : {}} >{info.desc}</div>
       }
     </li>
   );

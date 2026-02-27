@@ -30,12 +30,23 @@ export default createGlobalStyle`
   &-timeline {
     position: relative;
     z-index: 1;
-    width: 8px;
+    width: 16px;
     height: 8px;
-    border-radius: 8px;
-    background-color: ${(p) => p.theme.colorBgBase};
-    border: 1px solid ${(p) => p.theme.colorBorder};
-    margin-right: 8px;
+
+    &-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 8px;
+      background-color: ${(p) => p.theme.colorBgBase};
+      border: 1px solid ${(p) => p.theme.colorBorder};
+      margin-right: 8px;
+    }
+
+    &-checkbox {
+      position: absolute;
+      left: -4px;
+      top: -8px;
+    }
   }
 
   &-content {

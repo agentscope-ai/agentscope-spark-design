@@ -41,6 +41,21 @@ export interface Conversation extends AnyObject {
    * @descriptionEn Whether to show this conversation in timeline for grouped display
    */
   timeline?: boolean;
+  /**
+   * @description 是否可选择该会话，用于选择会话
+   * @descriptionEn Whether to select this conversation, for selecting conversation
+   */
+  selectable?: boolean;
+  /**
+   * @description 是否选中该会话，用于选中会话
+   * @descriptionEn Whether to select this conversation, for selecting conversation
+   */
+  selected?: boolean;
+  /**
+   * @description 选择会话的回调函数，用于选择会话
+   * @descriptionEn Callback function for selecting conversation, for selecting conversation
+   */
+  onSelect?: (key: Conversation['key'], selected: Conversation['selected']) => void;
 }
 
 export type GroupSorter = Parameters<GroupType[]['sort']>[0];
