@@ -70,7 +70,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
       <div className={`${prefixCls}-content`}>
         {info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
         {
-          info.timeline || info.selectable && <div className={`${prefixCls}-timeline`}>
+          (info.timeline || info.selectable) && <div className={`${prefixCls}-timeline`}>
             
             {
               info.selectable ? 

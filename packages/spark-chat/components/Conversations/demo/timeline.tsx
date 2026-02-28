@@ -59,7 +59,7 @@ const items = Array.from({ length: 10 }).map((_, index) => ({
   label: `What is Spark Design?`,
   desc: new Date(Date.now() - index * 1000).toLocaleString(),
   disabled: index === 3,
-  timeline: false,
+  timeline: true,
   selectable: true,
   selected: true,
   onSelect: (key: string, selected: boolean) => {
