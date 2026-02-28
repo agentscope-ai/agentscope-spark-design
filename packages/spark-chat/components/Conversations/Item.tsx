@@ -60,8 +60,11 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
   );
 
   const onInternalClick: React.MouseEventHandler<HTMLLIElement> = () => {
+    if (info.selectable) {
+      return info.onSelect?.(info.key, !info.selected);
+    }
     if (!disabled && onClick) {
-      onClick(info);
+      return onClick(info);
     }
   };
 
@@ -71,10 +74,10 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
         {info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
         {
           (info.timeline || info.selectable) && <div className={`${prefixCls}-timeline`}>
-            
+
             {
-              info.selectable ? 
-                <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox  checked={info.selected} onChange={() => info.onSelect?.(info.key, !info.selected)} /></div> : 
+              info.selectable ?
+                <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox checked={info.selected} onChange={() => info.onSelect?.(info.key, !info.selected)} /></div> :
                 <div className={`${prefixCls}-timeline-dot`} />
             }
           </div>
@@ -88,7 +91,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
         />
 
         {
-          menu && !disabled && (
+          menu && !disabled && !info.selectable && (
             <Popover
               styles={{ body: { padding: 4 } }}
               trigger={['click']}
