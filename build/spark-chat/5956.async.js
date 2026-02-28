@@ -1049,6 +1049,11 @@ const items = Array.from({ length: 10 }).map((_, index) => ({
   desc: new Date(Date.now() - index * 1000).toLocaleString(),
   disabled: index === 3,
   timeline: true,
+  selectable: true,
+  selected: true,
+  onSelect: (key: string, selected: boolean) => {
+    console.log(key, selected);
+  },
 }));
 
 function Layout(props: { children: ReactNode }) {
