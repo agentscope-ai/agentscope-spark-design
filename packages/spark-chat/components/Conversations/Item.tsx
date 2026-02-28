@@ -74,7 +74,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
             
             {
               info.selectable ? 
-                <div className={`${prefixCls}-timeline-checkbox`}><Checkbox  checked={info.selected} onChange={() => info.onSelect?.(info.key, !info.selected)} /></div> : 
+                <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox  checked={info.selected} onChange={() => info.onSelect?.(info.key, !info.selected)} /></div> : 
                 <div className={`${prefixCls}-timeline-dot`} />
             }
           </div>
