@@ -11,6 +11,10 @@ export const useInputSearchStyle = createGlobalStyle`
   font-size: 12px;
   height: 24px;
 }
+
+.${(p) => p.antPrefix}-input-search-button {
+  border-left: none;
+}
 `;
 
 export default useInputSearchStyle;

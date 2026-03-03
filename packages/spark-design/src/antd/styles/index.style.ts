@@ -5,6 +5,7 @@ import React from 'react';
 import { useAlertStyle } from './alert.style';
 import { useBreadcrumbStyle } from './breadcrumb.style';
 import { useButtonStyle } from './button.style';
+import { useCascaderStyle } from './cascader.style';
 import { useDropdownStyle } from './dropdown.style';
 import { useFloatButtonStyle } from './floatButton.style';
 import { useInputNumberStyle } from './inputNumber.style';
@@ -49,6 +50,7 @@ export const useIndexStyle = () => {
   const AlertStyle = useAlertStyle();
   const BreadcrumbStyle = useBreadcrumbStyle();
   const ButtonStyle = useButtonStyle();
+  const CascaderStyle = useCascaderStyle();
   const DropdownStyle = useDropdownStyle();
   const FloatButtonStyle = useFloatButtonStyle();
   const InputNumberStyle = useInputNumberStyle();
@@ -73,6 +75,7 @@ export const useIndexStyle = () => {
       React.createElement(AlertStyle),
       React.createElement(BreadcrumbStyle),
       React.createElement(ButtonStyle),
+      React.createElement(CascaderStyle),
       React.createElement(DropdownStyle),
       React.createElement(FloatButtonStyle),
       React.createElement(InputNumberStyle),
