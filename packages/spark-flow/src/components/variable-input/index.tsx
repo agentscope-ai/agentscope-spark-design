@@ -164,7 +164,7 @@ const VariableInput = ({
         }
       />
 
-      <div className="variable-input-content flex-1 w-[1px]">
+      <div className="variable-input-content flex-1 w-[1px] max-h-full">
         <VariableBaseInput
           disabled={disabled}
           isCompact
