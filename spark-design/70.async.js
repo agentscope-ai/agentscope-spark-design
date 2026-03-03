@@ -1,4 +1,4 @@
-(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[7714,1629],{39196:function(e,n,o){var c=o(26068).default,r=o(76744),p=o(54623);e.exports={"en-US":c({},r),"zh-CN":c({},p)}},89888:function(e,n,o){"use strict";o.r(n),o.d(n,{useStyle:function(){return g}});var c=o(53649),r=o.n(c),p=o(30764),u,g=(0,p.Z)(u||(u=r()([`
+(self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[70,1629],{39196:function(e,n,o){var l=o(26068).default,r=o(76744),p=o(54623);e.exports={"en-US":l({},r),"zh-CN":l({},p)}},89888:function(e,n,o){"use strict";o.r(n),o.d(n,{useStyle:function(){return g}});var l=o(53649),r=o.n(l),p=o(30764),u,g=(0,p.Z)(u||(u=r()([`
 .`,`-alert-dialog {
   .`,`-modal-body {
     padding: 0 0 12px 32px;
@@ -16,7 +16,7 @@
     max-width: 100%;
   }
 }
-`])),function(t){return t.sparkPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix})},7481:function(e,n,o){"use strict";o.r(n);var c=o(26068),r=o.n(c),p=o(67825),u=o.n(p),g=o(40965),t=o(58911),f=o(88602),_=o(62910),h=o(99090),d=o(90264),x=o(91301),i=o(82187),m=o.n(i),y=o(60213),k=o(89888),a=o(52676),R=["children","type","danger","title","width","className"],b=function(l){var s=function(I){var z=I.type,S=I.title,N=(0,y.getCommonConfig)(),F=N.antPrefix;switch(z){case"success":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(t.Z,{style:{color:"var(--".concat(F,"-color-success)"),fontSize:18,margin:"0 3px"}}),S]});case"warning":case"confirm":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(f.Z,{style:{color:"var(--".concat(F,"-color-warning)"),fontSize:18,margin:"0 3px"}}),S]});case"info":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(_.Z,{style:{color:"var(--".concat(F,"-color-info)"),fontSize:18,margin:"0 3px"}}),S]});case"error":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(h.Z,{style:{color:"var(--".concat(F,"-color-error)"),fontSize:18,margin:"0 3px"}}),S]});default:return g.Z.get({id:"components.commonComponents.AlertDialog.Prompt",dm:"\u63D0\u793A"})}},C=l.children,P=l.type,B=P===void 0?"info":P,T=l.danger,L=T===void 0?!1:T,O=l.title,A=l.width,M=A===void 0?"400px":A,D=l.className,Z=D===void 0?"":D,j=u()(l,R);return{width:M,transitionName:"",restProps:j,closeIcon:null,title:s({type:B,title:O}),okButtonProps:{danger:B==="error"||B==="warning"||L},destroyOnClose:!0,className:m()(Z,"animate-in","".concat((0,y.getCommonConfig)().sparkPrefix,"-alert-dialog")),content:l.content||C,children:C}},w=function(l){var s=b(l),C=(0,k.useStyle)();return(0,a.jsxs)(a.Fragment,{children:[(0,a.jsx)(C,{}),(0,a.jsx)(x.Z,r()(r()({width:s.width,transitionName:""},s.restProps),{},{closeIcon:null,title:s.title,okButtonProps:s.okButtonProps||{},destroyOnClose:s.destroyOnClose,className:s.className,children:s.content||s.children}))]})},E=["success","info","warning","error","confirm"];E.forEach(function(v){w[v]=function(l){var s=b(r()(r()({},l),{},{type:v}));function C(){var P=(0,k.useStyle)();return(0,a.jsxs)(a.Fragment,{children:[(0,a.jsx)(P,{}),s.content]})}return x.Z.confirm(r()(r()(r()({},s),s.restProps),{},{content:(0,a.jsx)(C,{}),icon:null}))}}),n.default=w},85568:function(e,n,o){"use strict";o.r(n),o.d(n,{useStyle:function(){return g}});var c=o(53649),r=o.n(c),p=o(30764),u,g=(0,p.Z)(u||(u=r()([`
+`])),function(t){return t.sparkPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix})},7481:function(e,n,o){"use strict";o.r(n);var l=o(26068),r=o.n(l),p=o(67825),u=o.n(p),g=o(40965),t=o(58911),f=o(88602),_=o(62910),h=o(99090),d=o(90264),x=o(91301),i=o(82187),m=o.n(i),y=o(60213),k=o(89888),a=o(52676),R=["children","type","danger","title","width","className"],b=function(c){var s=function(I){var z=I.type,S=I.title,N=(0,y.getCommonConfig)(),F=N.antPrefix;switch(z){case"success":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(t.Z,{style:{color:"var(--".concat(F,"-color-success)"),fontSize:18,margin:"0 3px"}}),S]});case"warning":case"confirm":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(f.Z,{style:{color:"var(--".concat(F,"-color-warning)"),fontSize:18,margin:"0 3px"}}),S]});case"info":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(_.Z,{style:{color:"var(--".concat(F,"-color-info)"),fontSize:18,margin:"0 3px"}}),S]});case"error":return(0,a.jsxs)(d.Z,{align:"center",gap:8,className:"leading-[28px]",children:[(0,a.jsx)(h.Z,{style:{color:"var(--".concat(F,"-color-error)"),fontSize:18,margin:"0 3px"}}),S]});default:return g.Z.get({id:"components.commonComponents.AlertDialog.Prompt",dm:"\u63D0\u793A"})}},C=c.children,P=c.type,B=P===void 0?"info":P,T=c.danger,L=T===void 0?!1:T,O=c.title,A=c.width,M=A===void 0?"400px":A,D=c.className,Z=D===void 0?"":D,j=u()(c,R);return{width:M,transitionName:"",restProps:j,closeIcon:null,title:s({type:B,title:O}),okButtonProps:{danger:B==="error"||B==="warning"||L},destroyOnClose:!0,className:m()(Z,"animate-in","".concat((0,y.getCommonConfig)().sparkPrefix,"-alert-dialog")),content:c.content||C,children:C}},v=function(c){var s=b(c),C=(0,k.useStyle)();return(0,a.jsxs)(a.Fragment,{children:[(0,a.jsx)(C,{}),(0,a.jsx)(x.Z,r()(r()({width:s.width,transitionName:""},s.restProps),{},{closeIcon:null,title:s.title,okButtonProps:s.okButtonProps||{},destroyOnClose:s.destroyOnClose,className:s.className,children:s.content||s.children}))]})},E=["success","info","warning","error","confirm"];E.forEach(function(w){v[w]=function(c){var s=b(r()(r()({},c),{},{type:w}));function C(){var P=(0,k.useStyle)();return(0,a.jsxs)(a.Fragment,{children:[(0,a.jsx)(P,{}),s.content]})}return x.Z.confirm(r()(r()(r()({},s),s.restProps),{},{content:(0,a.jsx)(C,{}),icon:null}))}}),n.default=v},85568:function(e,n,o){"use strict";o.r(n),o.d(n,{useStyle:function(){return g}});var l=o(53649),r=o.n(l),p=o(30764),u,g=(0,p.Z)(u||(u=r()([`
 .`,`-radio-button-wrapper {
   border: none;
   background-color: transparent;
@@ -27,12 +27,18 @@
   }
   
   &::before {
-    display: none !important;
+    display: none;
   }
   
   &:not(:last-child) {
     margin-right: 12px;
   }
+}
+
+.`,"-radio-group-large .",`-radio-button-wrapper:first-child,
+.`,"-radio-group-small .",`-radio-button-wrapper:first-child {
+  border-start-start-radius: 6px;
+  border-end-start-radius: 6px;
 }
 
 .`,`-radio-group-ghost {
@@ -87,7 +93,7 @@
     background-color: var(--`,`-color-fill-tertiary);
   }
 }
-`])),function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.sparkPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix})},8893:function(e,n,o){"use strict";o.r(n);var c=o(26068),r=o.n(c),p=o(60213),u=o(6944),g=o(82187),t=o.n(g),f=o(85568),_=o(52676);n.default=function(h){var d=(0,p.getCommonConfig)(),x=d.sparkPrefix,i=d.antPrefix,m=h.ghost,y=m===void 0?!0:m,k=(0,f.useStyle)();return(0,_.jsxs)(_.Fragment,{children:[(0,_.jsx)(k,{}),(0,_.jsx)(u.ZP.Group,r()(r()({},h),{},{className:t()(h.className,h.bordered?"".concat(x,"-radio-group-bordered"):"",y?"".concat(i,"-radio-group-ghost"):""),optionType:"button"}))]})}},40965:function(e,n,o){"use strict";var c=o(31759),r=o.n(c),p=o(24341),u=o.n(p),g=o(39196),t=o.n(g),f="zh-cn",_;function h(i){f=i,u().locale(f||"zh-cn")}var d=function(m,y){var k=f==="zh-cn"?"zh-CN":"en-US",a=t()[k][m.id]||m.defaultString||"",R=a.replace(/\{(\w+)\}/g,function(b,w){return y[w]||b});return R};function x(i,m){return _||h(f),typeof i=="string"?d({id:i},m):(r()(i)==="object"&&i.dm&&(i.defaultMessage=i.dm),d({id:i.id,defaultString:i.dm},m))}n.Z={intl:_,get:x,updateLocale:h,language:f}},87116:function(e,n){"use strict";n.Z=`import { Alert } from '@agentscope-ai/design';
+`])),function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.sparkPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix},function(t){return t.antPrefix})},8893:function(e,n,o){"use strict";o.r(n);var l=o(26068),r=o.n(l),p=o(60213),u=o(6944),g=o(82187),t=o.n(g),f=o(85568),_=o(52676);n.default=function(h){var d=(0,p.getCommonConfig)(),x=d.sparkPrefix,i=d.antPrefix,m=h.ghost,y=m===void 0?!0:m,k=(0,f.useStyle)();return(0,_.jsxs)(_.Fragment,{children:[(0,_.jsx)(k,{}),(0,_.jsx)(u.ZP.Group,r()(r()({},h),{},{className:t()(h.className,h.bordered?"".concat(x,"-radio-group-bordered"):"",y?"".concat(i,"-radio-group-ghost"):""),optionType:"button"}))]})}},40965:function(e,n,o){"use strict";var l=o(31759),r=o.n(l),p=o(24341),u=o.n(p),g=o(39196),t=o.n(g),f="zh-cn",_;function h(i){f=i,u().locale(f||"zh-cn")}var d=function(m,y){var k=f==="zh-cn"?"zh-CN":"en-US",a=t()[k][m.id]||m.defaultString||"",R=a.replace(/\{(\w+)\}/g,function(b,v){return y[v]||b});return R};function x(i,m){return _||h(f),typeof i=="string"?d({id:i},m):(r()(i)==="object"&&i.dm&&(i.defaultMessage=i.dm),d({id:i.id,defaultString:i.dm},m))}n.Z={intl:_,get:x,updateLocale:h,language:f}},87116:function(e,n){"use strict";n.Z=`import { Alert } from '@agentscope-ai/design';
 
 export default () => {
   return (
@@ -866,6 +872,159 @@ export default () => {
     </Card>
   );
 };
+`},76039:function(e,n){"use strict";n.Z=`import { Cascader } from '@agentscope-ai/design';
+import { Flex } from 'antd';
+
+interface Option {
+  value: string;
+  label: string;
+  children?: Option[];
+  disabled?: boolean;
+}
+
+const options: Option[] = [
+  {
+    value: 'zhejiang',
+    label: 'Zhejiang',
+    children: [
+      {
+        value: 'hangzhou',
+        label: 'Hangzhou',
+        children: [
+          { value: 'xihu', label: 'West Lake' },
+          { value: 'xiaoshan', label: 'Xiaoshan' },
+        ],
+      },
+      {
+        value: 'ningbo',
+        label: 'Ningbo',
+        children: [{ value: 'dongqian', label: 'Dongqian Lake' }],
+      },
+    ],
+  },
+  {
+    value: 'jiangsu',
+    label: 'Jiangsu',
+    children: [
+      {
+        value: 'nanjing',
+        label: 'Nanjing',
+        children: [{ value: 'zhonghuamen', label: 'Zhong Hua Gate' }],
+      },
+    ],
+  },
+];
+
+const handleChange = (value: string[]) => {
+  console.log(value);
+};
+
+const App: React.FC = () => (
+  <Flex vertical gap="middle" align="center" justify="center">
+    <Cascader
+      options={options}
+      onChange={handleChange}
+      placeholder="Please select"
+      style={{ width: 240 }}
+    />
+
+    <Cascader
+      options={options}
+      defaultValue={['zhejiang', 'hangzhou', 'xihu']}
+      disabled
+      style={{ width: 240 }}
+    />
+
+    <Cascader
+      options={options}
+      onChange={handleChange}
+      status="error"
+      placeholder="Error status"
+      style={{ width: 240 }}
+    />
+  </Flex>
+);
+
+export default App;
+`},77847:function(e,n){"use strict";n.Z=`import { Cascader } from '@agentscope-ai/design';
+import { Flex } from 'antd';
+
+interface Option {
+  value: string;
+  label: string;
+  children?: Option[];
+}
+
+const options: Option[] = [
+  {
+    value: 'zhejiang',
+    label: 'Zhejiang',
+    children: [
+      {
+        value: 'hangzhou',
+        label: 'Hangzhou',
+        children: [
+          { value: 'xihu', label: 'West Lake' },
+          { value: 'xiaoshan', label: 'Xiaoshan' },
+        ],
+      },
+      {
+        value: 'ningbo',
+        label: 'Ningbo',
+        children: [{ value: 'dongqian', label: 'Dongqian Lake' }],
+      },
+    ],
+  },
+  {
+    value: 'jiangsu',
+    label: 'Jiangsu',
+    children: [
+      {
+        value: 'nanjing',
+        label: 'Nanjing',
+        children: [{ value: 'zhonghuamen', label: 'Zhong Hua Gate' }],
+      },
+    ],
+  },
+];
+
+const handleChange = (value: string[][]) => {
+  console.log(value);
+};
+
+const App: React.FC = () => (
+  <Flex vertical gap="middle" align="center" justify="center">
+    <Cascader
+      multiple
+      options={options}
+      onChange={handleChange}
+      placeholder="Please select"
+      style={{ width: 367 }}
+    />
+
+    <Cascader
+      multiple
+      options={options}
+      defaultValue={[
+        ['zhejiang', 'hangzhou', 'xihu'],
+        ['jiangsu', 'nanjing', 'zhonghuamen'],
+      ]}
+      disabled
+      style={{ width: 367 }}
+    />
+
+    <Cascader
+      multiple
+      options={options}
+      onChange={handleChange}
+      status="error"
+      placeholder="Error status"
+      style={{ width: 367 }}
+    />
+  </Flex>
+);
+
+export default App;
 `},50028:function(e,n){"use strict";n.Z=`import { Checkbox, CheckboxProps } from '@agentscope-ai/design';
 import React from 'react';
 
@@ -3239,12 +3398,18 @@ export const useStyle = createGlobalStyle\`
   }
   
   &::before {
-    display: none !important;
+    display: none;
   }
   
   &:not(:last-child) {
     margin-right: 12px;
   }
+}
+
+.\${(p) => p.antPrefix}-radio-group-large .\${(p) => p.antPrefix}-radio-button-wrapper:first-child,
+.\${(p) => p.antPrefix}-radio-group-small .\${(p) => p.antPrefix}-radio-button-wrapper:first-child {
+  border-start-start-radius: 6px;
+  border-end-start-radius: 6px;
 }
 
 .\${(p) => p.antPrefix}-radio-group-ghost {

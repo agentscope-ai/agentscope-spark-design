@@ -1,29 +1,23 @@
 (self.webpackChunk_agentscope_ai_design=self.webpackChunk_agentscope_ai_design||[]).push([[1561],{33194:function(_,u,e){"use strict";e.r(u);var m=e(15558),f=e.n(m),p=e(48305),x=e.n(p),E=e(60213),r=e(90118),y=e(96295),k=e(18762),M=e(5420),j=e(90264),b=e(78929),R=e(75271),o=e(52676),C=function(){var a=(0,R.useState)([]),D=x()(a,2),v=D[0],t=D[1],n=(0,E.getCommonConfig)(),A=n.antPrefix,O=[{title:"Title",dataIndex:"title",key:"title"},{title:"Content",dataIndex:"content",key:"content"},{title:"Switch",dataIndex:"switch",key:"switch",render:function(l,g){var s=g.key;return(0,o.jsx)(r.Z,{size:"small",checked:!v[s],onChange:function(){var c=f()(v);c[s]=!c[s],t(c)},label:v[s]?"Closed":"Opening"})}},{title:"Status",dataIndex:"status",key:"status",render:function(l,g){var s=g.status;return(0,o.jsxs)(j.Z,{align:"center",gap:4,children:[(0,o.jsx)(M.Z,{style:{color:"var(--".concat(A,"-color-success)"),fontSize:18}}),(0,o.jsx)("span",{children:s})]})}},{title:"Tags",key:"tags",dataIndex:"tags",render:function(l,g){var s=g.tags;return(0,o.jsx)(o.Fragment,{children:s.map(function(d){return(0,o.jsx)(y.Z,{color:"purple",bordered:!1,children:d.toUpperCase()},d)})})}},{title:"Operate",key:"operate",render:function(l){return(0,o.jsx)(b.Z,{size:"middle",children:(0,o.jsx)("a",{children:"Operate"})})}}],T=new Array(3).fill(0).map(function(h,l){return{key:l.toString(),title:"First Column Row ".concat(l+1),content:"Content Row ".concat(l+1),switch:"Switch Row ".concat(l+1),status:"Status Row ".concat(l+1),tags:["Tag".concat(l+1)]}});return(0,o.jsx)(k.Z,{columns:O,dataSource:T,pagination:{pageSize:10}})};u.default=C},74176:function(_,u,e){"use strict";e.r(u);var m=e(26068),f=e.n(m),p=e(15558),x=e.n(p),E=e(48305),r=e.n(E),y=e(60213),k=e(90118),M=e(96295),j=e(18762),b=e(5420),R=e(90264),o=e(78929),C=e(75271),i=e(52676),a=function(){var v=(0,C.useState)([]),t=r()(v,2),n=t[0],A=t[1],O=(0,y.getCommonConfig)(),T=O.antPrefix,h=[{title:"Title",dataIndex:"title",key:"title"},{title:"Content",dataIndex:"content",key:"content"},{title:"Switch",dataIndex:"switch",key:"switch",render:function(d,c){var P=c.key;return(0,i.jsx)(k.Z,{size:"small",checked:!n[P],onChange:function(){var L=x()(n);L[P]=!L[P],A(L)},label:n[P]?"Closed":"Opening"})}},{title:"Status",dataIndex:"status",key:"status",render:function(d,c){var P=c.status;return(0,i.jsxs)(R.Z,{align:"center",gap:4,children:[(0,i.jsx)(b.Z,{style:{color:"var(--".concat(T,"-color-success)"),fontSize:18}}),(0,i.jsx)("span",{children:P})]})}},{title:"Tags",key:"tags",dataIndex:"tags",render:function(d,c){var P=c.tags;return(0,i.jsx)(i.Fragment,{children:P.map(function(I){return(0,i.jsx)(M.Z,{color:"purple",bordered:!1,children:I.toUpperCase()},I)})})}},{title:"Operate",key:"operate",render:function(d){return(0,i.jsx)(o.Z,{size:"middle",children:(0,i.jsx)("a",{children:"Operate"})})}}],l=[{key:"1",title:"First Column Row 1",content:"Content Row 1",switch:"Switch Row 1",status:"Status Row 1",tags:["Tag1"]},{key:"2",title:"First Column Row 2",content:"Content Row 2",switch:"Switch Row 2",status:"Status Row 2",tags:["Tag2"]},{key:"3",title:"First Column Row 3",content:"Content Row 3",switch:"Switch Row 3",status:"Status Row 3",tags:["Tag3"]}],g={onChange:function(d,c){console.log("selectedRowKeys: ".concat(d),"selectedRows: ",c)}};return(0,i.jsx)(j.Z,{columns:h,dataSource:l,rowSelection:f()({type:"radio"},g),pagination:!1})};u.default=a},28442:function(_,u,e){"use strict";e.r(u);var m=e(26068),f=e.n(m),p=e(15558),x=e.n(p),E=e(48305),r=e.n(E),y=e(60213),k=e(90118),M=e(96295),j=e(18762),b=e(5420),R=e(90264),o=e(78929),C=e(75271),i=e(52676),a=function(){var v=(0,C.useState)([]),t=r()(v,2),n=t[0],A=t[1],O=(0,y.getCommonConfig)(),T=O.antPrefix,h=[{title:"Title",dataIndex:"title",key:"title"},{title:"Content",dataIndex:"content",key:"content"},{title:"Switch",dataIndex:"switch",key:"switch",render:function(d,c){var P=c.key;return(0,i.jsx)(k.Z,{size:"small",checked:!n[P],onChange:function(){var L=x()(n);L[P]=!L[P],A(L)},label:n[P]?"Closed":"Opening"})}},{title:"Status",dataIndex:"status",key:"status",render:function(d,c){var P=c.status;return(0,i.jsxs)(R.Z,{align:"center",gap:4,children:[(0,i.jsx)(b.Z,{style:{color:"var(--".concat(T,"-color-success)"),fontSize:18}}),(0,i.jsx)("span",{children:P})]})}},{title:"Tags",key:"tags",dataIndex:"tags",render:function(d,c){var P=c.tags;return(0,i.jsx)(i.Fragment,{children:P.map(function(I){return(0,i.jsx)(M.Z,{color:"purple",bordered:!1,children:I.toUpperCase()},I)})})}},{title:"Operate",key:"operate",render:function(d){return(0,i.jsx)(o.Z,{size:"middle",children:(0,i.jsx)("a",{children:"Operate"})})}}],l=[{key:"1",title:"First Column Row 1",content:"Content Row 1",switch:"Switch Row 1",status:"Status Row 1",tags:["Tag1"]},{key:"2",title:"First Column Row 2",content:"Content Row 2",switch:"Switch Row 2",status:"Status Row 2",tags:["Tag2"]},{key:"3",title:"First Column Row 3",content:"Content Row 3",switch:"Switch Row 3",status:"Status Row 3",tags:["Tag3"]}],g={onChange:function(d,c){console.log("selectedRowKeys: ".concat(d),"selectedRows: ",c)},getCheckboxProps:function(d){return{disabled:d.title==="First Column Row 2"}}};return(0,i.jsx)(j.Z,{columns:h,dataSource:l,rowSelection:f()({type:"checkbox"},g),pagination:!1})};u.default=a},67239:function(_,u,e){"use strict";e.r(u);var m=e(15558),f=e.n(m),p=e(48305),x=e.n(p),E=e(60213),r=e(90118),y=e(96295),k=e(18762),M=e(5420),j=e(90264),b=e(78929),R=e(75271),o=e(52676),C=function(){var a=(0,R.useState)([]),D=x()(a,2),v=D[0],t=D[1],n=(0,E.getCommonConfig)(),A=n.antPrefix,O=[{title:"Key",dataIndex:"key",key:"key",sorter:function(l,g){return Number(l.key)-Number(g.key)},sortDirections:["descend"]},{title:"Title",dataIndex:"title",key:"title"},{title:"Content",dataIndex:"content",key:"content"},{title:"Switch",dataIndex:"switch",key:"switch",render:function(l,g){var s=g.key;return(0,o.jsx)(r.Z,{size:"small",checked:!v[s],onChange:function(){var c=f()(v);c[s]=!c[s],t(c)},label:v[s]?"Closed":"Opening"})}},{title:"Status",dataIndex:"status",key:"status",render:function(l,g){var s=g.status;return(0,o.jsxs)(j.Z,{align:"center",gap:4,children:[(0,o.jsx)(M.Z,{style:{color:"var(--".concat(A,"-color-success)"),fontSize:18}}),(0,o.jsx)("span",{children:s})]})}},{title:"Tags",key:"tags",dataIndex:"tags",render:function(l,g){var s=g.tags;return(0,o.jsx)(o.Fragment,{children:s.map(function(d){return(0,o.jsx)(y.Z,{color:"purple",bordered:!1,children:d.toUpperCase()},d)})})}},{title:"Operate",key:"operate",render:function(l){return(0,o.jsx)(b.Z,{size:"middle",children:(0,o.jsx)("a",{children:"Operate"})})}}],T=[{key:"1",title:"First Column Row 1",content:"Content Row 1",switch:"Switch Row 1",status:"Status Row 1",tags:["Tag1"]},{key:"2",title:"First Column Row 2",content:"Content Row 2",switch:"Switch Row 2",status:"Status Row 2",tags:["Tag2"]},{key:"3",title:"First Column Row 3",content:"Content Row 3",switch:"Switch Row 3",status:"Status Row 3",tags:["Tag3"]}];return(0,o.jsx)(k.Z,{columns:O,dataSource:T,pagination:!1})};u.default=C},47525:function(_,u,e){"use strict";e.d(u,{X:function(){return E}});var m=e(53649),f=e.n(m),p=e(30764),x,E=(0,p.Z)(x||(x=f()([`
 .`,`-pagination {
-  color: var(--`,`-color-text) !important;
-  font-weight: 500 !important;
-  
-  .`,`-pagination-total-text {
+  color: var(--`,`-color-text);
+  font-weight: 500;
+
+  a {
+    color: var(--`,`-color-text);
     font-weight: 500;
   }
   
-  .`,`-select-selection-item {
+  .`,"-pagination-total-text, .",`-select-selection-item {
     font-weight: 500;
   }
-  
   .`,`-pagination-item-active {
     border-color: var(--`,`-color-border-secondary);
     border-radius: 8px;
-    font-weight: 
-    
-    a {
-      color: var(--`,`-color-text) !important;
-    }
-  }
-  
-  a {
-    color: var(--`,`-color-text) !important;
-    font-weight: 500 !important;
+      a {
+        color: var(--`,`-color-text);
+        font-weight: 500;
+      }
   }
   
   .`,`-pagination-jump-next {
