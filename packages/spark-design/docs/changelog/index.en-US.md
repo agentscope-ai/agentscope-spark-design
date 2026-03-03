@@ -3,6 +3,17 @@ hero:
   title: Changelog
   description: Release versions follow Semantic Versioning 2.0.0.
 ---
+### 1.0.30
+`2025-03-03`
+
+#### Fixed
+- Removed `!important` styles from several components (Breadcrumb, DatePicker, Pagination, RadioButton, Steps)
+- Empty: Illustrate SVG loader no longer uses Symbol-based caching, preventing empty SVG rendering caused by duplicate cache entries
+- PromptsEditor: added `maxLength` support, consistent with native Textarea behavior
+- InputSearch: removed the left border of the suffix icon; updated hover and focus states to apply border and shadow to the entire input group
+
+#### Changed
+- Added Cascader component documentation
 
 ### 1.0.29
 `2025-02-06`

@@ -10,6 +10,7 @@ hero:
 - 移除部分组件（Breadcrumb、DatePicker、Pagination、RadioButton、Steps）中 !important 类型样式
 - Empty 组件中 svg 加载组件 Illustrate 不再使用 Symbol 缓存 svg，避免 svg 重复加载缓存出现空的情况
 - PromptsEditor 支持 maxLength 限制，与 Textarea 行为保持一致
+- InputSearch 样式优化：移除后缀 icon 左侧边框，hover 与 focus 状态下整体边框与阴影交互状态修改
 
 #### Changed
 - 添加 Cascader 组件文档
