@@ -3,6 +3,16 @@ hero:
   title: 更新日志
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
+### 1.0.30
+`2025-03-03`
+
+#### Fixed
+- 移除部分组件（Breadcrumb、DatePicker、Pagination、RadioButton、Steps）中 !important 类型样式
+- Empty 组件中 svg 加载组件 Illustrate 不再使用 Symbol 缓存 svg，避免 svg 重复加载缓存出现空的情况
+- PromptsEditor 支持 maxLength 限制，与 Textarea 行为保持一致
+
+#### Changed
+- 添加 Cascader 组件文档
 
 ### 1.0.29
 `2025-02-06`

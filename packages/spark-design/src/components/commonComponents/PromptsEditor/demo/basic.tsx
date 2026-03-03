@@ -27,7 +27,7 @@ export default function Basic() {
       tipsText={false}
       value={value}
       onChange={setValue}
-      maxLength={200}
+      maxLength={5000}
       variables={[
         { code: 'city' },
         { code: 'foo' },
