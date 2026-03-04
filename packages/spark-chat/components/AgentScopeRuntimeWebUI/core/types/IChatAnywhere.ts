@@ -30,6 +30,7 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
   fetch?: (data: {
     input: any[];
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+    signal?: AbortSignal;
   }) => Promise<Response>;
 
   cancel?: (data: {
