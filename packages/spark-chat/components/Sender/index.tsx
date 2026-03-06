@@ -439,7 +439,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
-      {loading ? <LoadingButton loading={loading} /> : <SendButton />}
+      {loading ? <LoadingButton loading={loading} disabled={!!disabled} /> : <SendButton disabled={!!disabled} />}
     </Flex>
   );
 
