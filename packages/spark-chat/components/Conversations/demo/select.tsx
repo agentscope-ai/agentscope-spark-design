@@ -1,9 +1,9 @@
 import { Button } from '@agentscope-ai/design';
 import { createStyles } from 'antd-style';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 import { HistoryPanel } from '@agentscope-ai/chat';
 import { SparkDeleteLine, SparkEditLine, SparkPlusLine } from '@agentscope-ai/icons';
-
+import defaultData from './mock.json';
 
 const useStyles = createStyles(({ token }) => {
   return {
@@ -54,13 +54,6 @@ const useStyles = createStyles(({ token }) => {
   };
 });
 
-const items = Array.from({ length: 10 }).map((_, index) => ({
-  key: `item${index + 1}`,
-  label: `What is Spark Design?`,
-  desc: new Date(Date.now() - index * 1000).toLocaleString(),
-  disabled: index === 3,
-  timeline: true,
-}));
 
 function Layout(props: { children: ReactNode }) {
   const { styles, cx, theme } = useStyles();
@@ -68,9 +61,15 @@ function Layout(props: { children: ReactNode }) {
   return <div className={styles.layout}>{props.children}</div>
 }
 
+
 export default function () {
-  const [open, setOpen] = useState(false);
+  const [selectable, setSelectable] = useState(true);
   const { styles, cx, theme } = useStyles();
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  const handleSelectChange = useCallback((keys: string[]) => {
+    setSelectedKeys(keys);
+  }, []);
 
   return <Layout>
     <div className={styles.left}>
@@ -78,12 +77,15 @@ export default function () {
         <strong>SPARK CHAT</strong>
       </div>
       <div className={styles.btn}>
-        <Button block type="primary" icon={<SparkPlusLine />}>
-          New Chat
-        </Button>
+        <Button size="small" onClick={() => setSelectable(!selectable)}>selectable</Button>
+        <Button size="small" onClick={() => setSelectedKeys([])}>clear</Button>
+        <Button size="small" onClick={() => setSelectedKeys(defaultData.map((item) => item.key))}>select all</Button>
       </div>
       <div className={styles.list}>
         <HistoryPanel
+          selectable={selectable}
+          selectedKeys={selectedKeys}
+          onSelectChange={handleSelectChange}
           menu={[
             {
               label: '编辑',
@@ -104,7 +106,7 @@ export default function () {
               },
             },
           ]}
-          items={items} defaultActiveKey="item1" />
+          items={defaultData} defaultActiveKey="item1" />
       </div>
     </div>
   </Layout>
