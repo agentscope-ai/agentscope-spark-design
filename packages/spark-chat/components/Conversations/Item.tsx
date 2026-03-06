@@ -179,6 +179,7 @@ function Input({ prefixCls, value, onBlur, setEditable }) {
     ref={ref}
     className={`${prefixCls}-label-edit`}
     value={v}
+    onClick={e => e.stopPropagation()}
     onChange={e => sv(e.target.value)}
     onBlur={() => onBlur(v)}
   />;
