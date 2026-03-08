@@ -14,12 +14,12 @@ description: Chat Bubble
 
 The following are examples and variations of this component
 
+<code src="./demo/avatar.tsx" height="auto">With Avatar</code>
 <code src="./demo/userWithImage.tsx" height="auto">With Image</code>
 <code src="./demo/userWithFile.tsx" height="auto">With File</code>
 
 #### Model Bubble Examples
 The following are examples and variations of this component
-
 
 <code src="./demo/assistantWithCode.tsx" height="auto">With Code</code>
 <code src="./demo/assistantWithImage.tsx" height="auto">With Image</code>
