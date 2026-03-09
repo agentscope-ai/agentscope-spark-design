@@ -91,3 +91,8 @@ export {
   type IAssetsPreviewProps,
 } from './AssetsPreview';
 export { Sandbox as GenerativeUISandbox } from './GenerativeUI';
+
+export {
+  default as WelcomePrompts,
+  type IWelcomePromptsProps,
+} from './WelcomePrompts';
