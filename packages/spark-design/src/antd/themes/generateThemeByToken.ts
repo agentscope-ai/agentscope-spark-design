@@ -79,7 +79,6 @@ export default function generateThemeByToken(
           lineHeight: '20px',
         },
         Badge: {
-          colorError: token.colorPrimary as string,
           indicatorHeight: 16,
           textFontSize: 10,
         },
