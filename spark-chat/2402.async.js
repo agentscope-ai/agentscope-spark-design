@@ -1,4 +1,4 @@
-"use strict";(self.webpackChunk_agentscope_ai_chat=self.webpackChunk_agentscope_ai_chat||[]).push([[5956],{42084:function(e,n){n.Z=`import React, { useMemo, useRef, useState } from 'react';
+"use strict";(self.webpackChunk_agentscope_ai_chat=self.webpackChunk_agentscope_ai_chat||[]).push([[2402],{42084:function(e,n){n.Z=`import React, { useMemo, useRef, useState } from 'react';
 import { GetProp, Select } from 'antd';
 import { SparkAttachmentLine } from '@agentscope-ai/icons';
 import { ChatInput, Attachments } from '@agentscope-ai/chat';
@@ -776,6 +776,41 @@ Today, City Pop has experienced a resurgence in popularity, particularly among y
     }
   ]}
     role="assistant"></Bubble>
+}`},47761:function(e,n){n.Z=`import { Bubble, DefaultCards } from '@agentscope-ai/chat';
+import { Flex } from 'antd';
+import { SparkCopyLine, SparkThumbsUpLine, SparkThumbsDownLine, SparkReplaceLine } from '@agentscope-ai/icons';
+
+
+export default function () {
+  return <Flex vertical gap={24}>
+    <Bubble cards={[
+      {
+        code: 'Text',
+        data: {
+          content: 'what is citypop'
+        }
+      },
+    ]} role="user"></Bubble>
+    <Bubble
+      avatar={{
+        src: 'https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg',
+      }}
+
+      cards={[
+        {
+          code: 'Text',
+          data: {
+            content: \`City Pop, short for City Pop, is a genre of music that originated in Japan during the late 1970s and early 1980s. It blends elements of jazz, folk, easy listening, and AOR (Adult Oriented Rock) with a distinctly urban feel. The term "City Pop" often evokes images of the sophisticated, stylish, and sometimes nostalgic lifestyle of Tokyo and other major Japanese cities during this period.
+City Pop is characterized by its smooth melodies, mellow rhythms, and often dreamy or introspective lyrics. Common themes include city life, summer vibes, nature, and romantic encounters. The music is frequently associated with a particular aesthetic that reflects the fashion, design, and cultural trends of urban Japan in the 1980s.
+Some notable City Pop artists include Mariya Takeuchi, known for her iconic song " Plastic Love," and Joe Hisaishi, a composer famous for his work on Studio Ghibli films, though he is not strictly considered a City Pop artist.
+Today, City Pop has experienced a resurgence in popularity, particularly among younger generations who appreciate its unique sound and the nostalgic value it holds.\`
+          },
+        }
+
+      ]}
+      role="assistant"></Bubble>
+
+  </Flex >
 }`},41821:function(e,n){n.Z=`import { Bubble, DefaultCards } from '@agentscope-ai/chat';
 import { Flex } from 'antd';
 import { SparkCopyLine, SparkThumbsUpLine, SparkThumbsDownLine, SparkReplaceLine } from '@agentscope-ai/icons';
@@ -1049,11 +1084,6 @@ const items = Array.from({ length: 10 }).map((_, index) => ({
   desc: new Date(Date.now() - index * 1000).toLocaleString(),
   disabled: index === 3,
   timeline: true,
-  selectable: true,
-  selected: true,
-  onSelect: (key: string, selected: boolean) => {
-    console.log(key, selected);
-  },
 }));
 
 function Layout(props: { children: ReactNode }) {
@@ -2024,7 +2054,7 @@ export default function () {
     ]}>
   </ChatInput>
 }
-`},89223:function(e,n){n.Z=`import React from 'react';
+`},5686:function(e,n){n.Z=`import React from 'react';
 import { Attachments, ChatInput } from '@agentscope-ai/chat';
 import { Button, GetProp, Upload } from 'antd';
 import { IconButton } from '@agentscope-ai/design';
@@ -2393,4 +2423,21 @@ export default function () {
   </Flex>
 }
 
+`},40739:function(e,n){n.Z=`import { WelcomePrompts } from '@agentscope-ai/chat';
+
+export default function () {
+  return (
+    <WelcomePrompts
+      avatar="https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg"
+      greeting="\u4F60\u597D\uFF0C\u6211\u662F AgentScope \u52A9\u624B"
+      description="\u6211\u53EF\u4EE5\u5E2E\u52A9\u4F60\u89E3\u7B54\u5404\u79CD\u95EE\u9898\uFF0C\u5FEB\u6765\u8BD5\u8BD5\u5427"
+      prompts={[
+        '\u5982\u4F55\u5FEB\u901F\u4E0A\u624B AgentScope\uFF1F',
+        '\u5E2E\u6211\u751F\u6210\u4E00\u6BB5 Python \u4EE3\u7801',
+        { label: '\u4ECB\u7ECD\u4E00\u4E0B\u591A\u667A\u80FD\u4F53\u534F\u4F5C', value: '\u4EC0\u4E48\u662F\u591A\u667A\u80FD\u4F53\u534F\u4F5C\uFF1F\u5B83\u6709\u54EA\u4E9B\u5E94\u7528\u573A\u666F\uFF1F' },
+      ]}
+      onClick={(query) => console.log('clicked:', query)}
+    />
+  );
+}
 `}}]);
