@@ -72,6 +72,12 @@ export default function () {
         ...optionsConfig.theme,
         rightHeader,
       },
+      api: {
+        ...optionsConfig.api,
+        cancel: (data) => {
+          console.log('cancel', data);
+        },
+      },
     };
   }, [optionsConfig]);
 

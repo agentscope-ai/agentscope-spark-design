@@ -5,6 +5,7 @@ export default createGlobalStyle`
   display: inline-flex;
   justify-content: center;
   align-self: flex-start;
+  margin-right: 6px;
 
   &-loading .${(p) => p.theme.prefixCls}-avatar::after {
     content: '';

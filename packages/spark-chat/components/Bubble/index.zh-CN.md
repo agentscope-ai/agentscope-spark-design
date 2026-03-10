@@ -13,7 +13,7 @@ description: 对话气泡
 #### 用户气泡示例
 
 以下是此组件的示例和变体
-
+<code src="./demo/avatar.tsx" height="auto">头像</code>
 <code src="./demo/userWithImage.tsx" height="auto">附带图片</code>
 <code src="./demo/userWithFile.tsx" height="auto">附带文件</code>
 

@@ -1,13 +1,14 @@
 import classnames from 'classnames';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { DirectionType } from 'antd/es/config-provider';
 import pickAttrs from 'rc-util/lib/pickAttrs';
 import type { Conversation } from './interface';
 import { SparkMoreLine } from '@agentscope-ai/icons';
 import { Button, Checkbox, IconButton, Popover } from '@agentscope-ai/design';
+import { useInViewport } from 'ahooks';
 
 export interface ConversationsItemProps
-  extends Omit<React.HTMLAttributes<HTMLLIElement>, 'onClick'> {
+  extends Omit<React.HTMLAttributes<HTMLLIElement>, 'onClick' | 'onSelect'> {
   info: Conversation;
   prefixCls?: string;
   direction?: DirectionType;
@@ -21,6 +22,9 @@ export interface ConversationsItemProps
     disabled?: boolean;
   }[];
   active?: boolean;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (key: string, selected: boolean) => void;
   onClick?: (info: Conversation) => void;
 }
 
@@ -39,15 +43,17 @@ export function useEditable(id) {
 }
 
 
-const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
+const ConversationsItem: React.FC<ConversationsItemProps> = React.memo((props) => {
   const [editable, setEditable] = useEditable(props.info.key);
   const [popoverVisible, setPopoverVisible] = useState(false);
-  const { prefixCls, info, className, direction, onClick, active, menu, ...restProps } = props;
+  const { prefixCls, info, className, direction, onClick, active, selectable, selected, onSelect, menu, ...restProps } = props;
   const domProps = pickAttrs(restProps, {
     aria: true,
     data: true,
     attr: true,
   });
+  const ref = useRef<HTMLLIElement>(null);
+  const [inViewport] = useInViewport(ref);
 
   const { disabled } = info;
 
@@ -56,12 +62,12 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
     `${prefixCls}-item`,
     { [`${prefixCls}-item-active`]: active && !disabled },
     { [`${prefixCls}-item-disabled`]: disabled },
-    { [`${prefixCls}-item-timeline`]: info.timeline || info.selectable },
+    { [`${prefixCls}-item-timeline`]: info.timeline || selectable },
   );
 
   const onInternalClick: React.MouseEventHandler<HTMLLIElement> = () => {
-    if (info.selectable) {
-      return info.onSelect?.(info.key, !info.selected);
+    if (selectable) {
+      return onSelect?.(info.key, !selected);
     }
     if (!disabled && onClick) {
       return onClick(info);
@@ -69,15 +75,15 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
   };
 
   return (
-    <li {...domProps} className={mergedCls} onClick={onInternalClick}>
-      <div className={`${prefixCls}-content`}>
+    <li ref={ref} {...domProps} className={mergedCls} onClick={onInternalClick} >
+      {inViewport && <div className={`${prefixCls}-content`}>
         {info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
         {
-          (info.timeline || info.selectable) && <div className={`${prefixCls}-timeline`}>
+          (info.timeline || selectable) && <div className={`${prefixCls}-timeline`}>
 
             {
-              info.selectable ?
-                <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox checked={info.selected} onChange={() => info.onSelect?.(info.key, !info.selected)} /></div> :
+              selectable ?
+                <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox checked={selected} onChange={() => onSelect?.(info.key, !selected)} /></div> :
                 <div className={`${prefixCls}-timeline-dot`} />
             }
           </div>
@@ -91,7 +97,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
         />
 
         {
-          menu && !disabled && !info.selectable && (
+          menu && !disabled && !selectable && (
             <Popover
               styles={{ body: { padding: 4 } }}
               trigger={['click']}
@@ -126,13 +132,13 @@ const ConversationsItem: React.FC<ConversationsItemProps> = (props) => {
             </Popover>
           )
         }
-      </div>
-      {
-        info.desc && <div className={`${prefixCls}-desc`} style={info.timeline || info.selectable ? { marginLeft: 16 } : {}} >{info.desc}</div>
+      </div>}
+      {inViewport &&
+        info.desc && <div className={`${prefixCls}-desc`} style={info.timeline || selectable ? { marginLeft: 16 } : {}} >{info.desc}</div>
       }
     </li>
   );
-};
+});
 
 function Label(props) {
   const { editable, prefixCls, info, setEditable, onEdit } = props;
@@ -179,6 +185,7 @@ function Input({ prefixCls, value, onBlur, setEditable }) {
     ref={ref}
     className={`${prefixCls}-label-edit`}
     value={v}
+    onClick={e => e.stopPropagation()}
     onChange={e => sv(e.target.value)}
     onBlur={() => onBlur(v)}
   />;
