@@ -61,11 +61,13 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
     const { enableHistoryMessages = false } = currentApiOptions;
+    const abortSignal = currentQARef.current.abortController?.signal;
     let response
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
         input: historyMessages,
         biz_params,
+        signal: abortSignal,
       }) : await fetch(currentApiOptions.baseURL, {
         method: 'POST',
         headers: {
@@ -78,6 +80,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           stream: true,
           biz_params,
         }),
+        signal: abortSignal,
       });
     } catch (error) {
     }

@@ -6,6 +6,7 @@ import { Markdown, useProviderContext } from '@agentscope-ai/chat';
 import Cards from './Cards';
 import Spin from './Spin';
 import Avatar from './Avatar';
+import AvatarStyle from './style/avatar';
 
 export interface BubbleRef {
   /**
@@ -105,6 +106,7 @@ const Bubble: React.FC<BubbleProps> = (props) => {
 
   return <>
     <Style />
+    <AvatarStyle />
     <div
       style={style}
       className={mergedCls}

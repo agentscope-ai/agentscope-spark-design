@@ -79,7 +79,6 @@ function SparkConfigProvider(props: SparkConfigProviderProps) {
         sparkPrefix: `${prefix}-${DEFAULT_SPARK_PREFIX}`, // spark组件的前缀
         prefix,
       };
-      console.log('debug', `${prefix}-${DEFAULT_SPARK_PREFIX}`);
     }
     setCommonConfig({
       ...newCommonConfig,
