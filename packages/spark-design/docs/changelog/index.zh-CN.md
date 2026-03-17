@@ -3,6 +3,38 @@ hero:
   title: 更新日志
   description: 组件库版本遵循 Semantic Versioning 2.0.0 语义化版本规范。
 ---
+### 1.0.30
+`2025-03-03`
+
+#### Fixed
+- 移除部分组件（Breadcrumb、DatePicker、Pagination、RadioButton、Steps）中 !important 类型样式
+- Empty 组件中 svg 加载组件 Illustrate 不再使用 Symbol 缓存 svg，避免 svg 重复加载缓存出现空的情况
+- PromptsEditor 支持 maxLength 限制，与 Textarea 行为保持一致
+- InputSearch 样式优化：移除后缀 icon 左侧边框，hover 与 focus 状态下整体边框与阴影交互状态修改
+
+#### Changed
+- 添加 Cascader 组件文档
+
+### 1.0.29
+`2025-02-06`
+
+#### Fixed
+- CodeBlock 组件样式文件移除 !important 类型样式，外层添加 .spark-code-block 容器类；props 支持 ReactCodeMirrorProps 类型参数透传
+- PromptsEditor 组件支持了 ReactCodeMirrorProps 类型参数透传，VarRender 修复了 ${} 类型变量输入识别问题
+- Steps 组件 vertical 类型垂直对齐问题修复
+- SlateEditor 组件将粘贴文本中的 CRLF 规范化为 LF，以便在 Windows 换行符环境下具有更好的兼容性
+- Tab 组件 segment 类型支持 className 透传
+
+### 1.0.28
+`2025-01-29`
+
+#### Changed
+- PromptsEditor 组件支持了 readOnly 参数
+- CodeBlock 组件支持了 extensions 参数，props 支持 ReactCodeMirrorProps 类型参数透传
+- MCP 工具名称升级，优化日志功能
+
+#### Fixed
+- Pagination 组件，修复了 showSizeChanger 和 pageSizeOptions 同时传入时，pageSizeOptions 不生效的问题
 
 ### 1.0.29
 `2025-02-06`

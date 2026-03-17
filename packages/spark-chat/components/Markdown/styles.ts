@@ -69,6 +69,17 @@ export default createGlobalStyle`
       font-weight: bold;
     }
 
+    &-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    &-download {
+      font-size: 16px;
+      cursor: pointer;
+    }
+
     &-icon {
       font-size: 16px;
       cursor: pointer;

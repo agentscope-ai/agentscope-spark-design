@@ -59,6 +59,10 @@ export interface IWorkFlowStore {
   setShowCheckList: (val: boolean) => void;
   NodeMenuItemRenderer?: (props: INodeMenuItemProps) => React.ReactNode;
   debounceChangeTimeout: number;
+  onFlowEvent?: (type: string, params: any) => void;
+  setOnFlowEvent: (fn: ((type: string, params: any) => void) | undefined) => void;
+  showNodeResultTargetButton: boolean;
+  setShowNodeResultTargetButton: (val: boolean) => void;
 }
 
 export const createWorkflowStore = (
@@ -108,6 +112,11 @@ export const createWorkflowStore = (
     showCheckList: false,
     setShowCheckList: (val) => set(() => ({ showCheckList: val })),
     debounceChangeTimeout: 300,
+    onFlowEvent: undefined,
+    setOnFlowEvent: (fn) => set(() => ({ onFlowEvent: fn })),
+    showNodeResultTargetButton: false,
+    setShowNodeResultTargetButton: (val) =>
+      set(() => ({ showNodeResultTargetButton: val })),
     ...initialState,
   }));
 };

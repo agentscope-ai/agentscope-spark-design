@@ -1,6 +1,7 @@
 export default () => {
   return {
     theme: {
+      locale: 'en',
       colorPrimary: '#615CED',
       darkMode: true,
       prefix: 'agentscope-runtime-webui',

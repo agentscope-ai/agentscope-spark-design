@@ -24,7 +24,6 @@ export type SliderInputProps = Omit<
 
 export default function SliderSelector(props: SliderInputProps) {
   const { sparkPrefix } = getCommonConfig();
-  console.log('debug sparkPrefix in SliderSelector', sparkPrefix);
 
   const { styles, classNames, sliderProps, inputNumberProps, ...restProps } =
     props;

@@ -72,12 +72,21 @@ export default function () {
         ...optionsConfig.theme,
         rightHeader,
       },
+      api: {
+        ...optionsConfig.api,
+        cancel: (data) => {
+          console.log('cancel', data);
+        },
+      },
     };
   }, [optionsConfig]);
+
+
 
   return <div style={{ height: '100dvh' }}>
     <AgentScopeRuntimeWebUI
       ref={chatRef}
+      // @ts-ignore
       options={options}
     />
   </div>;

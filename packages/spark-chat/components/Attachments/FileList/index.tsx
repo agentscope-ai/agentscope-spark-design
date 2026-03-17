@@ -23,6 +23,11 @@ export interface FileListProps {
    */
   onRemove: (item: Attachment) => void;
   /**
+   * @description 替换图片文件的回调，传入原始附件和新选择的文件
+   * @descriptionEn Callback to replace an image file, receives the original attachment and newly selected file
+   */
+  onReplace?: (oldItem: Attachment, file: File) => void;
+  /**
    * @description 文件列表的溢出处理方式，影响滚动和布局行为
    * @descriptionEn Overflow handling method for file list, affects scrolling and layout behavior
    */
@@ -68,6 +73,7 @@ export default function FileList(props: FileListProps) {
     prefixCls,
     items,
     onRemove,
+    onReplace,
     overflow,
     listClassName,
     listStyle,
@@ -167,6 +173,7 @@ export default function FileList(props: FileListProps) {
               prefixCls={prefixCls}
               item={item}
               onRemove={onRemove}
+              onReplace={onReplace}
               className={classnames(motionCls, itemClassName)}
               style={{
                 ...motionStyle,

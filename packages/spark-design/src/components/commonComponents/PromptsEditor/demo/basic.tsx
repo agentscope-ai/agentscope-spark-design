@@ -2,6 +2,7 @@ import { PromptsEditor } from '@agentscope-ai/design';
 import { useState } from 'react';
 
 export default function Basic() {
+  
   const [value, setValue] = useState(`# 角色
 你是一个专业的Prompt编写工程师，擅长编写各种类型的Prompt。
 

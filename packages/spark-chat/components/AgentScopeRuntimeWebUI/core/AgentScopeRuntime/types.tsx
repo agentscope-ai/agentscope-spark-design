@@ -60,7 +60,8 @@ export interface IImageContent extends IBaseContent {
 
 export interface IFileContent extends IBaseContent {
   type: AgentScopeRuntimeContentType.FILE,
-  file_url: string;
+  file_id?: string;
+  file_url?: string;
   file_name?: string;
   file_size?: number;
 }

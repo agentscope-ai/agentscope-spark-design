@@ -1,4 +1,4 @@
-import { createContext, useCallback, useState } from "react";
+import { createContext, useCallback, useMemo, useState } from "react";
 
 export const ChatAnyWhereLayoutContext = createContext<{
   collapsed: boolean;
@@ -18,10 +18,12 @@ export function ChatAnyWhereLayoutContextProvider(props: {
     setCollapsed(prev => !prev);
   }, []);
 
-  return <ChatAnyWhereLayoutContext.Provider value={{
+  const value = useMemo(() => ({
     collapsed,
     toggleCollapsed,
-  }}>
+  }), [collapsed, toggleCollapsed]);
+
+  return <ChatAnyWhereLayoutContext.Provider value={value}>
     {props.children}
   </ChatAnyWhereLayoutContext.Provider>;
 }

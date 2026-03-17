@@ -49,7 +49,13 @@ const Flow = memo((props: IFlowProps) => {
   const [minZoom, maxZoom] = useStore((state) => state.minMaxZoom);
   const interactiveMode = useStore((state) => state.interactiveMode);
   const showSingleTest = useStore((state) => state.showSingleTest);
+  const setOnFlowEvent = useStore((state) => state.setOnFlowEvent);
   const { nodesReadOnly } = useNodesReadOnly();
+
+  useEffect(() => {
+    setOnFlowEvent(props.onFlowEvent);
+    return () => setOnFlowEvent(undefined);
+  }, [props.onFlowEvent, setOnFlowEvent]);
 
   useEffect(() => {
     props.onFlowEvent?.('showSingleTest', null);

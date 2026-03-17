@@ -11,6 +11,7 @@ import generateThemeByToken from './antd/themes/generateThemeByToken';
 export {
   Alert,
   Badge,
+  Cascader,
   FloatButton,
   InputNumber,
   Progress,
@@ -19,6 +20,7 @@ export {
   Skeleton,
   type AlertProps,
   type BadgeProps,
+  type CascaderProps,
   type CollapseProps,
   type DescriptionsProps,
   type FloatButtonProps,

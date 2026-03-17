@@ -1,10 +1,12 @@
 import { SparkFileCodeLine } from "@agentscope-ai/icons";
 import { IconButton, Drawer, Input, Button, message } from "@agentscope-ai/design";
 import { useState, useEffect } from "react";
+import { useTranslation } from "../../core/Context/ChatAnywhereI18nContext";
 
 const STORAGE_KEY = "agent-scope-runtime-webui-sessions";
 
 export default function (props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [sessionValue, setSessionValue] = useState("");
 
@@ -18,10 +20,10 @@ export default function (props) {
   const handleSave = () => {
     try {
       localStorage.setItem(STORAGE_KEY, sessionValue);
-      message.success("保存成功");
+      message.success(t?.('common.saveSuccess') || '保存成功');
       location.reload();
     } catch (e) {
-      message.error("保存失败");
+      message.error(t?.('common.saveFailed') || '保存失败');
     }
   };
 
@@ -31,18 +33,18 @@ export default function (props) {
       destroyOnHidden
       open={open}
       onClose={() => setOpen(false)}
-      title="Sessions 数据导入"
+      title={t?.('messageImport.title') || 'Sessions 数据导入'}
       styles={{ body: { padding: 16 }, header: { padding: 8 } }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Input.TextArea
           value={sessionValue}
           onChange={(e) => setSessionValue(e.target.value)}
-          placeholder="输入 JSON 数据以覆盖当前 sessions"
+          placeholder={t?.('messageImport.placeholder') || '输入 JSON 数据以覆盖当前 sessions'}
           rows={10}
           style={{ fontFamily: "monospace" }}
         />
         <Button type="primary" onClick={handleSave}>
-          保存到 LocalStorage
+          {t?.('messageImport.saveToLocalStorage') || '保存到 LocalStorage'}
         </Button>
       </div>
     </Drawer>

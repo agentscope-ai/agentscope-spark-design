@@ -30,7 +30,12 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
   fetch?: (data: {
     input: any[];
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+    signal?: AbortSignal;
   }) => Promise<Response>;
+
+  cancel?: (data: {
+    session_id: string;
+  }) => void;
 
   enableHistoryMessages?: boolean;
   
@@ -89,12 +94,17 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    * @descriptionEn Typography configuration
    */
   typography?: IAgentScopeRuntimeWebUITypography;
-
   /**
    * @description 背景色
    * @descriptionEn Background color
    */
   background?: string;
+  /**
+   * @description 语言
+   * @descriptionEn Language
+   * @default 'en'
+   */
+  locale?: 'en' | 'cn';
 }
 
 export interface IAgentScopeRuntimeWebUITypography {
@@ -218,6 +228,16 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @descriptionEn Attachments configuration
    */
   attachments?: IAgentScopeRuntimeWebUISenderAttachmentsOptions;
+  /**
+   * @description 输入框前缀 UI，显示在输入框底部操作栏
+   * @descriptionEn Prefix UI displayed in the bottom action bar of the input
+   */
+  prefix?: React.ReactNode | React.ReactNode[];
+  /**
+   * @description 是否支持语音输入
+   * @descriptionEn Whether to allow speech input
+   */
+  allowSpeech?: boolean;
 }
 
 /**
@@ -381,22 +401,22 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 加载状态
    * @descriptionEn Loading state
    */
-  loading: boolean;
+  loading: boolean | string;
   /**
    * @description 设置加载状态
    * @descriptionEn Set loading state
    */
-  setLoading: (loading: boolean) => void;
+  setLoading: (loading: boolean | string) => void;
   /**
    * @description 获取加载状态
    * @descriptionEn Get loading state
    */
-  getLoading: () => boolean;
+  getLoading: () => boolean | string;
   /**
    * @description 禁用状态
    * @descriptionEn Disabled state
    */
-  disabled: boolean;
+  disabled: boolean | string;
   /**
    * @description 设置禁用状态
    * @descriptionEn Set disabled state
@@ -406,7 +426,7 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 获取禁用状态
    * @descriptionEn Get disabled state
    */
-  getDisabled: () => boolean;
+  getDisabled: () => boolean | string;
 }
 
 /**
@@ -423,7 +443,7 @@ export interface IAgentScopeRuntimeWebUIInputData {
    * @description 文件列表
    * @descriptionEn File list
    */
-  fileList?: UploadProps['fileList'];
+  fileList?: (UploadProps['fileList'][number] & { file_id?: string })[];
   /**
    * @description 业务参数
    * @descriptionEn Business parameters

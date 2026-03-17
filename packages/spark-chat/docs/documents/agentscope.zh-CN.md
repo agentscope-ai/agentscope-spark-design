@@ -36,35 +36,35 @@ https://runtime.agentscope.io/zh/quickstart.html
 
 ### IAgentScopeRuntimeWebUIOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUIAPIOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIAPIOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIAPIOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUIThemeOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIThemeOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIThemeOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUILeftHeader
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUILeftHeader"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUILeftHeader"></ApiParser>
 
 ### IAgentScopeRuntimeWebUITypography
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUITypography"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUITypography"></ApiParser>
 
 ### IAgentScopeRuntimeWebUIWelcomeOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIWelcomeOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUIWelcomeOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUISenderOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISenderOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISenderOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUISessionOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISessionOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISessionOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUICardsOptions
 
@@ -72,16 +72,16 @@ https://runtime.agentscope.io/zh/quickstart.html
 
 ### IAgentScopeRuntimeWebUISenderAttachmentsOptions
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISenderAttachmentsOptions"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISenderAttachmentsOptions"></ApiParser>
 
 ### IAgentScopeRuntimeWebUISessionAPI
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISessionAPI"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IChatAnywhere.ts" id="IAgentScopeRuntimeWebUISessionAPI"></ApiParser>
 
 ### IAgentScopeRuntimeWebUIMessage
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/IMessages.tsx" id="IAgentScopeRuntimeWebUIMessage"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/IMessages.tsx" id="IAgentScopeRuntimeWebUIMessage"></ApiParser>
 
 ### IAgentScopeRuntimeWebUISession
 
-<ApiParser source="../../components/AgentScopeRuntimeWebUI/lib/types/ISessions.tsx" id="IAgentScopeRuntimeWebUISession"></ApiParser>
+<ApiParser source="../../components/AgentScopeRuntimeWebUI/core/types/ISessions.tsx" id="IAgentScopeRuntimeWebUISession"></ApiParser>

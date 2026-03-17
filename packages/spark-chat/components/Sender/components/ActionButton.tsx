@@ -84,8 +84,8 @@ export function ActionButton(props: ActionButtonProps) {
   return (
     <IconButton
       bordered={false}
-      disabled={mergedDisabled}
       {...restProps}
+      disabled={mergedDisabled}
       onClick={(e) => {
         if (!mergedDisabled) {
           if (onClick) {

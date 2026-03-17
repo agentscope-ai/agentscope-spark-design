@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useProviderContext } from '@agentscope-ai/chat';
 import cls from 'classnames';
-import { ScrollToBottomOptions, useStickToBottomContext } from 'use-stick-to-bottom';
+import { ScrollToBottomOptions, useStickToBottomContext } from '../StickToBottom';
 import { IconButton } from '@agentscope-ai/design';
 import { SparkDownArrowLine } from '@agentscope-ai/icons';
 

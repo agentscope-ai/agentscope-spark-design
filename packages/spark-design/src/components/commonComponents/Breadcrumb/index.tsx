@@ -1,5 +1,6 @@
 import { SparkDownLine } from '@agentscope-ai/icons';
-import { Avatar, Breadcrumb, BreadcrumbProps, Dropdown } from 'antd';
+import { Breadcrumb, BreadcrumbProps } from 'antd';
+import { Avatar, Dropdown } from '@agentscope-ai/design';
 import React from 'react';
 import { getCommonConfig } from '../../../config';
 import { useStyle } from './index.style';

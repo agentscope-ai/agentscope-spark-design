@@ -1,8 +1,8 @@
 import { useStore } from '@/flow/context';
 import $i18n from '@/i18n';
 import { IWorkFlowNodeResultItem, IWorkFlowStatus } from '@/types/work-flow';
-import { Pagination } from '@agentscope-ai/design';
-import { SparkUpLine } from '@agentscope-ai/icons';
+import { Pagination, Tooltip } from '@agentscope-ai/design';
+import { SparkTargetLine, SparkUpLine } from '@agentscope-ai/icons';
 import { Typography } from 'antd';
 import classNames from 'classnames';
 import React, { memo, useMemo, useState } from 'react';
@@ -82,6 +82,10 @@ const ResultContent = (props: {
 };
 
 const NodeResultPanel = (props: INodeResultPanelProps) => {
+  const onFlowEvent = useStore((state) => state.onFlowEvent);
+  const showNodeResultTargetButton = useStore(
+    (state) => state.showNodeResultTargetButton,
+  );
   const [expand, setExpand] = useState(false);
   const batch = props.data.batch && !!props.data.batches;
   const [batchIndex, setBatchIndex] = useState(1);
@@ -139,9 +143,26 @@ const NodeResultPanel = (props: INodeResultPanelProps) => {
               {props.data.nodeExecTime}
             </span>
           </div>
-          {props.data.nodeStatus !== 'skip' && (
-            <SparkUpLine className="text-base spark-flow-node-result-expand-icon" />
-          )}
+          <div className="flex-center gap-[8px]">
+            {showNodeResultTargetButton && (
+              <Tooltip
+                title={$i18n.get({
+                  id: 'spark-flow.components.NodeResultPanel.index.locateNodeInTestPanel',
+                  dm: '定位到测试窗中节点位置',
+                })}
+              >
+                <SparkTargetLine
+                  className="text-base cursor-pointer"
+                  onClick={() => {
+                    onFlowEvent?.('nodeResultTargetClick', props.data.nodeId);
+                  }}
+                />
+              </Tooltip>
+            )}
+            {props.data.nodeStatus !== 'skip' && (
+              <SparkUpLine className="text-base spark-flow-node-result-expand-icon" />
+            )}
+          </div>
         </div>
         {expand && batch && (
           <Pagination

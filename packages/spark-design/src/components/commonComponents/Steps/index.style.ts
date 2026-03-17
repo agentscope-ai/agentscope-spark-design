@@ -10,10 +10,10 @@ export const useStyle = createGlobalStyle`
   .${(p) => p.antPrefix}-steps-item:not(.${(p) =>
   p.antPrefix}-steps-item-active):not(.${(p) =>
   p.antPrefix}-steps-item-process) {
-    .${(p) => p.antPrefix}-steps-item-container {
+    .${(p) => p.antPrefix}-steps-item-container[role="button"] {
       &:hover {
         .${(p) => p.antPrefix}-steps-item-icon {
-          border-color: transparent !important;
+          border-color: transparent;
         }
       }
     }
@@ -30,30 +30,18 @@ export const useStyle = createGlobalStyle`
 
   .${(p) => p.antPrefix}-steps-item-process {
     .${(p) => p.antPrefix}-steps-item-icon {
-      border-color: transparent !important;
+      border-color: transparent;
     }
   }
-  
+
   .${(p) => p.antPrefix}-steps-item-finish {
     .${(p) => p.antPrefix}-steps-item-icon {
-      height: 20px !important;
+      background-color: var(--${(p) => p.antPrefix}-color-primary-bg);
+      border-color: transparent;
     }
-    
+
     .${(p) => p.antPrefix}-steps-icon {
-      max-width: 20px;
-      max-height: 20px;
-      font-size: 20px !important;
-      line-height: 20px !important;
-      top: -0.5px !important;
-      
-      .${(p) => p.sparkPrefix}-finish-icon {
-        background-color: var(--${(p) => p.antPrefix}-color-primary-bg);
-        border-radius: 50%;
-        font-size: 20px !important;
-        width: 20px;
-        height: 20px;
-        color: var(--${(p) => p.antPrefix}-color-primary);
-      }
+      color: var(--${(p) => p.antPrefix}-color-primary);
     }
   }
   

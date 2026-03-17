@@ -50,7 +50,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
   const prefixCls = useProviderContext().getPrefixCls('assets-preview');
   const ref = useRef<HTMLDivElement>(null);
   const { height = 144 } = props;
-  const [arrowTop, setArrowTop] = useState<number>(0);
+  const arrowTop = height / 2 - 12;
   const maxWidth = useRef<number>(0);
   const [scrollLeft, setScrollLeft] = useState<number>(0);
   const deferScrollLeft = useDeferredValue(scrollLeft);
@@ -59,10 +59,6 @@ function AssetsPreview(props: IAssetsPreviewProps) {
   const onScroll = useCallback((e) => {
     setScrollLeft(e.target.scrollLeft);
   }, [])
-
-  useEffect(() => {
-    setArrowTop(height / 2 - 12);
-  }, [height])
 
   useEffect(() => {
     if (ref.current && props.type !== 'audio') {
@@ -100,7 +96,7 @@ function AssetsPreview(props: IAssetsPreviewProps) {
       </div>
 
       {
-        arrowTop && props.type !== 'audio' ? <>
+        arrowTop > 0 && props.type !== 'audio' ? <>
           {
             deferScrollLeft > 50 && <>
               <div className={cls(`${prefixCls}-left-edge`)} />

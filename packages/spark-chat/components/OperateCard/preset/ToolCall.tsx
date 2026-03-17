@@ -2,6 +2,7 @@
 import { OperateCard, useProviderContext } from '@agentscope-ai/chat';
 import { SparkCopyLine, SparkLoadingLine, SparkToolLine, SparkTrueLine } from '@agentscope-ai/icons';
 import { CodeBlock, CollapsePanel, IconButton } from '@agentscope-ai/design';
+import { copy } from '../../Util/copy';
 import { useRef, useState } from 'react';
 
 
@@ -29,12 +30,15 @@ function Block(props: {
           icon={copied ? <SparkTrueLine /> : <SparkCopyLine />}
           bordered={false}
           onClick={() => {
-            clearTimeout(timer.current);
-            navigator.clipboard.writeText(contentString);
-            setCopied(true);
-            timer.current = setTimeout(() => {
-              setCopied(false);
-            }, 2000);
+            copy(contentString).then(() => {
+              clearTimeout(timer.current);
+              setCopied(true);
+              timer.current = setTimeout(() => {
+                setCopied(false);
+              }, 2000);
+            }).catch(() => {
+              console.warn('Copy failed');
+            });
           }} />
       }
     >

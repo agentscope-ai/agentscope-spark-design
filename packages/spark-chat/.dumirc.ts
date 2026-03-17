@@ -87,9 +87,9 @@ export default defineConfig({
   },
   metas: [{ name: 'aplus-core', content: 'aplus.js' }],
   history: {
-    type: isGhPages ? 'browser' : 'hash',
+    type: 'browser',
   },
-  base: isGhPages ? ghPagesChatBase : '/',
+  base: isGhPages ? ghPagesChatBase : '/spark-chat/',
   headScripts: [
     `
   (function(w, d, s, q) {
@@ -112,7 +112,7 @@ export default defineConfig({
       }g.alicdn.com/code/npm/@ali/agentscope-ai-chat/${pkg.version}/docs/`
     : isGhPages
       ? ghPagesChatBase
-      : '/',
+      : '/spark-chat/',
   outputPath: '../../dist/spark-chat',
   mfsu: false,
   crossorigin: {},

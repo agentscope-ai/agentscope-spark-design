@@ -2,6 +2,7 @@ import { Button, Input, Popover } from '@agentscope-ai/design';
 import { Flex } from 'antd';
 import { useState } from 'react';
 import { createStyles } from 'antd-style';
+import { useTranslation } from '../../Context/ChatAnywhereI18nContext';
 
 const useStyles = createStyles(({ css, token }) => ({
   container: css`
@@ -76,7 +77,15 @@ export interface ApprovalCancelPopoverProps {
   placeholder?: string;
 }
 
-const DEFAULT_OPTIONS = ['不需要', '效果不理想', '等待时间久', '输入错误'];
+function useDefaultOptions() {
+  const { t } = useTranslation();
+  return [
+    t?.('cancelPopover.options.notNeeded') || '不需要',
+    t?.('cancelPopover.options.poorResult') || '效果不理想',
+    t?.('cancelPopover.options.tooSlow') || '等待时间久',
+    t?.('cancelPopover.options.wrongInput') || '输入错误',
+  ];
+}
 
 interface TabSelectProps {
   options: string[];
@@ -107,11 +116,14 @@ function TabSelect(props: TabSelectProps) {
 }
 
 export default function ApprovalCancelPopover(props: ApprovalCancelPopoverProps) {
+  const { t } = useTranslation();
+  const defaultOptions = useDefaultOptions();
+  
   const {
-    options = DEFAULT_OPTIONS,
+    options = defaultOptions,
     onConfirm,
-    title = '取消原因',
-    placeholder = '请输入原因，以便大模型做进一步规划',
+    title = t?.('cancelPopover.title') || '取消原因',
+    placeholder = t?.('cancelPopover.placeholder') || '请输入原因，以便大模型做进一步规划',
   } = props;
 
   const [open, setOpen] = useState<boolean>(false);
@@ -139,19 +151,19 @@ export default function ApprovalCancelPopover(props: ApprovalCancelPopoverProps)
       />
       <Flex className={styles.actions}>
         <Button size="small" onClick={() => setOpen(false)}>
-          取消
+          {t?.('cancelPopover.cancel') || '取消'}
         </Button>
         <Button size="small" type="primary" onClick={() => {
           setOpen(false);
           handleConfirm();
         }}>
-          确认
+          {t?.('cancelPopover.confirm') || '确认'}
         </Button>
       </Flex>
     </div>
   </div>
 
   return <Popover open={open} onOpenChange={setOpen} trigger="click" content={content}>
-    <Button size="small" >取消执行</Button>
+    <Button size="small" >{t?.('approval.cancel') || '取消执行'}</Button>
   </Popover>
 }

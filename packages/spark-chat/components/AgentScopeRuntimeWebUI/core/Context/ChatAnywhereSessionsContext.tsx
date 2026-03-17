@@ -96,7 +96,12 @@ export const useChatAnywhereSessions = () => {
     })
 
     const messages = (await options.api.getSession(currentSessionId))?.messages || [];
-    setMessages(messages);
+    setMessages(messages.map(item => {
+      return {
+        ...item,
+        history: true,
+      }
+    }));
   }, [currentSessionId]);
 
 

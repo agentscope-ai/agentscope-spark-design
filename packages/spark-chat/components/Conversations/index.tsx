@@ -1,6 +1,6 @@
 import type { MenuProps } from 'antd';
 import classnames from 'classnames';
-import React from 'react';
+import React, { useRef } from 'react';
 
 import GroupTitle, { GroupTitleContext } from './GroupTitle';
 import ConversationsItem, { type ConversationsItemProps } from './Item';
@@ -13,6 +13,7 @@ import Style from './style';
 
 import pickAttrs from 'rc-util/lib/pickAttrs';
 import type { Conversation, Groupable } from './interface';
+import { useInViewport } from 'ahooks';
 
 export interface ConversationsProps extends React.HTMLAttributes<HTMLUListElement> {
   /**
@@ -38,6 +39,24 @@ export interface ConversationsProps extends React.HTMLAttributes<HTMLUListElemen
    * @descriptionEn Callback function when conversation selection changes, receives new conversation identifier
    */
   onActiveChange?: (value: string) => void;
+
+  /**
+   * @description 是否开启批量选择模式
+   * @descriptionEn Whether to enable batch selection mode
+   */
+  selectable?: boolean;
+
+  /**
+   * @description 当前选中的会话 key 列表
+   * @descriptionEn Currently selected conversation key list
+   */
+  selectedKeys?: string[];
+
+  /**
+   * @description 批量选择变化时的回调函数
+   * @descriptionEn Callback when batch selection changes
+   */
+  onSelectChange?: (selectedKeys: string[]) => void;
 
   /**
    * @description 会话操作菜单配置
@@ -79,6 +98,7 @@ export interface ConversationsProps extends React.HTMLAttributes<HTMLUListElemen
 }
 
 const Conversations: React.FC<ConversationsProps & { groupable?: boolean | Groupable }> = (props) => {
+  
   const {
     prefixCls: customizePrefixCls,
     rootClassName,
@@ -86,6 +106,9 @@ const Conversations: React.FC<ConversationsProps & { groupable?: boolean | Group
     activeKey,
     defaultActiveKey,
     onActiveChange,
+    selectable: propsSelectable,
+    selectedKeys,
+    onSelectChange,
     menu,
     styles = {},
     classNames = {},
@@ -121,13 +144,26 @@ const Conversations: React.FC<ConversationsProps & { groupable?: boolean | Group
     },
   );
 
-  const onConversationItemClick: ConversationsItemProps['onClick'] = (info) => {
-    setMergedActiveKey(info.key);
+  const onActiveChangeRef = React.useRef(onActiveChange);
+  onActiveChangeRef.current = onActiveChange;
 
-    if (onActiveChange) {
-      onActiveChange(info.key);
-    }
-  };
+  const onConversationItemClick: ConversationsItemProps['onClick'] = React.useCallback((info) => {
+    setMergedActiveKey(info.key);
+    onActiveChangeRef.current?.(info.key);
+  }, [setMergedActiveKey]);
+
+  const selectedKeysRef = React.useRef(selectedKeys);
+  selectedKeysRef.current = selectedKeys;
+
+  const onSelectChangeRef = React.useRef(onSelectChange);
+  onSelectChangeRef.current = onSelectChange;
+
+  const handleItemSelect = React.useCallback((key: string, selected: boolean) => {
+    if (!onSelectChangeRef.current) return;
+    const keys = selectedKeysRef.current || [];
+    const next = selected ? [...keys, key] : keys.filter(k => k !== key);
+    onSelectChangeRef.current(next);
+  }, []);
 
   return <>
     <Style />
@@ -138,6 +174,12 @@ const Conversations: React.FC<ConversationsProps & { groupable?: boolean | Group
     >
       {groupList.map((groupInfo, groupIndex) => {
         const convItems = groupInfo.data.map((convInfo: Conversation, convIndex: number) => {
+          const itemSelectable = propsSelectable ?? convInfo.selectable;
+          const itemSelected = itemSelectable
+            ? (selectedKeys ? selectedKeys.includes(convInfo.key) : convInfo.selected)
+            : false;
+          const itemOnSelect = onSelectChange ? handleItemSelect : convInfo.onSelect;
+
           return (
             <ConversationsItem
               key={convInfo.key || `key-${convIndex}`}
@@ -148,6 +190,9 @@ const Conversations: React.FC<ConversationsProps & { groupable?: boolean | Group
               style={styles.item}
               menu={menu}
               active={mergedActiveKey === convInfo.key}
+              selectable={itemSelectable}
+              selected={itemSelected}
+              onSelect={itemOnSelect}
               onClick={onConversationItemClick}
             />
           )

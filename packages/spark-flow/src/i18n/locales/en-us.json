@@ -89,6 +89,7 @@
   "spark-flow.components.NodeResultPanel.index.paused": "Paused",
   "spark-flow.components.NodeResultPanel.index.input": "Input",
   "spark-flow.components.NodeResultPanel.index.output": "Output",
+  "spark-flow.components.NodeResultPanel.index.locateNodeInTestPanel": "Locate node in test panel",
   "spark-flow.components.NodeTree.index.searchNodeName": "Search",
   "spark-flow.components.ShortMemoryForm.index.nodeCache": "Node cache",
   "spark-flow.components.ShortMemoryForm.index.customCache": "Custom cache",

@@ -7,6 +7,7 @@ import ApprovalCancelPopover from './ApprovalCancelPopover';
 import { AgentScopeRuntimeContentType, AgentScopeRuntimeMessageRole, AgentScopeRuntimeMessageType, IAgentScopeRuntimeMessage, IDataContent } from '../types';
 import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
 import { emit } from "../../Context/useChatAnywhereEventEmitter";
+import { useTranslation } from '../../Context/ChatAnywhereI18nContext';
 
 
 const useStyles = createStyles(({ css, token }) => ({
@@ -20,12 +21,15 @@ const useStyles = createStyles(({ css, token }) => ({
 export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) {
   const inputContext = useChatAnywhereInput(v => v);
   const { styles } = useStyles();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<'pending' | 'confirmed' | 'canceled'>('pending');
-  const title = '人工干预'
+  const title = t?.('approval.title') || '人工干预';
 
   const description = useMemo(() => {
-    return status === 'pending' ? '请确认是否执行该操作' : status === 'confirmed' ? '确认执行任务' : '取消执行任务';
-  }, [status]);
+    if (status === 'pending') return t?.('approval.pending') || '请确认是否执行该操作';
+    if (status === 'confirmed') return t?.('approval.confirmed') || '确认执行任务';
+    return t?.('approval.canceled') || '取消执行任务';
+  }, [status, t]);
 
   const handleConfirm = useCallback((status: 'confirmed' | 'canceled', reason?: string) => {
     setStatus(status);
@@ -68,19 +72,21 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
     if (status === 'pending') {
       return <Flex gap={8}>
         <ApprovalCancelPopover onConfirm={(reason) => handleConfirm('canceled', reason)} />
-        <Button size="small" type="primary" onClick={() => handleConfirm('confirmed')}>确认执行</Button>
+        <Button size="small" type="primary" onClick={() => handleConfirm('confirmed')}>
+          {t?.('approval.confirm') || '确认执行'}
+        </Button>
       </Flex>
     }
     return null;
-  }, [status]);
+  }, [status, t]);
 
 
   useEffect(() => {
     if (status === 'pending') {
-      inputContext.setLoading(true);
+      inputContext.setLoading(t?.('approval.taskRunning') || '当前有正在执行的任务，无法发送新的任务');
       inputContext.setDisabled(true);
     }
-  }, [status]);
+  }, [status, t]);
 
   return <StatusCard.HITL
     done={status !== 'pending'}
@@ -91,9 +97,4 @@ export default function Approval({ data }: { data: IAgentScopeRuntimeMessage }) 
     </Flex>}
     actions={actions}
   />
-}
-
-
-function copy(data) {
-  return JSON.parse(JSON.stringify(data));
 }

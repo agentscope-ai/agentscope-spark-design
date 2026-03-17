@@ -17,14 +17,13 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
     <Welcome onSubmit={props.onSubmit} />
   </div>;
 
-  return <>
-    <Bubble.List
-      smooth={loading}
-      key={currentSessionId}
-      classNames={{
-        wrapper: prefixCls,
-      }}
-      items={messages}
-    />
-  </>;
+  return <Bubble.List
+    smooth={!!loading}
+    pagination={true}
+    key={currentSessionId}
+    classNames={{
+      wrapper: prefixCls,
+    }}
+    items={messages}
+  />
 }

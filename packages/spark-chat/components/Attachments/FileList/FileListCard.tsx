@@ -2,16 +2,14 @@ import classnames from 'classnames';
 import React from 'react';
 import type { Attachment } from '..';
 import { AttachmentContext } from '../context';
-import { previewImage } from '../util';
-import AudioIcon from './AudioIcon';
-import Progress from './Progress';
-import VideoIcon from './VideoIcon';
 import Style from '../style/fileCard';
 import { useProviderContext } from '@agentscope-ai/chat';
 import { SparkFalseLine } from '@agentscope-ai/icons';
+import ImageCard from './ImageCard';
+import type { ImageCardProps } from './ImageCard';
 
 
-export interface FileListCardProps {
+export interface FileListCardProps extends Pick<ImageCardProps, 'onReplace'> {
   /**
    * @description 自定义CSS类名前缀，用于样式隔离和主题定制
    * @descriptionEn Custom CSS class name prefix for style isolation and theme customization
@@ -42,7 +40,6 @@ export interface FileListCardProps {
    * @descriptionEn Render type, currently only supports default render mode
    */
   renderType?: 'default',
-
 }
 
 const EMPTY = '\u00A0';
@@ -126,7 +123,7 @@ function getSize(size: number) {
 
 function FileListCard(props: FileListCardProps, ref: React.Ref<HTMLDivElement>) {
   const { getPrefixCls } = useProviderContext();
-  const { item, onRemove, className, style } = props;
+  const { item, onRemove, onReplace, className, style } = props;
   const context = React.useContext(AttachmentContext);
   const { disabled } = context || {};
   const { name, size, percent, status = 'done', description } = item;
@@ -141,7 +138,23 @@ function FileListCard(props: FileListCardProps, ref: React.Ref<HTMLDivElement>) 
 
   const isImg = React.useMemo(() => matchExt(nameSuffix, IMG_EXTS), [nameSuffix]);
 
-  const desc = React.useMemo(() => {
+  const renderType = props.renderType || 'default';
+  const isImgPreview = isImg && (item.originFileObj || item.thumbUrl || item.url) && renderType === 'default';
+
+  if (isImgPreview) {
+    return (
+      <ImageCard
+        ref={ref}
+        item={item}
+        onRemove={onRemove}
+        onReplace={onReplace}
+        className={className}
+        style={style}
+      />
+    );
+  }
+
+  const desc = (() => {
     if (description) {
       return description;
     }
@@ -155,9 +168,9 @@ function FileListCard(props: FileListCardProps, ref: React.Ref<HTMLDivElement>) 
     }
 
     return size ? getSize(size) : EMPTY;
-  }, [status, percent]);
+  })();
 
-  const [icon, iconColor] = React.useMemo(() => {
+  const [icon, iconColor] = (() => {
     for (const { ext, icon, color } of PRESET_FILE_ICONS) {
       if (matchExt(nameSuffix, ext)) {
         return [icon, color];
@@ -165,57 +178,25 @@ function FileListCard(props: FileListCardProps, ref: React.Ref<HTMLDivElement>) 
     }
 
     return [<IconImage url="https://gw.alicdn.com/imgextra/i1/O1CN01K7jgEj1sywWTkPSGY_!!6000000005836-55-tps-40-40.svg" key="defaultIcon" />, DEFAULT_ICON_COLOR];
-  }, [nameSuffix]);
+  })();
 
-  const [previewImg, setPreviewImg] = React.useState<string>();
-
-  React.useEffect(() => {
-    if (item.originFileObj) {
-      let synced = true;
-      previewImage(item.originFileObj).then((url) => {
-        if (synced) {
-          setPreviewImg(url);
-        }
-      });
-
-      return () => {
-        synced = false;
-      };
-    }
-    setPreviewImg(undefined);
-  }, [item.originFileObj]);
-
-  let content: React.ReactNode = null;
-  const previewUrl = item.thumbUrl || item.url || previewImg;
-  const renderType = props.renderType || 'default';
-  const isImgPreview = isImg && (item.originFileObj || previewUrl) && renderType === 'default';
-
-  if (isImgPreview) {
-    content = (
-      <>
-        {
-          previewUrl && (
-            <img alt="preview" src={previewUrl} />
-          )
-        }
-
-        {status !== 'done' && (
-          <div className={`${cardCls}-img-mask`}>
-            {status === 'uploading' && percent !== undefined && (
-              <Progress percent={percent} prefixCls={cardCls} />
-            )}
-            {status === 'error' && (
-              <div className={`${cardCls}-desc`}>
-                <div className={`${cardCls}-ellipsis-prefix`}>{desc}</div>
-              </div>
-            )}
-          </div>
+  return (
+    <>
+      <Style />
+      <div
+        className={classnames(
+          cardCls,
+          {
+            [`${cardCls}-status-${status}`]: status,
+            [`${cardCls}-type-overview`]: true,
+            [`${cardCls}-type-${renderType}`]: true,
+            [`${cardCls}-hoverable`]: !disabled && onRemove,
+          },
+          className,
         )}
-      </>
-    );
-  } else {
-    content = (
-      <>
+        style={style}
+        ref={ref}
+      >
         <div className={`${cardCls}-icon`} style={{ color: iconColor }}>
           {icon}
         </div>
@@ -227,44 +208,23 @@ function FileListCard(props: FileListCardProps, ref: React.Ref<HTMLDivElement>) 
             <div className={`${cardCls}-ellipsis-prefix`}>{desc}</div>
           </div>
         </div>
-      </>
-    );
-  }
 
-  return <>
-    <Style />
-    <div
-      className={classnames(
-        cardCls,
-        {
-          [`${cardCls}-status-${status}`]: status,
-          [`${cardCls}-type-preview`]: isImgPreview,
-          [`${cardCls}-type-overview`]: !isImgPreview,
-          [`${cardCls}-type-${renderType}`]: true,
-          [`${cardCls}-hoverable`]: !disabled && onRemove,
-        },
-        className,
-      )}
-      style={style}
-      ref={ref}
-    >
-      {content}
-
-      <button
-        style={{
-          opacity: !disabled && onRemove ? 1 : 0,
-        }}
-        className={`${cardCls}-remove`}
-        onClick={() => {
-          if (!disabled && onRemove) {
-            onRemove(item);
-          }
-        }}
-      >
-        <SparkFalseLine />
-
-      </button>
-    </div></>
+        <button
+          style={{
+            opacity: !disabled && onRemove ? 1 : 0,
+          }}
+          className={`${cardCls}-remove`}
+          onClick={() => {
+            if (!disabled && onRemove) {
+              onRemove(item);
+            }
+          }}
+        >
+          <SparkFalseLine />
+        </button>
+      </div>
+    </>
+  );
 }
 
 export default React.forwardRef(FileListCard);

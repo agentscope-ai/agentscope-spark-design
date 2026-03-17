@@ -159,6 +159,7 @@ export default forwardRef(function (_, ref) {
           return <Attachments
             key={index}
             items={files}
+            replaceable={true}
             onChange={(info) => handleFileChange(index, info.fileList)}
           />
         })

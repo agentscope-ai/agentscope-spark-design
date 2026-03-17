@@ -42,6 +42,7 @@ class AgentScopeRuntimeRequestBuilder {
     return {
       type: AgentScopeRuntimeContentType.FILE,
       file_url: file.response?.url,
+      file_id: file.file_id,
       file_name: file.name,
       file_size: file.size,
       status: AgentScopeRuntimeRunStatus.Created,
