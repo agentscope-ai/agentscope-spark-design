@@ -1,6 +1,5 @@
 import { getCommonConfig } from '@/config';
 import { findClosestBySelector } from '@/libs/dom';
-import { wrapWithSpan } from '@/libs/react';
 import { Popover, PopoverProps } from 'antd';
 import React from 'react';
 
@@ -33,7 +32,7 @@ const SparkPopover = React.forwardRef<any, PopoverProps>((props, ref) => {
         })
       }
     >
-      {wrapWithSpan(children)}
+      <span>{children}</span>
     </Popover>
   );
 });

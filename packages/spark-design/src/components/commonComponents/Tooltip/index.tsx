@@ -1,6 +1,5 @@
 import { getCommonConfig } from '@/config';
 import { findClosestBySelector } from '@/libs/dom';
-import { wrapWithSpan } from '@/libs/react';
 import { Tooltip, TooltipProps } from 'antd';
 import classNames from 'classnames';
 import { forwardRef } from 'react';
@@ -37,7 +36,7 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
     } = props;
     const { sparkPrefix, antPrefix } = getCommonConfig();
 
-    const stylesObj = typeof styles === 'function' ? {} : (styles ?? {});
+    const stylesObj = typeof styles === 'function' ? {} : (styles ?? {}) as Record<string, React.CSSProperties>;
     const mergedStyles = {
       ...stylesObj,
       container: {
@@ -66,7 +65,7 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
           }
           ref={ref}
         >
-          {wrapWithSpan(children)}
+          <span>{children}</span>
         </Tooltip>
       </>
     );
