@@ -1,5 +1,6 @@
 import { getCommonConfig } from '@/config';
 import { findClosestBySelector } from '@/libs/dom';
+import { wrapWithSpan } from '@/libs/react';
 import { Tooltip, TooltipProps } from 'antd';
 import classNames from 'classnames';
 import { forwardRef } from 'react';
@@ -31,18 +32,18 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
       overlayClassName,
       getPopupContainer,
       align,
+      children,
       ...restProps
     } = props;
     const { sparkPrefix, antPrefix } = getCommonConfig();
 
-    // 处理 styles 可能是函数的情况
     const stylesObj = typeof styles === 'function' ? {} : (styles ?? {});
     const mergedStyles = {
       ...stylesObj,
       container: {
         overflow: 'auto' as const,
         ...stylesObj.container,
-        maxHeight, // maxHeight 放最后，确保优先级最高
+        maxHeight,
       },
     };
 
@@ -60,11 +61,13 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
           getPopupContainer={
             getPopupContainer ||
             ((triggerNode) => {
-              return findClosestBySelector(triggerNode, `.${antPrefix}-app`); // 默认放到App组件下，获取自定义css变量
+              return findClosestBySelector(triggerNode, `.${antPrefix}-app`);
             })
           }
           ref={ref}
-        />
+        >
+          {wrapWithSpan(children)}
+        </Tooltip>
       </>
     );
   },

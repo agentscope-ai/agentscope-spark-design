@@ -1,4 +1,5 @@
 import { getCommonConfig } from '@/config';
+import { wrapWithSpan } from '@/libs/react';
 import { SparkTrueLine } from '@agentscope-ai/icons';
 import { Dropdown, DropdownProps } from 'antd';
 import { useMemo } from 'react';
@@ -6,7 +7,7 @@ import { useStyle } from './index.style';
 
 export type { DropdownProps };
 
-const SparkDropdown = (props) => {
+const SparkDropdown = (props: DropdownProps) => {
   const commonConfig = getCommonConfig();
   const { antPrefix } = commonConfig;
 
@@ -49,7 +50,9 @@ const SparkDropdown = (props) => {
           items: menuItems,
         }}
         overlayStyle={{ ...props.overlayStyle }}
-      />
+      >
+        {wrapWithSpan(props.children)}
+      </Dropdown>
     </>
   );
 };
