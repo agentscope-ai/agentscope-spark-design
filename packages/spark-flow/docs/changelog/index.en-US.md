@@ -29,3 +29,7 @@ hero:
 ### 1.0.19
 #### Changed
 - custom-outputs-form & variable-input: style fix
+
+### 1.0.20
+#### Changed
+- add function setNodes in use-flow-interaction

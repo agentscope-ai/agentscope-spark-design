@@ -29,3 +29,7 @@ hero:
 ### 1.0.19
 #### Changed
 - custom-outputs-form & variable-input：修复样式
+
+### 1.0.20
+#### Changed
+- use-flow-interaction 增加 setNodes 方法
