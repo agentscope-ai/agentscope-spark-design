@@ -259,7 +259,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const [zoom, setZoom] = useState(zoomable ? false : undefined);
   const [focus, setFocus] = useState(false);
   const autoSize = React.useMemo(() => {
-    return zoom ? { maxRows: 10, minRows: 10 } : { maxRows: 10, minRows: initialRows };
+    return zoom ? { maxRows: 5, minRows: 5 } : { maxRows: 5, minRows: initialRows };
   }, [zoomable, zoom]);
 
   const { direction, getPrefixCls } = useProviderContext();
@@ -439,7 +439,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
-      {loading ? <LoadingButton loading={loading} /> : <SendButton />}
+      {loading ? <LoadingButton loading={loading} disabled={!!disabled} /> : <SendButton disabled={!!disabled} />}
     </Flex>
   );
 

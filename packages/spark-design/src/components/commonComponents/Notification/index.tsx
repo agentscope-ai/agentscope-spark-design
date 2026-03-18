@@ -90,7 +90,7 @@ types.forEach((type) => {
 sparkNotification.useNotification = (props: NotificationConfig) => {
   const commonConfig = getCommonConfig();
   const { sparkPrefix, antPrefix } = commonConfig;
-  let mergedClassName = `${sparkPrefix}-notification`;
+  const baseClassName = `${sparkPrefix}-notification`;
   const [api, contextHolder] = notification.useNotification(props);
   // @ts-ignore
   const newAPi: NotificationInstance = {};
@@ -98,15 +98,19 @@ sparkNotification.useNotification = (props: NotificationConfig) => {
     newAPi[type] = (props: ArgsProps) => {
       return api[type]({
         ...props,
-        className: mergedClassName,
+        className: props.className
+          ? `${baseClassName} ${props.className}`
+          : baseClassName,
         icon: getIcon(type, antPrefix),
       });
     };
   });
   newAPi.open = (props: ArgsProps) => {
-    notification.open({
+    api.open({
       ...props,
-      className: mergedClassName,
+      className: props.className
+        ? `${baseClassName} ${props.className}`
+        : baseClassName,
     });
   };
   newAPi.destroy = api.destroy;

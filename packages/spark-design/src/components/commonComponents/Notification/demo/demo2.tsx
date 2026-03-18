@@ -2,16 +2,17 @@ import { Button, notification } from '@agentscope-ai/design';
 import React from 'react';
 
 const App: React.FC = () => {
+  const [api, contextHolder] = notification.useNotification();
   return (
-    <Button onClick={() => notification.success({
-      message: 'title',
-      description: 'content',
-      actions: (
-        <Button onClick={() => alert('click next')}>Next</Button>
-      )
-    })}>
-      Open
-    </Button>
+    <>
+      <Button onClick={() => api.success({
+        message: 'title',
+        description: 'using useNotification hooks',
+      })}>
+        Open
+      </Button>
+      {contextHolder}
+    </>
   );
 };
 

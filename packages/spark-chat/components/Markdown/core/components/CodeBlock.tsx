@@ -39,20 +39,33 @@ function CodeHeader({ lang, content }: { lang: string, content: string }) {
     URL.revokeObjectURL(url);
   }, [lang, content]);
 
+  const handleCopy = useCallback(async () => {
+    try {
+      if (window.isSecureContext && navigator.clipboard) {
+        await navigator.clipboard.writeText(content);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = content;
+        textarea.style.cssText = 'position:fixed;left:-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1000);
+    } catch {
+      console.warn('Copy failed');
+    }
+  }, [content]);
+
   return <div className={prefixCls}>
     <div className={`${prefixCls}-lang`}>{lang}</div>
-
 
     <div className={`${prefixCls}-actions`}>
       <SparkDownloadLine className={`${prefixCls}-download`} onClick={handleDownload} />
       {
-        copied ? <SparkTrueLine className={`${prefixCls}-copied`} /> : <SparkCopyLine className={`${prefixCls}-icon`} onClick={() => {
-          navigator.clipboard.writeText(content);
-          setCopied(true);
-          setTimeout(() => {
-            setCopied(false);
-          }, 1000);
-        }} />
+        copied ? <SparkTrueLine className={`${prefixCls}-copied`} /> : <SparkCopyLine className={`${prefixCls}-icon`} onClick={handleCopy} />
       }
     </div>
   </div>
