@@ -32,7 +32,7 @@ const SparkPopover = React.forwardRef<any, PopoverProps>((props, ref) => {
         })
       }
     >
-      <span>{children}</span>
+      <span style={{ display: 'contents' }}>{children}</span>
     </Popover>
   );
 });

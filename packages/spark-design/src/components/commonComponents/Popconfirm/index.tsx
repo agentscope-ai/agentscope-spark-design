@@ -77,7 +77,7 @@ const SparkPopconfirm = React.forwardRef<any, SparkPopconfirmProps>(
         // @ts-ignore
         okButtonProps={getMergedOkButtonProps()}
       >
-        <span>{children}</span>
+        <span style={{ display: 'contents' }}>{children}</span>
       </Popconfirm>
     );
   },

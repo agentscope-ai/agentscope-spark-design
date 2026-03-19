@@ -65,7 +65,7 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
           }
           ref={ref}
         >
-          <span>{children}</span>
+          <span style={{ display: 'contents' }}>{children}</span>
         </Tooltip>
       </>
     );

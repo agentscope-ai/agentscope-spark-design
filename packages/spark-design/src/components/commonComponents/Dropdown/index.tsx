@@ -50,7 +50,7 @@ const SparkDropdown = (props: DropdownProps) => {
         }}
         overlayStyle={{ ...props.overlayStyle }}
       >
-        <span>{props.children}</span>
+        <span style={{ display: 'contents' }}>{props.children}</span>
       </Dropdown>
     </>
   );
