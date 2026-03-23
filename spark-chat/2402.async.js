@@ -792,8 +792,9 @@ export default function () {
       },
     ]} role="user"></Bubble>
     <Bubble
+      msgStatus='generating'
       avatar={{
-        src: 'https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg',
+        src: 'https://img.alicdn.com/imgextra/i1/O1CN011tiK951hh7NbOmD99_!!6000000004308-2-tps-141-141.png',
       }}
 
       cards={[
@@ -868,29 +869,65 @@ Today, City Pop has experienced a resurgence in popularity, particularly among y
 }`},43151:function(e,n){n.Z=`import { Bubble, DefaultCards } from '@agentscope-ai/chat';
 
 export default function () {
-  return <Bubble cards={[
-    {
-      code: 'Text',
-      data: {
-        content: 'what is citypop'
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <Bubble cards={[
+      {
+        code: 'Text',
+        data: {
+          content: 'what is citypop'
+        }
+      },
+      {
+        code: 'Files',
+        data: [
+          {
+            url: 'https://aliyun.com',
+            name: 'test.txt',
+            size: 1000,
+          },
+          {
+            name: 'test.pdf',
+            size: 10000,
+          },
+
+        ]
+      },
+    ]} role="user"></Bubble>
+
+
+    <Bubble cards={[
+      {
+        code: 'Text',
+        data: {
+          content: 'what is citypop'
+        }
+      },
+      {
+        code: 'Videos',
+        data: [
+          {
+            src: 'https://cloud.video.taobao.com/vod/_3l26Qh63hL5F25ZL16nsu0j7M5hmdHrypxmv4DcT3k.mp4',
+            poster: 'https://img.alicdn.com/imgextra/i4/6000000003913/O1CN019uZNJg1emCvSNKdwO_!!6000000003913-0-tbvideo.jpg',
+          },
+          {
+            src: 'https://cloud.video.taobao.com/vod/56HgXGMy8QkZPyQ9pXT7Cih2hycUCa3RA3pAw1-Zv_0.mp4',
+            poster: 'https://img.alicdn.com/imgextra/i4/6000000000548/O1CN01eXtmmV1Fv28zyVqEZ_!!6000000000548-0-tbvideo.jpg',
+          },
+        ]
+      },
+      {
+        code: 'Audios',
+        data: [
+          {
+            src: 'https://cloud.video.taobao.com/vod/56HgXGMy8QkZPyQ9pXT7Cih2hycUCa3RA3pAw1-Zv_0.mp4',
+          },
+          {
+            src: 'https://cloud.video.taobao.com/vod/56HgXGMy8QkZPyQ9pXT7Cih2hycUCa3RA3pAw1-Zv_0.mp4',
+          },
+        ]
       }
-    },
-    {
-      code: 'Files',
-      data: [
-        {
-          url: 'https://aliyun.com',
-          name: 'test.txt',
-          size: 1000,
-        },
-        {
-          name: 'test.pdf',
-          size: 10000,
-        },
-        
-      ]
-    },
-  ]} role="user"></Bubble>
+    ]} role="user"></Bubble>
+  </div>
 }`},61469:function(e,n){n.Z=`import { Bubble, DefaultCards } from '@agentscope-ai/chat';
 
 export default function () {
@@ -1931,18 +1968,37 @@ export default function () {
       ]}
     /></Flex>
 }`},75069:function(e,n){n.Z=`import { ToolCall } from "@agentscope-ai/chat";
+
+
 export default function () {
-  return <ToolCall
-    title="Call Tool"
-    subTitle="I am the name of a tool that is being called"
-    input={{
-      foo: 'bar',
-      baz: 'qux',
-    }}
-    output={{
-      result: 'result',
-    }}
-  />
+  return <div style={{ display: 'flex', gap: 16, flexDirection: 'column' }}>
+    <ToolCall
+      title="Call Tool"
+      subTitle="I am the name of a tool that is being called"
+      input={{
+        foo: 'bar',
+        baz: 'qux',
+      }}
+      output={{
+        result: 'result',
+      }}
+    />
+
+    <ToolCall
+      simple
+      defaultOpen={false}
+      title="Call Tool"
+      subTitle="I am the name of a tool that is being called"
+      input={{
+        foo: 'bar',
+        baz: 'qux',
+      }}
+      outputBlock={{ language: 'text' }}
+      output={{
+        result: 'result',
+      }}
+    />
+  </div>
 }`},72353:function(e,n){n.Z=`import { WebSearch } from "@agentscope-ai/chat";
 
 export default function () {
