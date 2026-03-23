@@ -280,7 +280,7 @@ export const VariableFormComp = memo((props: IVariableFormCompProps) => {
   if (props.data.valueFrom === 'input') {
     if (props.typeSwitchDisabled) {
       return (
-        <div className="flex-1">
+        <div className="flex-1 h-full">
           <VariableBaseInput
             isCompact={props.isCompact}
             disabled={props.disabled}

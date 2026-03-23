@@ -33,3 +33,7 @@ hero:
 ### 0.0.20
 #### Changed
 - add function setNodes in use-flow-interaction
+
+### 0.0.21
+#### Changed
+- some stylefix

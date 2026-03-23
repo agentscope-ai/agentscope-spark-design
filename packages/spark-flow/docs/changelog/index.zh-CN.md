@@ -33,3 +33,7 @@ hero:
 ### 0.0.20
 #### Changed
 - use-flow-interaction 增加 setNodes 方法
+
+### 0.0.21
+#### Changed
+- 一些样式修复
