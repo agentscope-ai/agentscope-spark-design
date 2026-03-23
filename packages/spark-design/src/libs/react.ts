@@ -32,10 +32,11 @@ export function ensureRefWrapped(
   }
 
   if (process.env.NODE_ENV !== 'production') {
+    const type = children.type as Function & { displayName?: string };
     const childTypeName =
-      typeof children.type === 'function'
-        ? children.type.displayName || children.type.name || 'Unknown'
-        : String(children.type);
+      typeof type === 'function'
+        ? type.displayName || type.name || 'Unknown'
+        : String(type);
     console.warn(
       `[Spark Design${componentName ? `: ${componentName}` : ''}] ` +
         `children "${childTypeName}" does not support ref and has been auto-wrapped with <span> as a fallback. ` +

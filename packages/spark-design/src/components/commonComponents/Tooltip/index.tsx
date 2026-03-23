@@ -27,7 +27,7 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
     const {
       mode = 'dark',
       maxHeight = '90vh',
-      styles = {},
+      styles,
       arrow,
       overlayClassName,
       getPopupContainer,
@@ -36,17 +36,21 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
       ...restProps
     } = props;
     const { sparkPrefix, antPrefix } = getCommonConfig();
+    const stylesObj =
+      typeof styles === 'function' ? styles({ props }) : (styles ?? {});
+    const legacyBody = (stylesObj as Record<string, any>).body;
     return (
       <>
         <Style />
         <Tooltip
           {...restProps}
           styles={{
-            ...styles,
-            body: {
+            ...stylesObj,
+            container: {
               maxHeight,
               overflow: 'auto',
-              ...styles.body,
+              ...legacyBody,
+              ...stylesObj.container,
             },
           }}
           arrow={arrow ?? false}
