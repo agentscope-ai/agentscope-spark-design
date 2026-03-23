@@ -1,5 +1,6 @@
 import { getCommonConfig } from '@/config';
 import { findClosestBySelector } from '@/libs/dom';
+import { ensureRefWrapped } from '@/libs/react';
 import { Tooltip, TooltipProps } from 'antd';
 import classNames from 'classnames';
 import { forwardRef } from 'react';
@@ -15,7 +16,7 @@ export interface SparkTooltipProps {
   /**
    * @description 最大高度
    * @descriptionEn max height
-   * @default '60vh'
+   * @default '90vh'
    */
   maxHeight?: number | string;
 }
@@ -25,8 +26,8 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
     const Style = useStyle();
     const {
       mode = 'dark',
-      maxHeight = '60vh',
-      styles,
+      maxHeight = '90vh',
+      styles = {},
       arrow,
       overlayClassName,
       getPopupContainer,
@@ -35,23 +36,19 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
       ...restProps
     } = props;
     const { sparkPrefix, antPrefix } = getCommonConfig();
-
-    const stylesObj = typeof styles === 'function' ? {} : (styles ?? {}) as Record<string, React.CSSProperties>;
-    const mergedStyles = {
-      ...stylesObj,
-      container: {
-        overflow: 'auto' as const,
-        ...stylesObj.container,
-        maxHeight,
-      },
-    };
-
     return (
       <>
         <Style />
         <Tooltip
           {...restProps}
-          styles={mergedStyles}
+          styles={{
+            ...styles,
+            body: {
+              maxHeight,
+              overflow: 'auto',
+              ...styles.body,
+            },
+          }}
           arrow={arrow ?? false}
           overlayClassName={classNames(
             overlayClassName,
@@ -65,7 +62,7 @@ const SparkTooltip = forwardRef<any, SparkTooltipProps & TooltipProps>(
           }
           ref={ref}
         >
-          <span style={{ display: 'contents' }}>{children}</span>
+          {ensureRefWrapped(children, 'Tooltip')}
         </Tooltip>
       </>
     );

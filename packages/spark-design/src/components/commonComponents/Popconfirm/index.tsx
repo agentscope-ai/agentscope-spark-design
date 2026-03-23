@@ -1,4 +1,5 @@
 import { ButtonProps, getCommonConfig } from '@/index';
+import { ensureRefWrapped } from '@/libs/react';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -77,7 +78,7 @@ const SparkPopconfirm = React.forwardRef<any, SparkPopconfirmProps>(
         // @ts-ignore
         okButtonProps={getMergedOkButtonProps()}
       >
-        <span style={{ display: 'contents' }}>{children}</span>
+        {ensureRefWrapped(children, 'Popconfirm')}
       </Popconfirm>
     );
   },

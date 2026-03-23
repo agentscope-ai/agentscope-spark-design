@@ -1,9 +1,6 @@
 import React from 'react';
 import { Button, Dropdown } from '@agentscope-ai/design';
 
-const LitButton = () => {
-  return <Button>Dropdown Trigger</Button>
-}
 const DropdownDemo: React.FC = () => {
   // 根据dsl构建菜单项
   const menuItems = [
@@ -25,7 +22,7 @@ const DropdownDemo: React.FC = () => {
     <Dropdown 
       menu={{ items: menuItems }}
     >
-      <LitButton />
+      <Button>Dropdown Trigger</Button>
     </Dropdown>
   );
 };
