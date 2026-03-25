@@ -33,11 +33,33 @@
 }
 
 .spark-flow-inputs-form-item {
-  height: 32px;
+  min-height: 32px;
   .ant-select-sm .ant-select-selector,
   .ant-input-sm {
     font-size: 12px;
     line-height: 22px;
+  }
+}
+
+.spark-flow-variable-name-item {
+  min-width: 0;
+
+  .@{ant-prefix}-form-item-control,
+  .@{ant-prefix}-form-item-control-input,
+  .@{ant-prefix}-form-item-control-input-content {
+    min-width: 0;
+  }
+
+  .@{ant-prefix}-form-item-explain {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .@{ant-prefix}-form-item-explain-error {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
   }
 }
 

@@ -37,3 +37,7 @@ hero:
 ### 0.0.21
 #### Changed
 - some stylefix
+
+### 0.0.22
+#### Changed
+- some stylefix
