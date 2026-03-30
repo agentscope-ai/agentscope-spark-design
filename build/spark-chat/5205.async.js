@@ -1,4 +1,4 @@
-"use strict";(self.webpackChunk_agentscope_ai_chat=self.webpackChunk_agentscope_ai_chat||[]).push([[2402],{42084:function(e,n){n.Z=`import React, { useMemo, useRef, useState } from 'react';
+"use strict";(self.webpackChunk_agentscope_ai_chat=self.webpackChunk_agentscope_ai_chat||[]).push([[5205],{42084:function(e,n){n.Z=`import React, { useMemo, useRef, useState } from 'react';
 import { GetProp, Select } from 'antd';
 import { SparkAttachmentLine } from '@agentscope-ai/icons';
 import { ChatInput, Attachments } from '@agentscope-ai/chat';
@@ -2109,6 +2109,46 @@ export default function () {
       <Button type="text" color={search ? 'primary' : 'default'} variant={search ? 'filled' : 'text'} icon={<SparkDeepSearchLine />} style={{ padding: '0 6px', gap: 6 }} onClick={() => setSearch(!search)}>\u8054\u7F51\u641C\u7D22</Button>,
     ]}>
   </ChatInput>
+}
+`},79163:function(e,n){n.Z=`import React, { useState } from 'react';
+import { ChatInput } from '@agentscope-ai/chat';
+import { message } from 'antd';
+
+const suggestions = [
+  { label: 'Write a report', value: 'report' },
+  { label: 'Draw a picture', value: 'draw' },
+  {
+    label: 'Check some knowledge',
+    value: 'knowledge',
+    
+  },
+];
+
+export default function () {
+  const [value, setValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  return (
+    <>
+      {contextHolder}
+      <ChatInput
+        placeholder="Type / to get suggestions"
+        value={value}
+        loading={loading}
+        suggestions={suggestions}
+        onChange={setValue}
+        onSubmit={(nextValue) => {
+          messageApi.success(\`message send success: \${nextValue}\`);
+          setValue('');
+          setLoading(true);
+          setTimeout(() => {
+            setLoading(false);
+          }, 1500);
+        }}
+      />
+    </>
+  );
 }
 `},5686:function(e,n){n.Z=`import React from 'react';
 import { Attachments, ChatInput } from '@agentscope-ai/chat';
