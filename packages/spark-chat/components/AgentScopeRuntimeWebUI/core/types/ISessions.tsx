@@ -17,6 +17,11 @@ export interface IAgentScopeRuntimeWebUISession {
    * @descriptionEn Message list for the session
    */
   messages: IAgentScopeRuntimeWebUIMessage[];
+  /**
+   * @description 对话是否仍在生成中（后端未完成），用于触发 SSE 重连
+   * @descriptionEn Whether the conversation is still generating (backend not finished), used to trigger SSE reconnection
+   */
+  generating?: boolean;
 }
 
 export interface IAgentScopeRuntimeWebUISessionsContext {

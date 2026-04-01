@@ -78,7 +78,7 @@ const ConversationsItem: React.FC<ConversationsItemProps> = React.memo((props) =
     <li ref={ref} {...domProps} className={mergedCls} onClick={onInternalClick} >
       {inViewport && info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
       {
-        inViewport && <div>
+        inViewport && <div className={`${prefixCls}-content-wrapper`}>
           <div className={`${prefixCls}-content`}>
             {
               (info.timeline || selectable) && <div className={`${prefixCls}-timeline`}>

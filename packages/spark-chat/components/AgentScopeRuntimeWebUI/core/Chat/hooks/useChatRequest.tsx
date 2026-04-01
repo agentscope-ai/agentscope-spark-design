@@ -57,8 +57,89 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   }, [])
 
 
+  const processSSEResponse = useCallback(async (response: Response) => {
+    const currentApiOptions = apiOptionsRef.current;
+    const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
+      id: '',
+      status: AgentScopeRuntimeRunStatus.Created,
+      created_at: 0,
+    });
+
+    if (!response.ok) {
+      response.json().then(data => {
+        const res = agentScopeRuntimeResponseBuilder.handle({
+          object: 'message',
+          type: AgentScopeRuntimeMessageType.ERROR,
+          content: [],
+          id: 'error',
+          role: 'assistant',
+          status: AgentScopeRuntimeRunStatus.Failed,
+          code: String(response.status),
+          message: JSON.stringify(data),
+        });
+
+        currentQARef.current.response.cards = [
+          {
+            code: 'AgentScopeRuntimeResponseCard',
+            data: res,
+          }
+        ];
+        onFinish();
+      });
+      return;
+    }
+
+    try {
+      for await (const chunk of Stream({
+        readableStream: response.body,
+      })) {
+        if (currentQARef.current.response?.msgStatus === 'interrupted') {
+          currentQARef.current.abortController?.abort();
+          if (currentApiOptions.cancel) {
+            currentApiOptions.cancel({
+              session_id: getCurrentSessionId(),
+            });
+          }
+
+          currentQARef.current.response.cards = [
+            {
+              code: 'AgentScopeRuntimeResponseCard',
+              data: agentScopeRuntimeResponseBuilder.cancel(),
+            }
+          ];
+
+          updateMessage(currentQARef.current.response);
+          break;
+        }
+
+        const responseParser = apiOptionsRef.current.responseParser || JSON.parse;
+        const chunkData = responseParser(chunk.data);
+        const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
+
+        if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.[0]?.content?.length) continue;
+
+        if (currentQARef.current.response) {
+          currentQARef.current.response.cards = [
+            {
+              code: 'AgentScopeRuntimeResponseCard',
+              data: res,
+            }
+          ];
+
+          if (res.status === AgentScopeRuntimeRunStatus.Completed || res.status === AgentScopeRuntimeRunStatus.Failed) {
+            onFinish();
+          } else {
+            updateMessage(currentQARef.current.response);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
+
+
   const request = useCallback(async (historyMessages: any[], biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params']) => {
-    // 使用 ref.current 获取最新的 apiOptions
     const currentApiOptions = apiOptionsRef.current;
     const { enableHistoryMessages = false } = currentApiOptions;
     const abortSignal = currentQARef.current.abortController?.signal;
@@ -86,92 +167,29 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     }
 
     if (response && response.body) {
-      const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
-        id: '',
-        status: AgentScopeRuntimeRunStatus.Created,
-        created_at: 0,
-      });
-
-      if (!response.ok) {
-        response.json().then(data => {
-          const res = agentScopeRuntimeResponseBuilder.handle({
-            object: 'message',
-            type: AgentScopeRuntimeMessageType.ERROR,
-            content: [],
-            id: 'error',
-            role: 'assistant',
-            status: AgentScopeRuntimeRunStatus.Failed,
-            code: response.status,
-            message: JSON.stringify(data),
-          });
-
-
-          currentQARef.current.response.cards = [
-            {
-              code: 'AgentScopeRuntimeResponseCard',
-              data: res,
-            }
-          ];
-          onFinish();
-        });
-        return;
-      }
-
-      try {
-
-        for await (const chunk of Stream({
-          readableStream: response.body,
-        })) {
-          // 检查是否被中断
-          if (currentQARef.current.response?.msgStatus === 'interrupted') {
-            currentQARef.current.abortController?.abort();
-            if (currentApiOptions.cancel) {
-              currentApiOptions.cancel({
-                session_id: getCurrentSessionId(),
-              });
-            }
-
-            currentQARef.current.response.cards = [
-              {
-                code: 'AgentScopeRuntimeResponseCard',
-                data: agentScopeRuntimeResponseBuilder.cancel(),
-              }
-            ];
-
-            updateMessage(currentQARef.current.response);
-            break;
-          }
-
-          const responseParser = apiOptionsRef.current.responseParser || JSON.parse;
-          const chunkData = responseParser(chunk.data);
-          const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
-
-
-          // 跳过空内容
-          if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.[0]?.content?.length) continue;
-
-          if (currentQARef.current.response) {
-            currentQARef.current.response.cards = [
-              {
-                code: 'AgentScopeRuntimeResponseCard',
-                data: res,
-              }
-            ];
-
-            if (res.status === AgentScopeRuntimeRunStatus.Completed || res.status === AgentScopeRuntimeRunStatus.Failed) {
-              onFinish();
-            } else {
-              updateMessage(currentQARef.current.response);
-            }
-          }
-        }
-      } catch (error) {
-        console.error(error);
-
-      }
+      await processSSEResponse(response);
     }
-  }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
+  }, [getCurrentSessionId, currentQARef, processSSEResponse]);
 
-  return { request, mockRequest };
+  const reconnect = useCallback(async (sessionId: string) => {
+    const currentApiOptions = apiOptionsRef.current;
+    if (!currentApiOptions.reconnect) return;
+
+    const abortSignal = currentQARef.current.abortController?.signal;
+    let response: Response | undefined;
+    try {
+      response = await currentApiOptions.reconnect({
+        session_id: sessionId,
+        signal: abortSignal,
+      });
+    } catch (error) {
+    }
+
+    if (response && response.body) {
+      await processSSEResponse(response);
+    }
+  }, [currentQARef, processSSEResponse]);
+
+  return { request, reconnect, mockRequest };
 }
 

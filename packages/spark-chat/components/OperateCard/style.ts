@@ -5,14 +5,22 @@ export default createGlobalStyle`
   width: 100%;
   border-radius: ${(p) => p.theme.borderRadiusLG}px;
   overflow: hidden;
-  background-color: ${(p) => p.theme.colorFillTertiary};
+  
+  &-collapsed {
+    background-color: ${(p) => p.theme.colorFillTertiary};
+  }
+
+  &:hover {
+    background-color: ${(p) => p.theme.colorFillTertiary};
+  }
 
   &-header {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 0 12px;
-    height: 32px;
+    height: 28px;
+    line-height: 28px;
 
     &-icon {
       font-size: 16px;
@@ -22,8 +30,7 @@ export default createGlobalStyle`
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 12px;
       color: ${(p) => p.theme.colorText};
     }
 
@@ -36,11 +43,26 @@ export default createGlobalStyle`
     }
 
     &-arrow {
-      margin: 0 0 0 auto;
+      opacity: 0;
     }
 
     &-has-body {
       cursor: pointer;
+    }
+
+
+  }
+
+  &-collapsed {
+    .${(p) => p.theme.prefixCls}-operate-card-header-arrow {
+      opacity: 1;
+    }
+  }
+
+
+  &:hover {
+    .${(p) => p.theme.prefixCls}-operate-card-header-arrow {
+      opacity: 1;
     }
   }
 
@@ -62,7 +84,7 @@ export default createGlobalStyle`
 
 
   &-line-body {
-    margin: 0 12px 12px 20px;
+    margin: 0 12px 8px 20px;
     border-left: 1px solid ${(p) => p.theme.colorBorderSecondary};
   }
 
@@ -161,18 +183,37 @@ export default createGlobalStyle`
   &-tool-call-block {
     margin-left: 16px;
     margin-top: 8px;
+    border-radius: 8px;
+    border: 1px solid ${(p) => p.theme.colorBorderSecondary};
+    overflow: hidden;
+    background-color: ${(p) => p.theme.colorBgBase};
 
-  
-    &-title {
-      font-size: 12px;
-      color: ${(p) => p.theme.colorText};
-      line-height: 20px;
-      margin-bottom: 4px;
+    &-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: ${(p) => p.theme.colorFillSecondary};
+      height: 32px;
+      padding: 0 12px;
+      cursor: pointer;
+      user-select: none;
     }
 
+    &-title {
+      font-size: 14px;
+      color: ${(p) => p.theme.colorText};
+    }
+
+    &-extra {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    &-content {
+      max-height: 128px;
+      overflow-y: auto;
+    }
   }
-
-
 
   &-device-action {
     height: auto;
@@ -280,6 +321,14 @@ export default createGlobalStyle`
       align-items: center;
       cursor: pointer;
       background-color: ${(p) => p.theme.colorFillTertiary};
+
+      &-text {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
 
     &-content {

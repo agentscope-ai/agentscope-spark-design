@@ -37,6 +37,7 @@ export enum AgentScopeRuntimeContentType {
   DATA = "data",
   IMAGE = "image",
   AUDIO = "audio",
+  VIDEO = "video",
   FILE = "file",
   REFUSAL = 'refusal'
 }
@@ -58,11 +59,25 @@ export interface IImageContent extends IBaseContent {
   image_url: string;
 }
 
+export interface IAudioContent extends IBaseContent {
+  type: AgentScopeRuntimeContentType.AUDIO,
+  data?: string;
+  audio_url?: string;
+  format?: string;
+}
+
+export interface IVideoContent extends IBaseContent {
+  type: AgentScopeRuntimeContentType.VIDEO,
+  video_url: string;
+  video_poster?: string;
+}
+
 export interface IFileContent extends IBaseContent {
   type: AgentScopeRuntimeContentType.FILE,
   file_id?: string;
   file_url?: string;
   file_name?: string;
+  fileName?: string;
   file_size?: number;
 }
 
@@ -76,7 +91,7 @@ export interface IDataContent<T = Record<string, any>> extends IBaseContent {
   data: T;
 }
 
-export type IContent = ITextContent | IImageContent | IDataContent | IFileContent | IRefusalContent;
+export type IContent = ITextContent | IImageContent | IAudioContent | IVideoContent | IDataContent | IFileContent | IRefusalContent;
 
 export interface IAgentScopeRuntimeMessage {
   id: string;

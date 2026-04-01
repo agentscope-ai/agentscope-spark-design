@@ -107,6 +107,17 @@ export interface IChatAnywhereConfigUIConfig {
    * @descriptionEn Disclaimer component or text
    */
   disclaimer?: React.ReactElement | string;
+  /**
+   * @description 气泡列表的配置
+   * @descriptionEn Bubble list configuration
+   */
+  bubbleList?: {
+    /**
+     * @description 是否启用分页
+     * @descriptionEn Whether to enable pagination
+     */
+    pagination?: boolean;
+  };
 }
 
 export interface IChatAnywhereConfigOnInput {
@@ -161,11 +172,6 @@ export interface IChatAnywhereConfigOnInput {
    */
   beforeSubmit?: () => Promise<Boolean>;
   /**
-   * @description 是否支持缩放功能
-   * @descriptionEn Whether to support zoom functionality
-   */
-  zoomable?: boolean;
-  /**
    * @description 输入框的占位符文本
    * @descriptionEn Placeholder text for the input field
    */
@@ -176,6 +182,21 @@ export interface IChatAnywhereConfigOnInput {
    * @descriptionEn Whether the input field is disabled
    */
   disabled?: boolean;
+
+  /**
+   * @description 建议列表
+   * @descriptionEn Suggestions list
+   * @example [
+   *   { label: 'Draw a picture', value: 'draw' },
+   *   { label: 'Check some knowledge', value: 'knowledge' },
+   * ]
+   */
+  suggestions?: { label?: string | React.ReactNode; value: string }[];
+  /**
+   * @description 是否允许在输入框为空时提交，默认值为 true（仍需存在可提交附件）
+   * @descriptionEn Whether to allow submission when the input field is empty, defaults to true (submittable files are still required)
+   */
+  allowEmptySubmit?: boolean;
 }
 
 export interface IChatAnywhereConfigOnUpload {

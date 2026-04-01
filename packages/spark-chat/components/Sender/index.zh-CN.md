@@ -21,6 +21,7 @@ description: AI输入框
 <code src="./demo/withImage.tsx" center height="350">上传图片</code>
 <code src="./demo/withFile.tsx" center height="350">上传文件</code>
 <code src="./demo/moreMode.tsx" center height="350">自定义模式</code>
+<code src="./demo/suggestions.tsx" center height="350">输入建议</code>
 <code src="./demo/morePrefixAction.tsx" center height="350">自定义功能</code>
 <code src="./demo/asr.tsx" center height="350">语音发送</code>
 

@@ -5,13 +5,15 @@ import { BubbleDataType } from "../BubbleList"
 
 export interface UsePaginationItemsOptions {
   enable: boolean;
+  order?: 'asc' | 'desc';
 }
 
 export const usePaginationItems = (items: (BubbleDataType & { history?: boolean })[], options: UsePaginationItemsOptions) => {
   const [page, setPage] = useState(1);
+  const order = options?.order || 'asc';
   const data = useMemo(() => {
-    const historyItems = [];
-    const otherItems = [];
+    const historyItems: (BubbleDataType & { history?: boolean })[] = [];
+    const otherItems: (BubbleDataType & { history?: boolean })[] = [];
     for (const item of items) {
       if (item.history) {
         historyItems.push(item);
@@ -19,8 +21,13 @@ export const usePaginationItems = (items: (BubbleDataType & { history?: boolean 
         otherItems.push(item);
       }
     }
+
+    if (order === 'desc') {
+      return [...otherItems, ...historyItems.slice(0, page * 10)];
+    }
+
     return [...historyItems.slice(-page * 10), ...otherItems];
-  }, [items, page]);
+  }, [items, page, order]);
 
   if (!options?.enable) {
     return {
@@ -40,7 +47,7 @@ export const usePaginationItems = (items: (BubbleDataType & { history?: boolean 
           const prevScrollHeight = scrollEl?.scrollHeight ?? 0;
 
           flushSync(() => {
-            setPage(page + 1);
+            setPage((prev) => prev + 1);
           });
 
           if (scrollEl) {

@@ -43,7 +43,7 @@ export default forwardRef(function (_, ref) {
       afterUI: undefined,
       morePrefixActions: undefined,
       maxLength: undefined,
-      zoomable: true,
+      suggestions: undefined,
       beforeSubmit: () => Promise.resolve(true),
       header: [],
       enableFocusExpand: false,
@@ -172,6 +172,7 @@ export default forwardRef(function (_, ref) {
 
   const submitFileList = attachedFiles.map(files => files.filter(file => file.status === 'done'));
   const fileLoading = attachedFiles.some(files => files.some(file => file.status === 'uploading'));
+  const hasSubmittableFiles = submitFileList.some(files => files.length > 0);
 
   const handlePasteFile = (file: File) => {
     if (!onUpload?.length) return;
@@ -370,6 +371,7 @@ export default forwardRef(function (_, ref) {
         onInput.beforeUI
       }
       <ChatInput
+        suggestions={onInput.suggestions}
         placeholder={onInput.placeholder}
         enableFocusExpand={onInput.enableFocusExpand}
         value={content}
@@ -377,7 +379,7 @@ export default forwardRef(function (_, ref) {
         maxLength={onInput.maxLength}
         disabled={fileLoading || inputContext.disabled}
         sendDisabled={sendDisabled}
-        scalable={onInput?.zoomable}
+        allowEmptySubmit={(onInput.allowEmptySubmit ?? true) && hasSubmittableFiles}
         header={senderHeader}
         prefix={<>
           {uploadPrefixNodes}

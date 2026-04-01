@@ -54,6 +54,11 @@ export default createGlobalStyle`
     margin-right: -8px;
   }
 
+  &-content-wrapper {
+    width: 0;
+    flex: 1;
+  }
+
   &-content {
     height: 36px;
     display: flex;

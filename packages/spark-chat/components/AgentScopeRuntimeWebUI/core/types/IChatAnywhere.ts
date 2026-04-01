@@ -33,15 +33,40 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
     signal?: AbortSignal;
   }) => Promise<Response>;
 
-  cancel?: (data: {
-    session_id: string;
-  }) => void;
+  /**
+   * @description 取消当前会话生成
+   * @descriptionEn Cancel current session generation
+   */
+  cancel?: (data: { session_id: string }) => void;
 
+  /**
+   * @description 重连会话流式响应
+   * @descriptionEn Reconnect session stream response
+   */
+  reconnect?: (data: {
+    session_id: string;
+    signal?: AbortSignal;
+  }) => Promise<Response>;
+
+  /**
+   * @description 是否在请求中携带历史消息
+   * @descriptionEn Whether to include history messages in request
+   */
   enableHistoryMessages?: boolean;
-  
+
+  /**
+   * @description 自定义流式数据解析函数（默认 JSON.parse）
+   * @descriptionEn Custom parser for stream chunks (default JSON.parse)
+   */
   responseParser?: (
     response: Response,
   ) => IAgentScopeRuntimeResponse | IAgentScopeRuntimeMessage | IContent;
+
+  /**
+   * @description 自定义媒体资源地址转换（如加签、CDN 替换）
+   * @descriptionEn Custom media URL transformer (e.g. sign URL, replace CDN domain)
+   */
+  replaceMediaURL?: (url: string) => string;
 }
 
 /**
@@ -100,6 +125,17 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    */
   background?: string;
   /**
+   * @description 气泡列表配置
+   * @descriptionEn Bubble list configuration
+   */
+  bubbleList?: {
+    /**
+     * @description 是否启用分页
+     * @descriptionEn Whether to enable pagination
+     */
+    pagination?: boolean;
+  };
+  /**
    * @description 语言
    * @descriptionEn Language
    * @default 'en'
@@ -154,6 +190,11 @@ export interface IAgentScopeRuntimeWebUIWelcomeOptions {
    */
   avatar?: string | React.ReactElement;
   /**
+   * @description 昵称
+   * @descriptionEn Nickname
+   */
+  nick?: string | React.ReactElement;
+  /**
    * @description 提示语列表
    * @descriptionEn Prompt list
    */
@@ -188,11 +229,6 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @descriptionEn Maximum input length
    */
   maxLength?: number;
-  /**
-   * @description 是否可缩放
-   * @descriptionEn Whether scalable
-   */
-  scalable?: boolean;
   /**
    * @description 输入框前置UI
    * @descriptionEn UI before input
@@ -238,6 +274,15 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @descriptionEn Whether to allow speech input
    */
   allowSpeech?: boolean;
+  /**
+   * @description 建议列表
+   * @descriptionEn Suggestions list
+   * @example [
+   *   { label: 'Draw a picture', value: 'draw' },
+   *   { label: 'Check some knowledge', value: 'knowledge' },
+   * ]
+   */
+  suggestions?: { label?: string | React.ReactNode; value: string }[];
 }
 
 /**
@@ -304,10 +349,15 @@ export interface IAgentScopeRuntimeWebUISessionOptions {
    */
   multiple?: boolean;
   /**
+   * @description 隐藏内置的会话列表面板，由外部自行实现
+   * @descriptionEn Hide the built-in session list panel, allowing external custom implementation
+   */
+  hideBuiltInSessionList?: boolean;
+  /**
    * @description 会话 API 接口
    * @descriptionEn Session API interface
    */
-  api: IAgentScopeRuntimeWebUISessionAPI;
+  api?: IAgentScopeRuntimeWebUISessionAPI;
 }
 
 /**

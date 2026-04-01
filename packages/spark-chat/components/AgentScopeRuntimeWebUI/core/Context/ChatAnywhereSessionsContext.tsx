@@ -7,6 +7,7 @@ import { ChatAnywhereMessagesContext } from './ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from './ChatAnywhereOptionsContext';
 import ReactDOM from 'react-dom';
 import { useAsyncEffect } from 'ahooks';
+import { emit } from './useChatAnywhereEventEmitter';
 
 
 export const ChatAnywhereSessionsContext = createContext<IAgentScopeRuntimeWebUISessionsContext>({
@@ -43,6 +44,41 @@ export function ChatAnywhereSessionsContextProvider(props: {
     {props.children}
   </ChatAnywhereSessionsContext.Provider>;
 }
+
+/**
+ * 会话切换时加载消息和判断重连的 hook，必须保证只挂载一次
+ */
+export const useChatAnywhereSessionLoader = () => {
+  const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
+  const options = useChatAnywhereOptions(v => v.session);
+  const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
+
+  useAsyncEffect(async () => {
+    ReactDOM.flushSync(() => {
+      setMessages([])
+    })
+
+    const session = await options.api.getSession(currentSessionId);
+    const messages = session?.messages || [];
+    setMessages(messages.map(item => {
+      return {
+        ...item,
+        history: true,
+      }
+    }));
+
+    if (session?.generating) {
+      emit({ type: 'handleReconnect', data: { session_id: currentSessionId } });
+    }
+  }, [currentSessionId]);
+};
+
+/**
+ * 获取会话列表的 reactive 状态，供外部自定义会话面板使用
+ */
+export const useChatAnywhereSessionsState = () => {
+  return useContextSelector(ChatAnywhereSessionsContext, v => v);
+};
 
 export const useChatAnywhereSessions = () => {
   const {
@@ -88,21 +124,6 @@ export const useChatAnywhereSessions = () => {
     setCurrentSessionId(sessionId);
 
   }, []);
-
-
-  useAsyncEffect(async () => {
-    ReactDOM.flushSync(() => {
-      setMessages([])
-    })
-
-    const messages = (await options.api.getSession(currentSessionId))?.messages || [];
-    setMessages(messages.map(item => {
-      return {
-        ...item,
-        history: true,
-      }
-    }));
-  }, [currentSessionId]);
 
 
   return {

@@ -4,10 +4,20 @@ const sessionLocalStorage = {
       'chat-anywhere-session',
     );
 
+    var data: {
+      currentSessionKey: string;
+      currentRegenerateIndex: number;
+      sessionList: {
+        label: string;
+        key: string;
+        messages: any[][];
+      }[];
+    };
+
     if (localStorageDataString) {
-      return JSON.parse(localStorageDataString);
+      data = JSON.parse(localStorageDataString);
     } else {
-      return {
+      data = {
         sessionList: [
           {
             label: Date.now().toString(),
@@ -19,10 +29,27 @@ const sessionLocalStorage = {
         currentRegenerateIndex: 0,
       };
     }
+
+    data.sessionList = (data.sessionList || []).map((session) => {
+      return {
+        ...session,
+        messages: (session.messages || []).map((messageGroup) => {
+          return (messageGroup || []).map((message) => {
+            if (!message || typeof message !== 'object') return message;
+            return {
+              ...message,
+              history: true,
+            };
+          });
+        }),
+      };
+    });
+
+    return data;
   },
   set(data) {
     const beforeData = sessionLocalStorage.get() || {};
-    
+
     localStorage.setItem(
       'chat-anywhere-session',
       JSON.stringify({

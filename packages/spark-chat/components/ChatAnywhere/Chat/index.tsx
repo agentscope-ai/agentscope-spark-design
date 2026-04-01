@@ -1,7 +1,7 @@
 import React, { forwardRef, useState } from 'react';
 import Bubble from '../../Bubble';
 import Input from '../Input';
-import { useInput, useProviderContext } from '@agentscope-ai/chat';
+import { useProviderContext } from '@agentscope-ai/chat';
 import cls from 'classnames';
 import { useTimeout } from 'ahooks';
 import { Disclaimer } from '@agentscope-ai/chat';
@@ -10,11 +10,20 @@ import Style from './style';
 
 export default forwardRef(function (_, ref) {
   const messages = useChatAnywhere(v => v.messages);
+  const safeMessages = [...(messages || [])].reverse();
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('chat-anywhere');
   const uiConfig = useChatAnywhere(v => v.uiConfig);
   const [ready, setReady] = useState(false);
-  const inputContext = useInput();
+  const prevMessagesLengthRef = React.useRef(safeMessages.length);
+
+  React.useEffect(() => {
+    if (safeMessages.length > prevMessagesLengthRef.current) {
+      // New messages in desc mode should always bring viewport to latest bottom.
+      (ref as any)?.chatRef?.current?.scrollToBottom?.();
+    }
+    prevMessagesLengthRef.current = safeMessages.length;
+  }, [safeMessages.length, ref]);
 
   useTimeout(() => {
     setReady(true);
@@ -28,17 +37,18 @@ export default forwardRef(function (_, ref) {
     }
   );
 
-  const emptyMessage = !messages?.length;
+  const emptyMessage = safeMessages.length === 0;
 
   return <>
     <Style />
     <div className={chatClassName}>
       <Bubble.List
-        smooth={!!inputContext.loading}
+        pagination={uiConfig?.bubbleList?.pagination}
+        order="desc"
         style={{ height: 0, flex: emptyMessage ? 0 : 1 }}
         // @ts-ignore
         ref={ref.chatRef}
-        items={messages}
+        items={safeMessages}
       />
       {
         emptyMessage ? <div className={`${chatClassName}-welcome`}>{uiConfig?.welcome}</div> : null

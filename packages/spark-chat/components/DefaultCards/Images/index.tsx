@@ -37,7 +37,7 @@ function Image(image) {
     </div></>
 
 }
-export default function Files(props) {
+export default function Images(props) {
   return <ConfigProvider
     locale={{
       Image: { preview: '' }

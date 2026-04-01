@@ -291,6 +291,9 @@ export default function () {
           title="Nice to meet you!"
           desc="How can I help you today?"
         />,
+        bubbleList: {
+          pagination: true,
+        },
         disclaimer: 'AI can also make mistakes, so please check and use it carefully',
         header: <Header />,
         logo: <div style={{ fontFamily: 'Montserrat', fontWeight: 'bold' }}>Spark Chat</div>,
@@ -332,7 +335,12 @@ export default function () {
         onSubmit: onInput,
         maxLength: 100000,
         beforeSubmit: () => Promise.resolve(true),
-        zoomable: true,
+        suggestions: [
+          {
+            label: 'Draw a picture',
+            value: 'draw',
+          },
+        ],
       }}
       onStop={onStop}
       onRegenerate={onRegenerate}
