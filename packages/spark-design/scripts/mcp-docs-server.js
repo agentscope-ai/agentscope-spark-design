@@ -6257,7 +6257,7 @@ module.exports = __toCommonJS(mcp_exports);
 // package.json
 var package_default = {
   name: "@agentscope-ai/design",
-  version: "1.0.27",
+  version: "1.0.30",
   description: "AgentScope Spark Design - UI Library for AgentScope AI",
   repository: {
     type: "git",

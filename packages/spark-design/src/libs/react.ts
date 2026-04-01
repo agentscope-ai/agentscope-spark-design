@@ -45,8 +45,8 @@ export function ensureRefWrapped(
   }
 
   return React.createElement(
-    'span',
-    { style: { display: 'inline-block' } },
+    'div',
+    null,
     children,
   );
 }
