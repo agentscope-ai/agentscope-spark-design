@@ -354,13 +354,6 @@ export default function App() {
 
 ## 自定义卡片
 
-`AgentScopeRuntimeWebUI` 提供了两种自定义渲染能力：
-
-| 能力 | 配置项 | 匹配方式 | 适用场景 |
-| --- | --- | --- | --- |
-| 自定义卡片 | `cards` | 消息中的 `code` 字段 | `component_call` 类型消息，展示富交互 UI |
-| 自定义工具渲染 | `customToolRenderConfig` | 工具调用的 `name` 字段 | `plugin_call` / `mcp_call` 等工具调用结果的可视化 |
-
 脚手架中内置了一个完整的天气卡片示例（`src/components/Cards/Weather.tsx`），以下文档以此为例介绍自定义工具渲染的完整开发流程。
 
 ---

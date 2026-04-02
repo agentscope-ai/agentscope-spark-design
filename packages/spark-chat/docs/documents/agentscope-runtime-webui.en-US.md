@@ -352,13 +352,6 @@ export default function App() {
 
 ## Custom Cards
 
-`AgentScopeRuntimeWebUI` provides two custom rendering capabilities:
-
-| Capability | Config | Matching | Use Case |
-| --- | --- | --- | --- |
-| Custom Cards | `cards` | `code` field in messages | `component_call` messages, rich interactive UI |
-| Custom Tool Render | `customToolRenderConfig` | `name` field of tool calls | Visualization of `plugin_call` / `mcp_call` tool results |
-
 The scaffold includes a complete weather card example (`src/components/Cards/Weather.tsx`). The following documentation uses it to illustrate the full development flow for custom tool rendering.
 
 ---
