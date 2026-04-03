@@ -186,6 +186,11 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   header?: React.ReactNode;
   /**
+   * @description 底部 UI
+   * @descriptionEn Footer UI
+   */
+  footer?: React.ReactNode;
+  /**
    * @description 最大文本长度
    * @descriptionEn Max content length
    */
@@ -658,6 +663,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
             </ActionButtonContext.Provider>
           </div>
         </div>
+        {props.footer}
       </div>
     </div>
   </>

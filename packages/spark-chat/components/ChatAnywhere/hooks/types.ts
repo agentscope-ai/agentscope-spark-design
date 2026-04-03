@@ -152,6 +152,11 @@ export interface IChatAnywhereConfigOnInput {
    */
   header?: React.ReactElement | React.ReactElement[];
   /**
+   * @description 输入框底部组件
+   * @descriptionEn Input field footer components
+   */
+  footer?: React.ReactNode;
+  /**
    * @description 是否启用用户focus时展开输入框组件
    * @descriptionEn Whether to enable the user focus to expand the input box component
    */

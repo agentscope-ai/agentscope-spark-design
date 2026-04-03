@@ -381,6 +381,7 @@ export default forwardRef(function (_, ref) {
         sendDisabled={sendDisabled}
         allowEmptySubmit={(onInput.allowEmptySubmit ?? true) && hasSubmittableFiles}
         header={senderHeader}
+        footer={onInput.footer}
         prefix={<>
           {uploadPrefixNodes}
           {onInput?.morePrefixActions}
