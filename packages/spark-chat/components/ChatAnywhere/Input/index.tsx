@@ -49,6 +49,7 @@ export default forwardRef(function (_, ref) {
       enableFocusExpand: false,
       variant: 'default',
       hide: false,
+      onChange: () => {},
     };
 
     return {
@@ -56,6 +57,11 @@ export default forwardRef(function (_, ref) {
       ...v.onInput,
     }
   });
+
+
+  useEffect(() => {
+    onInput.onChange({ query: content, fileList: attachedFiles });
+  }, [content, attachedFiles]);
 
   React.useImperativeHandle(ref, () => {
     return {

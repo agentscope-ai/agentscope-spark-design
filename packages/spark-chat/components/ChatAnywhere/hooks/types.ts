@@ -167,6 +167,11 @@ export interface IChatAnywhereConfigOnInput {
    */
   onSubmit(data: { query: string; fileList?: UploadFile[][] }): void;
   /**
+   * @description 输入内容变化时的回调函数
+   * @descriptionEn Callback function when input content changes
+   */
+  onChange(data: { query: string; fileList?: UploadFile[][] }): void;
+  /**
    * @description 输入内容的最大长度限制
    * @descriptionEn Maximum length limit for input content
    */
@@ -202,6 +207,8 @@ export interface IChatAnywhereConfigOnInput {
    * @descriptionEn Whether to allow submission when the input field is empty, defaults to true (submittable files are still required)
    */
   allowEmptySubmit?: boolean;
+
+
 }
 
 export interface IChatAnywhereConfigOnUpload {
@@ -301,6 +308,14 @@ export interface IChatAnywhereConfig {
    * @descriptionEn Configuration options for file upload functionality
    */
   onUpload?: IChatAnywhereConfigOnUpload[];
+  /**
+   * @description 加载更多消息的回调函数
+   * @descriptionEn Callback function for loading more messages
+   */
+  onLoadMore?(): Promise<{
+    messages: TMessage[];
+    noMore: boolean;
+  }>;
 }
 
 export interface IChatAnywhereRef extends IChatAnywhereContext {

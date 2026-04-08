@@ -3,7 +3,7 @@ import type { BubbleProps } from './interface';
 import ScrollToBottom from './ScrollToBottom';
 import Style from './style/list';
 import { useProviderContext } from '@agentscope-ai/chat';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import cls from 'classnames';
 import { useInViewport, useMount, usePrevious } from 'ahooks';
 import { usePaginationItems } from './hooks/usePaginationItemsData';
@@ -55,16 +55,30 @@ interface BubbleListContentProps {
   scrollRef: React.RefObject<HTMLElement | null>;
   listClassName?: string;
   children?: React.ReactNode | React.ReactNode[];
+  onLoadMoreStart?: () => void;
+  onLoadMoreEnd?: () => void;
 }
 
-function BubbleListContent({ order, paginationItems, noMore, loadMore, scrollRef, children }: BubbleListContentProps) {
+function BubbleListContent(props: BubbleListContentProps) {
+  const { order, paginationItems, noMore, loadMore, scrollRef, children, onLoadMoreStart, onLoadMoreEnd } = props;
   const handleLoadMore = useCallback(() => {
     return loadMore(scrollRef);
   }, [loadMore, scrollRef]);
 
+  const moreUI = useMemo(() => {
+    if (noMore) return null;
+    return (
+      <LoadMore
+        handleLoadMore={handleLoadMore}
+        onLoadMoreStart={onLoadMoreStart}
+        onLoadMoreEnd={onLoadMoreEnd}
+      />
+    );
+  }, [handleLoadMore, onLoadMoreStart, onLoadMoreEnd, noMore]);
+
   return (
     <>
-      {order === 'asc' && !noMore ? <LoadMore handleLoadMore={handleLoadMore} /> : null}
+      {order === 'asc' && !noMore ? moreUI : null}
       {children ? children : paginationItems.map(({ key, ...bubble }, index) => {
         const isLast = index === paginationItems.length - 1;
         return (
@@ -75,12 +89,18 @@ function BubbleListContent({ order, paginationItems, noMore, loadMore, scrollRef
           />
         )
       })}
-      {order === 'desc' && !noMore ? <LoadMore handleLoadMore={handleLoadMore} /> : null}
+      {order === 'desc' && !noMore ? moreUI : null}
     </>
   );
 }
 
-function LoadMore({ handleLoadMore }: { handleLoadMore: () => Promise<void> }) {
+interface LoadMoreProps {
+  handleLoadMore: () => Promise<void>;
+  onLoadMoreStart?: () => void;
+  onLoadMoreEnd?: () => void;
+}
+
+function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMoreProps) {
   const ref = useRef(null);
   const [inViewport] = useInViewport(ref)
   const [loading, setLoading] = useState(false)
@@ -92,9 +112,11 @@ function LoadMore({ handleLoadMore }: { handleLoadMore: () => Promise<void> }) {
     if (inViewport && previousInViewport === undefined) return;
     if (loading) return;
     if (inViewport) {
+      onLoadMoreStart?.();
       setLoading(true);
       handleLoadMore().finally(() => {
         setLoading(false);
+        onLoadMoreEnd?.();
       });
     }
 
