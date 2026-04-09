@@ -45,6 +45,16 @@ export interface BubbleListProps extends React.HTMLAttributes<HTMLDivElement> {
   };
   pagination?: boolean;
   order?: 'asc' | 'desc';
+  /**
+   * @description 后端分页加载更多的回调函数，提供时将跳过前端瀑布流分页，改为后端分页模式
+   * @descriptionEn Callback for backend pagination load-more. When provided, frontend pagination is bypassed and backend pagination mode is enabled
+   */
+  onLoadMore?: () => Promise<void>;
+  /**
+   * @description 后端分页模式下是否还有更多数据，配合 onLoadMore 使用
+   * @descriptionEn Whether there is more data in backend pagination mode, used together with onLoadMore
+   */
+  noMore?: boolean;
 }
 
 interface BubbleListContentProps {
@@ -103,24 +113,23 @@ interface LoadMoreProps {
 function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMoreProps) {
   const ref = useRef(null);
   const [inViewport] = useInViewport(ref)
-  const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
   const previousInViewport = usePrevious(inViewport)
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('bubble-list');
 
   useEffect(() => {
     if (inViewport && previousInViewport === undefined) return;
-    if (loading) return;
+    if (loadingRef.current) return;
     if (inViewport) {
       onLoadMoreStart?.();
-      setLoading(true);
+      loadingRef.current = true;
       handleLoadMore().finally(() => {
-        setLoading(false);
+        loadingRef.current = false;
         onLoadMoreEnd?.();
       });
     }
-
-  }, [previousInViewport, inViewport, loading, handleLoadMore])
+  }, [previousInViewport, inViewport, handleLoadMore])
 
   return <div ref={ref} className={`${prefixCls}-load-more`}><Spin spinning={true} /></div>
 }
@@ -191,14 +200,20 @@ const BubbleList: React.ForwardRefRenderFunction<BubbleListRef, BubbleListProps>
   }), [scrollToBottom]);
 
 
-  const { items: paginationItems, noMore, loadMore } = usePaginationItems(items, {
-    enable: props.pagination,
+  const isBackendPagination = typeof props.onLoadMore === 'function';
+
+  const { items: frontendItems, noMore: frontendNoMore, loadMore: frontendLoadMore } = usePaginationItems(items, {
+    enable: props.pagination && !isBackendPagination,
     order,
   });
 
-  useEffect(() => {
-    scrollToBottom('auto');
-  }, [items.length, scrollToBottom]);
+  const paginationItems = isBackendPagination ? items : frontendItems;
+  const noMore = isBackendPagination ? (props.noMore ?? false) : frontendNoMore;
+  const backendLoadMore = useCallback(
+    (_scrollRef?: React.RefObject<HTMLElement | null>) => props.onLoadMore!(),
+    [props.onLoadMore],
+  );
+  const loadMore = isBackendPagination ? backendLoadMore : frontendLoadMore;
 
 
   useEffect(() => {

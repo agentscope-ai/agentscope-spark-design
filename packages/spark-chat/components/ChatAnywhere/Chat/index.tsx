@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useCallback, useRef, useState } from 'react';
 import Bubble from '../../Bubble';
 import Input from '../Input';
 import { useProviderContext } from '@agentscope-ai/chat';
@@ -10,25 +10,34 @@ import Style from './style';
 
 export default forwardRef(function (_, ref) {
   const messages = useChatAnywhere(v => v.messages);
+  const setMessages = useChatAnywhere(v => v.setMessages);
+  const onLoadMore = useChatAnywhere(v => v.onLoadMore);
   const safeMessages = [...(messages || [])].reverse();
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('chat-anywhere');
   const uiConfig = useChatAnywhere(v => v.uiConfig);
   const [ready, setReady] = useState(false);
-  const prevMessagesLengthRef = React.useRef(safeMessages.length);
-
-  React.useEffect(() => {
-    if (safeMessages.length > prevMessagesLengthRef.current) {
-      // New messages in desc mode should always bring viewport to latest bottom.
-      (ref as any)?.chatRef?.current?.scrollToBottom?.();
-    }
-    prevMessagesLengthRef.current = safeMessages.length;
-  }, [safeMessages.length, ref]);
+  const [noMore, setNoMore] = useState(false);
+  const isBackendPagination = typeof onLoadMore === 'function';
+  const loadingMoreRef = useRef(false);
 
   useTimeout(() => {
     setReady(true);
   }, 300);
 
+  const handleLoadMore = useCallback(async () => {
+    if (!onLoadMore || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    try {
+      const result = await onLoadMore();
+      if (result?.messages?.length) {
+        setMessages(prev => [...result.messages, ...prev]);
+      }
+      setNoMore(result?.noMore ?? false);
+    } finally {
+      loadingMoreRef.current = false;
+    }
+  }, [onLoadMore, setMessages]);
 
   const chatClassName = cls(
     `${prefixCls}-chat`,
@@ -43,7 +52,9 @@ export default forwardRef(function (_, ref) {
     <Style />
     <div className={chatClassName}>
       <Bubble.List
-        pagination={uiConfig?.bubbleList?.pagination}
+        pagination={isBackendPagination ? false : uiConfig?.bubbleList?.pagination}
+        onLoadMore={isBackendPagination ? handleLoadMore : undefined}
+        noMore={isBackendPagination ? noMore : undefined}
         order="desc"
         style={{ height: 0, flex: emptyMessage ? 0 : 1 }}
         // @ts-ignore
