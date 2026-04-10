@@ -16,10 +16,16 @@ export default forwardRef(function (_, ref) {
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('chat-anywhere');
   const uiConfig = useChatAnywhere(v => v.uiConfig);
+  const currentSessionKey = useChatAnywhere(v => v.currentSessionKey);
   const [ready, setReady] = useState(false);
   const [noMore, setNoMore] = useState(false);
   const isBackendPagination = typeof onLoadMore === 'function';
   const loadingMoreRef = useRef(false);
+
+  React.useEffect(() => {
+    setNoMore(false);
+    loadingMoreRef.current = false;
+  }, [currentSessionKey]);
 
   useTimeout(() => {
     setReady(true);
