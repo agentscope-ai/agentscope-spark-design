@@ -114,22 +114,44 @@ function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMorePr
   const ref = useRef(null);
   const [inViewport] = useInViewport(ref)
   const loadingRef = useRef(false)
+  const mountedRef = useRef(true)
+  const inViewportRef = useRef(inViewport)
   const previousInViewport = usePrevious(inViewport)
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('bubble-list');
 
   useEffect(() => {
+    inViewportRef.current = inViewport;
+  }, [inViewport]);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const doLoad = useCallback(() => {
+    if (!mountedRef.current || loadingRef.current) return;
+    loadingRef.current = true;
+    onLoadMoreStart?.();
+    handleLoadMore().finally(() => {
+      loadingRef.current = false;
+      onLoadMoreEnd?.();
+      // If spinner is still visible after load (container not yet scrollable),
+      // schedule another load via rAF so React can process noMore state first.
+      requestAnimationFrame(() => {
+        if (mountedRef.current && inViewportRef.current) {
+          doLoad();
+        }
+      });
+    });
+  }, [handleLoadMore, onLoadMoreStart, onLoadMoreEnd]);
+
+  useEffect(() => {
     if (inViewport && previousInViewport === undefined) return;
     if (loadingRef.current) return;
     if (inViewport) {
-      onLoadMoreStart?.();
-      loadingRef.current = true;
-      handleLoadMore().finally(() => {
-        loadingRef.current = false;
-        onLoadMoreEnd?.();
-      });
+      doLoad();
     }
-  }, [previousInViewport, inViewport, handleLoadMore])
+  }, [previousInViewport, inViewport, doLoad])
 
   return <div ref={ref} className={`${prefixCls}-load-more`}><Spin spinning={true} /></div>
 }
