@@ -291,9 +291,6 @@ export default function () {
           title="Nice to meet you!"
           desc="How can I help you today?"
         />,
-        bubbleList: {
-          pagination: true,
-        },
         disclaimer: 'AI can also make mistakes, so please check and use it carefully',
         header: <Header />,
         logo: <div style={{ fontFamily: 'Montserrat', fontWeight: 'bold' }}>Spark Chat</div>,

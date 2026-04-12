@@ -107,17 +107,6 @@ export interface IChatAnywhereConfigUIConfig {
    * @descriptionEn Disclaimer component or text
    */
   disclaimer?: React.ReactElement | string;
-  /**
-   * @description 气泡列表的配置
-   * @descriptionEn Bubble list configuration
-   */
-  bubbleList?: {
-    /**
-     * @description 是否启用分页
-     * @descriptionEn Whether to enable pagination
-     */
-    pagination?: boolean;
-  };
 }
 
 export interface IChatAnywhereConfigOnInput {
@@ -170,7 +159,7 @@ export interface IChatAnywhereConfigOnInput {
    * @description 输入内容变化时的回调函数
    * @descriptionEn Callback function when input content changes
    */
-  onChange(data: { query: string; fileList?: UploadFile[][] }): void;
+  onChange?(data: { query: string; fileList?: UploadFile[][] }): void;
   /**
    * @description 输入内容的最大长度限制
    * @descriptionEn Maximum length limit for input content

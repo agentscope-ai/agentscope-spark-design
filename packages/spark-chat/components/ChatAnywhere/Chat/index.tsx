@@ -19,7 +19,6 @@ export default forwardRef(function (_, ref) {
   const currentSessionKey = useChatAnywhere(v => v.currentSessionKey);
   const [ready, setReady] = useState(false);
   const [noMore, setNoMore] = useState(false);
-  const isBackendPagination = typeof onLoadMore === 'function';
   const loadingMoreRef = useRef(false);
 
   React.useEffect(() => {
@@ -58,9 +57,8 @@ export default forwardRef(function (_, ref) {
     <Style />
     <div className={chatClassName}>
       <Bubble.List
-        pagination={isBackendPagination ? false : uiConfig?.bubbleList?.pagination}
-        onLoadMore={isBackendPagination ? handleLoadMore : undefined}
-        noMore={isBackendPagination ? noMore : undefined}
+        onLoadMore={onLoadMore ? handleLoadMore : undefined}
+        noMore={onLoadMore ? noMore : undefined}
         order="desc"
         style={{ height: 0, flex: emptyMessage ? 0 : 1 }}
         // @ts-ignore

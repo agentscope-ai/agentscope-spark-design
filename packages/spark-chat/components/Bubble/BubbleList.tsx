@@ -3,10 +3,9 @@ import type { BubbleProps } from './interface';
 import ScrollToBottom from './ScrollToBottom';
 import Style from './style/list';
 import { useProviderContext } from '@agentscope-ai/chat';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import cls from 'classnames';
-import { useInViewport, useMount, usePrevious } from 'ahooks';
-import { usePaginationItems } from './hooks/usePaginationItemsData';
+import { useInViewport, usePrevious } from 'ahooks';
 import { Spin } from 'antd';
 
 export interface BubbleListRef {
@@ -43,16 +42,15 @@ export interface BubbleListProps extends React.HTMLAttributes<HTMLDivElement> {
     wrapper?: string;
     list?: string;
   };
-  pagination?: boolean;
   order?: 'asc' | 'desc';
   /**
-   * @description 后端分页加载更多的回调函数，提供时将跳过前端瀑布流分页，改为后端分页模式
-   * @descriptionEn Callback for backend pagination load-more. When provided, frontend pagination is bypassed and backend pagination mode is enabled
+   * @description 后端分页加载更多的回调函数，提供时将开启分页模式
+   * @descriptionEn Callback for backend pagination load-more. When provided, pagination mode is enabled
    */
   onLoadMore?: () => Promise<void>;
   /**
-   * @description 后端分页模式下是否还有更多数据，配合 onLoadMore 使用
-   * @descriptionEn Whether there is more data in backend pagination mode, used together with onLoadMore
+   * @description 是否还有更多数据，配合 onLoadMore 使用
+   * @descriptionEn Whether there is more data, used together with onLoadMore
    */
   noMore?: boolean;
 }
@@ -146,7 +144,7 @@ function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMorePr
   }, [handleLoadMore, onLoadMoreStart, onLoadMoreEnd]);
 
   useEffect(() => {
-    if (inViewport && previousInViewport === undefined) return;
+    if (!inViewport && previousInViewport === undefined) return;
     if (loadingRef.current) return;
     if (inViewport) {
       doLoad();
@@ -222,20 +220,11 @@ const BubbleList: React.ForwardRefRenderFunction<BubbleListRef, BubbleListProps>
   }), [scrollToBottom]);
 
 
-  const isBackendPagination = typeof props.onLoadMore === 'function';
-
-  const { items: frontendItems, noMore: frontendNoMore, loadMore: frontendLoadMore } = usePaginationItems(items, {
-    enable: props.pagination && !isBackendPagination,
-    order,
-  });
-
-  const paginationItems = isBackendPagination ? items : frontendItems;
-  const noMore = isBackendPagination ? (props.noMore ?? false) : frontendNoMore;
-  const backendLoadMore = useCallback(
-    (_scrollRef?: React.RefObject<HTMLElement | null>) => props.onLoadMore!(),
+  const noMore = props.noMore ?? true;
+  const loadMore = useCallback(
+    (_scrollRef?: React.RefObject<HTMLElement | null>) => props.onLoadMore?.() ?? Promise.resolve(),
     [props.onLoadMore],
   );
-  const loadMore = isBackendPagination ? backendLoadMore : frontendLoadMore;
 
 
   useEffect(() => {
@@ -273,7 +262,7 @@ const BubbleList: React.ForwardRefRenderFunction<BubbleListRef, BubbleListProps>
         }
         <BubbleListContent
           order={order}
-          paginationItems={paginationItems}
+          paginationItems={items}
           noMore={noMore}
           loadMore={loadMore}
           scrollRef={scrollRef as React.RefObject<HTMLElement | null>}
