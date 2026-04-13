@@ -69,6 +69,11 @@ export interface TMessage {
    * @descriptionEn Processing status of the message, affects display effects
    */
   msgStatus?: 'finished' | 'interrupted' | 'generating' | 'error';
+  /**
+   * @description 是否为历史消息（session 加载时存在），供前端分页使用
+   * @descriptionEn Whether the message is a historical message (existed at session load), used for frontend pagination
+   */
+  history?: boolean;
 }
 
 export interface IChatAnywhereConfigUIConfig {

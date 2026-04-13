@@ -45,7 +45,7 @@ export function InnerSession() {
 
   useEffect(() => {
     const messages = getMessagesBySession(currentSessionKey, currentRegenerateIndex);
-    setMessages(messages);
+    setMessages((messages || []).map(m => ({ ...m, history: true })));
   }, [currentSessionKey, currentRegenerateIndex]);
 
   return <div className={`${prefixCls}-session`} >
