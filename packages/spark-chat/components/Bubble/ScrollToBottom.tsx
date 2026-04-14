@@ -1,42 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useProviderContext } from '@agentscope-ai/chat';
 import cls from 'classnames';
-import { ScrollToBottomOptions, useStickToBottomContext } from '../StickToBottom';
 import { IconButton } from '@agentscope-ai/design';
 import { SparkDownArrowLine } from '@agentscope-ai/icons';
 
 
-const ScrollToBottomButton: React.ForwardRefRenderFunction<{
-  scrollToBottom(options?: ScrollToBottomOptions): void
-}> = (_, ref) => {
+interface ScrollToBottomProps {
+  visible: boolean;
+  onClick: () => void;
+}
+
+const ScrollToBottomButton = ({ visible, onClick }: ScrollToBottomProps) => {
   const { getPrefixCls } = useProviderContext();
-  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
-
-  React.useImperativeHandle(ref, () => ({
-    scrollToBottom: (options?: ScrollToBottomOptions) => {
-      options = options || {
-        animation: 'instant'
-      }
-      scrollToBottom(options)
-    },
-  }));
-
 
   const prefixCls = getPrefixCls('bubble-list-scroll-to-bottom');
 
   return (
-    <div className={cls(prefixCls, `${prefixCls}-${!isAtBottom ? 'show' : 'hide'}`)}>
+    <div className={cls(prefixCls, `${prefixCls}-${visible ? 'show' : 'hide'}`)}>
 
       <IconButton
         icon={<SparkDownArrowLine />}
         shape='circle'
-        onClick={() => scrollToBottom({
-          animation: 'instant'
-        })}
+        onClick={onClick}
       />
 
     </div>
   );
 };
 
-export default React.forwardRef(ScrollToBottomButton);
+export default ScrollToBottomButton;

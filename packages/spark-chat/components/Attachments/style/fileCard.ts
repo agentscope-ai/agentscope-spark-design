@@ -61,7 +61,7 @@ export default createGlobalStyle`
   }
 
   &-type-preview {
-    width: 56px;
+    width: 100px;
     height: 56px;
     line-height: 1;
 
@@ -70,7 +70,7 @@ export default createGlobalStyle`
       height: 100%;
       vertical-align: top;
       object-fit: cover;
-      border-radius: 5px;
+      border-radius: 6px;
     }
 
     .${(p) => p.theme.prefixCls}-attachment-list-card-img-mask {
@@ -81,6 +81,44 @@ export default createGlobalStyle`
       align-items: center;
       background: rgba(0, 0, 0, ${(p) => p.theme.opacityLoading});
       border-radius: inherit;
+    }
+
+    .${(p) => p.theme.prefixCls}-attachment-list-card-img-hover-mask {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      background: rgba(20, 19, 39, 0.45);
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    &:hover .${(p) => p.theme.prefixCls}-attachment-list-card-img-hover-mask {
+      opacity: 1;
+    }
+
+    .${(p) => p.theme.prefixCls}-attachment-list-card-img-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: ${(p) => p.theme.colorWhite};
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 0.8;
+      }
     }
 
     &.${(p) => p.theme.prefixCls}-attachment-list-card-status-error {
@@ -161,7 +199,9 @@ export default createGlobalStyle`
 
   &:hover {
     border-color: ${(p) => p.theme.colorPrimary};
+  }
 
+  &.${(p) => p.theme.prefixCls}-attachment-list-card-type-overview:hover {
     &::after {
       content: '';
       position: absolute;
@@ -173,6 +213,5 @@ export default createGlobalStyle`
       background-color: rgba(0, 0, 0, 0.45);
     }
   }
-
 }
 `;

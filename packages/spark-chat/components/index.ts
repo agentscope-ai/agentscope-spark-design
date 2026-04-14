@@ -28,6 +28,13 @@ export * as DefaultCards from './DefaultCards';
 
 export { default as AgentScopeRuntimeWebUI } from './AgentScopeRuntimeWebUI';
 export * from './AgentScopeRuntimeWebUI/core/types';
+export {
+  useChatAnywhereSessions,
+  useChatAnywhereSessionsState,
+  ChatAnywhereSessionsContext,
+  ChatAnywhereInputContext,
+  useChatAnywhereInput,
+} from './AgentScopeRuntimeWebUI';
 
 export {
   Accordion,

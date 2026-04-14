@@ -1,13 +1,11 @@
 import Bubble from './Bubble';
 import type { BubbleProps } from './interface';
 import ScrollToBottom from './ScrollToBottom';
-import { StickToBottom, useStickToBottomContext } from '../StickToBottom';
 import Style from './style/list';
 import { useProviderContext } from '@agentscope-ai/chat';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import cls from 'classnames';
-import { useInViewport, useMount, usePrevious } from 'ahooks';
-import { usePaginationItems } from './hooks/usePaginationItemsData';
+import { useInViewport, usePrevious } from 'ahooks';
 import { Spin } from 'antd';
 
 export interface BubbleListRef {
@@ -37,11 +35,6 @@ export interface BubbleListProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   children?: React.ReactNode | React.ReactNode[];
   /**
-   * @description 是否启用平滑滚动效果，影响滚动动画的流畅度
-   * @descriptionEn Whether to enable smooth scrolling effect, affects scrolling animation smoothness
-   */
-  smooth?: boolean;
-  /**
    * @description 语义化CSS类名，用于为不同区域添加自定义类名
    * @descriptionEn Semantic CSS class names for adding custom classes to different areas
    */
@@ -49,62 +42,114 @@ export interface BubbleListProps extends React.HTMLAttributes<HTMLDivElement> {
     wrapper?: string;
     list?: string;
   };
-  pagination?: boolean;
+  order?: 'asc' | 'desc';
+  /**
+   * @description 后端分页加载更多的回调函数，提供时将开启分页模式
+   * @descriptionEn Callback for backend pagination load-more. When provided, pagination mode is enabled
+   */
+  onLoadMore?: () => Promise<void>;
+  /**
+   * @description 是否还有更多数据，配合 onLoadMore 使用
+   * @descriptionEn Whether there is more data, used together with onLoadMore
+   */
+  noMore?: boolean;
 }
 
 interface BubbleListContentProps {
-  items: BubbleDataType[];
+  order: 'asc' | 'desc';
   paginationItems: (BubbleDataType & { history?: boolean })[];
   noMore: boolean;
   loadMore: (scrollRef?: React.RefObject<HTMLElement | null>) => Promise<void>;
-  prefixCls: string;
+  scrollRef: React.RefObject<HTMLElement | null>;
   listClassName?: string;
   children?: React.ReactNode | React.ReactNode[];
+  onLoadMoreStart?: () => void;
+  onLoadMoreEnd?: () => void;
 }
 
-function BubbleListContent({ items, paginationItems, noMore, loadMore, prefixCls, listClassName, children }: BubbleListContentProps) {
-  const { scrollRef } = useStickToBottomContext();
-
+function BubbleListContent(props: BubbleListContentProps) {
+  const { order, paginationItems, noMore, loadMore, scrollRef, children, onLoadMoreStart, onLoadMoreEnd } = props;
   const handleLoadMore = useCallback(() => {
-    return loadMore(scrollRef as React.RefObject<HTMLElement | null>);
+    return loadMore(scrollRef);
   }, [loadMore, scrollRef]);
 
+  const moreUI = useMemo(() => {
+    if (noMore) return null;
+    return (
+      <LoadMore
+        handleLoadMore={handleLoadMore}
+        onLoadMoreStart={onLoadMoreStart}
+        onLoadMoreEnd={onLoadMoreEnd}
+      />
+    );
+  }, [handleLoadMore, onLoadMoreStart, onLoadMoreEnd, noMore]);
+
   return (
-    <StickToBottom.Content className={cls(`${prefixCls}`, listClassName)}>
-      {noMore ? null : <LoadMore handleLoadMore={handleLoadMore} />}
+    <>
+      {order === 'asc' && !noMore ? moreUI : null}
       {children ? children : paginationItems.map(({ key, ...bubble }, index) => {
-        const isLast = index === items.length - 1;
+        const isLast = index === paginationItems.length - 1;
         return (
           <Bubble
             {...bubble}
             isLast={isLast}
-            key={bubble.id || key}
+            key={bubble.id || key || index}
           />
         )
       })}
-    </StickToBottom.Content>
+      {order === 'desc' && !noMore ? moreUI : null}
+    </>
   );
 }
 
-function LoadMore({ handleLoadMore }: { handleLoadMore: () => Promise<void> }) {
+interface LoadMoreProps {
+  handleLoadMore: () => Promise<void>;
+  onLoadMoreStart?: () => void;
+  onLoadMoreEnd?: () => void;
+}
+
+function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMoreProps) {
   const ref = useRef(null);
   const [inViewport] = useInViewport(ref)
-  const [loading, setLoading] = useState(false)
+  const loadingRef = useRef(false)
+  const mountedRef = useRef(true)
+  const inViewportRef = useRef(inViewport)
   const previousInViewport = usePrevious(inViewport)
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('bubble-list');
 
   useEffect(() => {
-    if (inViewport && previousInViewport === undefined) return;
-    if (loading) return;
-    if (inViewport) {
-      setLoading(true);
-      handleLoadMore().finally(() => {
-        setLoading(false);
-      });
-    }
+    inViewportRef.current = inViewport;
+  }, [inViewport]);
 
-  }, [previousInViewport, inViewport, loading, handleLoadMore])
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  const doLoad = useCallback(() => {
+    if (!mountedRef.current || loadingRef.current) return;
+    loadingRef.current = true;
+    onLoadMoreStart?.();
+    handleLoadMore().finally(() => {
+      loadingRef.current = false;
+      onLoadMoreEnd?.();
+      // If spinner is still visible after load (container not yet scrollable),
+      // schedule another load via rAF so React can process noMore state first.
+      requestAnimationFrame(() => {
+        if (mountedRef.current && inViewportRef.current) {
+          doLoad();
+        }
+      });
+    });
+  }, [handleLoadMore, onLoadMoreStart, onLoadMoreEnd]);
+
+  useEffect(() => {
+    if (!inViewport && previousInViewport === undefined) return;
+    if (loadingRef.current) return;
+    if (inViewport) {
+      doLoad();
+    }
+  }, [previousInViewport, inViewport, doLoad])
 
   return <div ref={ref} className={`${prefixCls}-load-more`}><Spin spinning={true} /></div>
 }
@@ -112,52 +157,124 @@ function LoadMore({ handleLoadMore }: { handleLoadMore: () => Promise<void> }) {
 const BubbleList: React.ForwardRefRenderFunction<BubbleListRef, BubbleListProps> = (props, ref) => {
   const {
     items = [],
-    smooth = true,
+    order = 'asc',
   } = props;
 
-  const [initial, setInitial] = useState(false);
-  const scrollToBottomRef = React.useRef();
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const scrollRef = React.useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = React.useRef(true);
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('bubble-list');
+  const isDesc = order === 'desc';
+
+  const checkIsAtBottom = useCallback(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return true;
+
+    if (isDesc) {
+      return scrollEl.scrollTop <= 2;
+    }
+    return scrollEl.scrollHeight - scrollEl.clientHeight - scrollEl.scrollTop <= 2;
+  }, [isDesc]);
+
+  const checkShowScrollToBottom = useCallback(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return false;
+
+    const hasOverflow = scrollEl.scrollHeight - scrollEl.clientHeight > 2;
+    if (!hasOverflow) return false;
+
+    if (isDesc) {
+      return scrollEl.scrollTop <= -10;
+    }
+
+    return scrollEl.scrollHeight - scrollEl.clientHeight - scrollEl.scrollTop > 10;
+  }, [isDesc]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+
+    if (isDesc) {
+      scrollEl.scrollTop = 0;
+    } else {
+      scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior });
+    }
+    isAtBottomRef.current = true;
+    setShowScrollToBottom(false);
+  }, [isDesc]);
+
+  const handleScroll = useCallback(() => {
+    const scrollEl = scrollRef.current;
+    if (scrollEl) {
+    }
+    const isAtBottom = checkIsAtBottom();
+    isAtBottomRef.current = isAtBottom;
+    setShowScrollToBottom(checkShowScrollToBottom());
+  }, [checkIsAtBottom, checkShowScrollToBottom]);
 
   React.useImperativeHandle(ref, () => ({
     scrollToBottom: () => {
-      // @ts-ignore
-      scrollToBottomRef.current.scrollToBottom()
+      scrollToBottom('auto');
     }
-  }));
+  }), [scrollToBottom]);
 
-  useMount(() => {
-    setInitial(true);
-  });
 
-  const resize = initial ? (smooth ? 'smooth' : 'instant') : 'instant';
-  const { items: paginationItems, noMore, loadMore } = usePaginationItems(items, {
-    enable: props.pagination,
-  });
+  const noMore = props.noMore ?? true;
+  const loadMore = useCallback(
+    (_scrollRef?: React.RefObject<HTMLElement | null>) => props.onLoadMore?.() ?? Promise.resolve(),
+    [props.onLoadMore],
+  );
+
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+  }, [items.length, order]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const isAtBottom = checkIsAtBottom();
+      isAtBottomRef.current = isAtBottom;
+      setShowScrollToBottom(checkShowScrollToBottom());
+    });
+  }, [checkIsAtBottom, checkShowScrollToBottom, order]);
 
   return <>
     <Style />
-    <StickToBottom
-      enabled={!!smooth || !initial}
+    <div
       id={props.id}
-      className={cls(`${prefixCls}-wrapper`, props.classNames?.wrapper)}
-      resize={resize}
-      initial="instant"
+      className={cls(`${prefixCls}-wrapper`, props.className, props.classNames?.wrapper)}
       style={props.style}
     >
-      <BubbleListContent
-        items={items}
-        paginationItems={paginationItems}
-        noMore={noMore}
-        loadMore={loadMore}
-        prefixCls={prefixCls}
-        listClassName={props.classNames?.list}
+      <div
+        className={cls(
+          `${prefixCls}-scroll`,
+          `${prefixCls}`,
+          `${prefixCls}-order-${order}`,
+          props.classNames?.list,
+        )}
+        ref={scrollRef}
+        onScroll={handleScroll}
       >
-        {props.children}
-      </BubbleListContent>
-      <ScrollToBottom ref={scrollToBottomRef}></ScrollToBottom>
-    </StickToBottom>
+        {
+          order === 'desc' && <div className={`${prefixCls}-order-desc-short`}></div>
+        }
+        <BubbleListContent
+          order={order}
+          paginationItems={items}
+          noMore={noMore}
+          loadMore={loadMore}
+          scrollRef={scrollRef as React.RefObject<HTMLElement | null>}
+        >
+          {props.children}
+        </BubbleListContent>
+      </div>
+      <ScrollToBottom
+        visible={showScrollToBottom}
+        onClick={() => scrollToBottom('auto')}
+      />
+    </div>
   </>;
 };
 

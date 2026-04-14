@@ -1,6 +1,5 @@
 # Alibaba Cloud Spark Chat
 
-**注意**：`@agentscope-ai/design` 和 `@agentscope-ai/chat` 仍在加速推进开源中，我们预计在 2025 年年底完成开源。目前可以通过 npm 使用我们的项目。
 
 [![npm version](https://img.shields.io/npm/v/@ali/agentscope-ai-chat.svg)](https://www.npmjs.com/package/@ali/agentscope-ai-chat)
 [![license](https://img.shields.io/npm/l/@ali/agentscope-ai-chat.svg)](https://github.com/your-repo/spark-chat/blob/main/LICENSE)

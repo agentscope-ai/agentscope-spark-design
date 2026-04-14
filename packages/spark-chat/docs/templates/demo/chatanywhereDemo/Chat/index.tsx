@@ -332,7 +332,12 @@ export default function () {
         onSubmit: onInput,
         maxLength: 100000,
         beforeSubmit: () => Promise.resolve(true),
-        zoomable: true,
+        suggestions: [
+          {
+            label: 'Draw a picture',
+            value: 'draw',
+          },
+        ],
       }}
       onStop={onStop}
       onRegenerate={onRegenerate}

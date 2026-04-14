@@ -21,6 +21,7 @@ The following are examples and variations of this component
 <code src="./demo/timestamp.tsx" height="auto">Show Timestamp</code>
 <code src="./demo/timeline.tsx" height="auto">Show Timestamp & Timeline</code>
 <code src="./demo/select.tsx" height="auto">Selectable</code>
+<code src="./demo/avatar.tsx" height="auto">Avatar</code>
 
 #### API
 

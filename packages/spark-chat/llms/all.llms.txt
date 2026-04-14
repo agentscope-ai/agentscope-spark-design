@@ -4301,10 +4301,6 @@ $ npm install @agentscope-ai/chat --save
 
 `@agentscope-ai/chat` 使用 TypeScript 进行书写并提供了完整的定义文件。
 
-## 开源
-
-`@agentscope-ai/design` 和 `@agentscope-ai/chat` 仍在加速推进开源中，我们预计在 2025 年年底完成开源。目前可以通过 npm 使用我们的项目。
-
 
 
 # ChatAnywhere

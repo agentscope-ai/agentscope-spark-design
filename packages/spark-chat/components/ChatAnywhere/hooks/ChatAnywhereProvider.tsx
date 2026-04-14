@@ -206,6 +206,11 @@ export interface IChatAnywhereContext {
    * @descriptionEn UI configuration object for customizing interface appearance and behavior
    */
   uiConfig?: IChatAnywhereConfig['uiConfig'];
+  /**
+   * @description 后端分页加载更多消息的回调，返回新消息列表和是否还有更多数据
+   * @descriptionEn Backend pagination callback for loading more messages, returns new messages and whether there is more data
+   */
+  onLoadMore?: IChatAnywhereConfig['onLoadMore'];
 };
 
 

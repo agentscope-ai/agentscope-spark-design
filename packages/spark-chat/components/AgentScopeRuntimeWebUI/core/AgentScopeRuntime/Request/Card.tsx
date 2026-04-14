@@ -32,15 +32,39 @@ export default function AgentScopeRuntimeRequestCard(props: {
         }
       }
 
+      if (c.type === AgentScopeRuntimeContentType.VIDEO) {
+        const videoCard = p.find((item: any) => item.code === 'Videos');
+        if (!videoCard) {
+          p.push({
+            code: 'Videos',
+            data: [{ src: c.video_url, poster: c.video_poster }],
+          });
+        } else {
+          videoCard.data.push({ src: c.video_url, poster: c.video_poster });
+        }
+      }
+
+      if (c.type === AgentScopeRuntimeContentType.AUDIO) {
+        const audioCard = p.find((item: any) => item.code === 'Audios');
+        if (!audioCard) {
+          p.push({
+            code: 'Audios',
+            data: [{ src: c.audio_url || c.data }],
+          });
+        } else {
+          audioCard.data.push({ src: c.audio_url || c.data });
+        }
+      }
+
       if (c.type === AgentScopeRuntimeContentType.FILE) {
         const fileCard = p.find((item: any) => item.code === 'Files');
         if (!fileCard) {
           p.push({
             code: 'Files',
-            data: [{ url: c.file_url, name: c.file_name, size: c.file_size }],
+            data: [{ url: c.file_url, name: c.file_name || c.fileName, size: c.file_size }],
           });
         } else {
-          fileCard.data.push({ url: c.file_url, name: c.file_name, size: c.file_size });
+          fileCard.data.push({ url: c.file_url, name: c.file_name || c.fileName, size: c.file_size });
         }
       }
       return p;

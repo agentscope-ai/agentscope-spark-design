@@ -7,7 +7,6 @@ import { createStyles } from 'antd-style';
 
 function SendButton(props: ButtonProps, ref: React.Ref<HTMLButtonElement>) {
 
-
   return (
     <ActionButton
       icon={<ArrowUpOutlined />}

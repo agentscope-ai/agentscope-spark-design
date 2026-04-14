@@ -3,6 +3,7 @@ import { IAgentScopeRuntimeWebUIOptions } from "@agentscope-ai/chat";
 import { createContext, useContextSelector } from 'use-context-selector';
 import { useMemo } from "react";
 import { ConfigProvider, generateTheme, generateThemeByToken } from '@agentscope-ai/design';
+import { createDefaultSessionApi } from "./defaultSessionApi";
 
 
 const ChatAnywhereOptionsContext = createContext<IAgentScopeRuntimeWebUIOptions>(undefined);
@@ -22,17 +23,29 @@ export function ChatAnywhereOptionsContextProvider(props: { children: React.Reac
   const { children } = props;
   const responsive = useResponsive();
 
+  const defaultSessionApi = useMemo(() => {
+    const multiple = !!props.options.session?.multiple;
+    return createDefaultSessionApi(multiple);
+  }, [props.options.session?.multiple]);
+
   const options = useMemo(() => {
     const theme = props.options.theme || {};
+    const session = props.options.session || {};
+    const multiple = !!session.multiple;
 
     return {
       ...props.options,
+      session: {
+        ...session,
+        multiple,
+        api: session.api || defaultSessionApi,
+      },
       theme: {
         ...theme,
         narrowMode: !responsive.lg || theme.narrowMode,
       }
     };
-  }, [props.options, responsive.lg]);
+  }, [props.options, responsive.lg, defaultSessionApi]);
 
   const themeToken = useMemo(() => {
     const colorPrimary = options.theme.colorPrimary;

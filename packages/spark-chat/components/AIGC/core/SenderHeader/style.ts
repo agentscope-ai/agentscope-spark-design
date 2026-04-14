@@ -19,6 +19,8 @@ export default createGlobalStyle`
 
   .${(p) => p.theme.prefixCls}-attachment {
     width: fit-content;
+    max-width: 100%;
+    overflow-x: auto;
   }
 
   .${(p) => p.theme.prefixCls}-attachment-list {

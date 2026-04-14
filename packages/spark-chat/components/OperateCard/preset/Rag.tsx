@@ -85,10 +85,9 @@ function Item({ item }) {
     <div className={`${prefixCls}-rag-item-title`} onClick={() => {
       setOpen(!open);
     }}>
-      <span>
+      <span className={`${prefixCls}-rag-item-title-text`} title={item.title}>
         {item.title}
       </span>
-      <span style={{ flex: 1 }}></span>
       {
         item.score ? <Tag color="mauve" size="small" className={`${prefixCls}-rag-item-score`}>
           得分 <b>{item.score}</b>

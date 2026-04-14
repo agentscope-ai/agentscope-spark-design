@@ -44,10 +44,23 @@ export default createGlobalStyle`
 }
 
 .${(p) => p.theme.prefixCls}-chat-anywhere-layout-right-has-header {
-  .${(p) => p.theme.prefixCls}-chat-anywhere-message-list > div::before {
+  .${(p) => p.theme.prefixCls}-chat-anywhere-message-list .${(p) => p.theme.prefixCls}-bubble-list-scroll::before {
     content: ' ';
     display: block;
     height: 54px;
+    flex: 0 0 54px;
+  }
+
+  .${(p) => p.theme.prefixCls}-chat-anywhere-message-list .${(p) => p.theme.prefixCls}-bubble-list-scroll.${(p) => p.theme.prefixCls}-bubble-list-order-desc {
+    &::before {
+      height: 16px;
+      flex: 0 0 16px;
+    }
+
+    &::after {
+      height: 27px;
+      flex: 0 0 27px;
+    }
   }
 }
 
