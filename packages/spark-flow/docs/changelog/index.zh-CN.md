@@ -45,3 +45,7 @@ hero:
 ### 0.0.23
 #### Changed
 - 修复样式选择器样式
+
+### 0.0.24
+#### Fixed
+- code-input: 修复 value 为 null 或 undefined 时组件报错的问题，默认回退为空字符串

@@ -419,7 +419,7 @@ const CodeInput: React.FC<CodeInputProps> = ({
         style={style}
       >
         <CodeEdit
-          value={value}
+          value={value || ''}
           height={height}
           onChange={handleChange}
           type={type}
@@ -435,7 +435,7 @@ const CodeInput: React.FC<CodeInputProps> = ({
       </div>
       {open && (
         <CodeInputModal
-          value={value}
+          value={value || ''}
           onOk={handleOk}
           type={type}
           onClose={() => setOpen(false)}

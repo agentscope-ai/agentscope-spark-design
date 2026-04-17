@@ -45,3 +45,7 @@ hero:
 ### 0.0.23
 #### Changed
 - enhance variable selector styles in spark-flow
+
+### 0.0.24
+#### Fixed
+- code-input: fix crash when value is null or undefined by falling back to empty string
