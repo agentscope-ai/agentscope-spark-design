@@ -79,6 +79,7 @@ export default memo(function InputTextArea(props: IInputTextAreaProps) {
         variableList={props.variableList}
         disabled={props.disabled}
         value={props.value}
+        placeholder={props.placeholder}
         onChange={(val) => props.onChange(val || '')}
       />
     </div>
