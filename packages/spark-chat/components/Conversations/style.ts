@@ -49,6 +49,16 @@ export default createGlobalStyle`
     }
   }
 
+  &-icon {
+    margin-left: 16px;
+    margin-right: -8px;
+  }
+
+  &-content-wrapper {
+    width: 0;
+    flex: 1;
+  }
+
   &-content {
     height: 36px;
     display: flex;
@@ -64,6 +74,8 @@ export default createGlobalStyle`
 
   &-item {
     position: relative;
+    display: flex;
+    align-items: center;
     border-radius: ${(p) => p.theme.borderRadiusLG}px;
     cursor: pointer;
     transition: background-color 0.3s ease;

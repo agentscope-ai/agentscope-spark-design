@@ -24,13 +24,16 @@ export default function Input(props: InputProps) {
     beforeSubmit = () => Promise.resolve(true),
     beforeUI,
     afterUI,
-    scalable = true,
-    attachments
+    attachments,
+    prefix,
+    allowSpeech,
+    suggestions,
   } = senderOptions || {};
 
   const {
     getFileList,
     setFileList,
+    handlePasteFile,
     uploadIconButton,
     uploadFileListHeader
   } = useAttachments(attachments, { disabled: !!inputContext.disabled });
@@ -56,17 +59,20 @@ export default function Input(props: InputProps) {
       <ChatInput
         loading={inputContext.loading}
         disabled={inputContext.disabled}
-        scalable={scalable}
         placeholder={placeholder}
         value={content}
         prefix={<>
           {uploadIconButton}
+          {prefix}
         </>}
         header={uploadFileListHeader}
         onChange={setContent}
         maxLength={maxLength}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
+        allowSpeech={allowSpeech}
+        onPasteFile={handlePasteFile}
+        suggestions={suggestions}
       />
       {afterUI}
     </div>

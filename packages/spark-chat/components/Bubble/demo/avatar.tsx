@@ -14,8 +14,9 @@ export default function () {
       },
     ]} role="user"></Bubble>
     <Bubble
+      msgStatus='generating'
       avatar={{
-        src: 'https://gw.alicdn.com/imgextra/i1/O1CN01n7R7cy1MkE5OYeXV9_!!6000000001472-55-tps-24-24.svg',
+        src: 'https://img.alicdn.com/imgextra/i1/O1CN011tiK951hh7NbOmD99_!!6000000004308-2-tps-141-141.png',
       }}
 
       cards={[

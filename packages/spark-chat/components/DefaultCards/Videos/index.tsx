@@ -17,7 +17,9 @@ export default function Videos(props: VideosProps) {
     <Style />
     <Space>
       {props.data.map((video, index) => (
-        <Video className={prefixCls} key={index} src={video.src} poster={video.poster} controls={true} />
+        <div className={prefixCls} key={index}>
+          <Video src={video.src} poster={video.poster} controls={true} />
+        </div>
       ))}
     </Space>
   </>
@@ -26,8 +28,8 @@ export default function Videos(props: VideosProps) {
 
 const Style = createGlobalStyle`
 .${p => p.theme.prefixCls}-bubble-video {
-  max-width: 256px;
-  max-height: 144px;
+  width: 256px;
+  height: 144px;
   border-radius: 8px;
   border: 1px solid ${p => p.theme.colorBorderSecondary};
   overflow: hidden;

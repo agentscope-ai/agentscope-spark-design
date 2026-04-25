@@ -24,7 +24,7 @@ function Layout(props: IProps, ref: React.Ref<any>) {
   const rightHeader = useChatAnywhereOptions(v => v.theme.rightHeader);
   const { session } = useChatAnywhereOptions(v => ({ session: v.session }));
   const { collapsed } = useContext(ChatAnyWhereLayoutContext);
-  const showLeft = !narrowMode && session && session.multiple;
+  const showLeft = !narrowMode && session && session.multiple && !session.hideBuiltInSessionList;
 
   return <>
     <Style />

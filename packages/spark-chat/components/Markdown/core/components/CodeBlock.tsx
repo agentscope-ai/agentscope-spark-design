@@ -1,8 +1,9 @@
 import { Bubble, CodeHighlighter, Mermaid } from '@ant-design/x';
 import { type ComponentProps } from '@ant-design/x-markdown';
 import { useProviderContext } from "@agentscope-ai/chat";
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { SparkCopyLine, SparkDownloadLine, SparkTrueLine } from '@agentscope-ai/icons';
+import { copy } from '../../../Util/copy';
 
 const LANG_EXT_MAP: Record<string, string> = {
   javascript: 'js', typescript: 'ts', python: 'py', ruby: 'rb',
@@ -25,6 +26,7 @@ const Code: React.FC<ComponentProps> = (props) => {
 
 function CodeHeader({ lang, content }: { lang: string, content: string }) {
   const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
   const { getPrefixCls } = useProviderContext();
   const prefixCls = getPrefixCls('code-header');
 
@@ -39,20 +41,23 @@ function CodeHeader({ lang, content }: { lang: string, content: string }) {
     URL.revokeObjectURL(url);
   }, [lang, content]);
 
+  const handleCopy = useCallback(() => {
+    copy(content).then(() => {
+      clearTimeout(timer.current);
+      setCopied(true);
+      timer.current = setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {
+      console.warn('Copy failed');
+    });
+  }, [content]);
+
   return <div className={prefixCls}>
     <div className={`${prefixCls}-lang`}>{lang}</div>
-
 
     <div className={`${prefixCls}-actions`}>
       <SparkDownloadLine className={`${prefixCls}-download`} onClick={handleDownload} />
       {
-        copied ? <SparkTrueLine className={`${prefixCls}-copied`} /> : <SparkCopyLine className={`${prefixCls}-icon`} onClick={() => {
-          navigator.clipboard.writeText(content);
-          setCopied(true);
-          setTimeout(() => {
-            setCopied(false);
-          }, 1000);
-        }} />
+        copied ? <SparkTrueLine className={`${prefixCls}-copied`} /> : <SparkCopyLine className={`${prefixCls}-icon`} onClick={handleCopy} />
       }
     </div>
   </div>

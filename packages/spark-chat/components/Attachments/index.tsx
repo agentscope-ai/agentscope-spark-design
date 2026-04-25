@@ -7,6 +7,7 @@ import { useEvent, useMergedState } from 'rc-util';
 import DropArea from './DropArea';
 import FileList, { type FileListProps } from './FileList';
 import FileListCard from './FileList/FileListCard';
+import ImageCard from './FileList/ImageCard';
 import PlaceholderUploader, {
   type PlaceholderProps,
   type PlaceholderType,
@@ -92,6 +93,11 @@ export interface AttachmentsProps extends Omit<UploadProps, 'fileList'> {
    * @descriptionEn Render type, currently only supports default render mode
    */
   renderType?: 'default',
+  /**
+   * @description 图片类型文件是否支持点击刷新按钮直接替换上传
+   * @descriptionEn Whether image files support direct replacement upload via the refresh button
+   */
+  replaceable?: boolean;
 }
 
 export interface AttachmentsRef {
@@ -121,6 +127,7 @@ function Attachments(props: AttachmentsProps, ref: React.Ref<AttachmentsRef>) {
     onChange,
     overflow,
     disabled,
+    replaceable,
     classNames = {},
     styles = {},
     ...uploadProps
@@ -169,6 +176,25 @@ function Attachments(props: AttachmentsProps, ref: React.Ref<AttachmentsRef>) {
       fileList: newFileList,
     });
   };
+
+  const onItemReplace = useEvent((oldItem: Attachment, file: File) => {
+    const newAttachment: Attachment = {
+      uid: oldItem.uid,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      originFileObj: file as any,
+      status: 'done',
+      percent: 100,
+    };
+    const newFileList = fileList.map((fileItem) =>
+      fileItem.uid === oldItem.uid ? newAttachment : fileItem,
+    );
+    triggerChange({
+      file: newAttachment,
+      fileList: newFileList,
+    });
+  });
 
   let renderChildren: React.ReactElement;
 
@@ -233,6 +259,7 @@ function Attachments(props: AttachmentsProps, ref: React.Ref<AttachmentsRef>) {
           prefixCls={prefixCls}
           items={fileList}
           onRemove={onItemRemove}
+          onReplace={replaceable ? onItemReplace : undefined}
           overflow={overflow}
           upload={mergedUploadProps}
           listClassName={classnames(classNames.list)}
@@ -267,8 +294,10 @@ const ForwardAttachments = React.forwardRef(Attachments) as React.ForwardRefExot
   AttachmentsProps & React.RefAttributes<AttachmentsRef>
 > & {
   FileCard: typeof FileListCard;
+  ImageCard: typeof ImageCard;
 };
 
 ForwardAttachments.FileCard = FileListCard;
+ForwardAttachments.ImageCard = ImageCard;
 
 export default ForwardAttachments;

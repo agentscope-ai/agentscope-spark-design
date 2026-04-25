@@ -31,11 +31,18 @@ const MediaUpload: React.FC<MediaUploadProps> = (props) => {
           {/* 渐变遮罩 */}
           <div className={cls(`${prefixCls}-thumbnail-gradient`)} />
           {/* 加号图标 */}
-          {
-            icon || (
-              <SparkPlusLine className={cls(`${prefixCls}-thumbnail-icon`)} />
-            )
-          }
+          <div className={cls(`${prefixCls}-thumbnail-content`)}>
+            {
+              icon || (
+                <SparkPlusLine className={cls(`${prefixCls}-thumbnail-icon`)} />
+              )
+            }
+            {
+              props.maxCount > 1 && (
+                <div className={cls(`${prefixCls}-thumbnail-count`)}>{props.fileList.length}/{props.maxCount}</div>
+              )
+            }
+          </div>
         </div>
       </Dragger>
     </>

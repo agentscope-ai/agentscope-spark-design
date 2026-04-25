@@ -50,7 +50,9 @@ function OperateCard(props: IOperateCardProps) {
 
   return <>
     <Style />
-    <div className={prefixCls}>
+    <div className={classNames(prefixCls, {
+      [`${prefixCls}-collapsed`]: open && props.body
+    })}>
       <div className={classNames(`${prefixCls}-header`, props.header.className, {
         [`${prefixCls}-header-has-body`]: props.body
       })} onClick={() => {

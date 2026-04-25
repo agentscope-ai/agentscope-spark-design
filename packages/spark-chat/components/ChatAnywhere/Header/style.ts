@@ -22,6 +22,19 @@ export default createGlobalStyle`
     height: 24px;
     flex: 0 0 24px;
   }
+
+  &.${(p) => p.theme.prefixCls}-bubble-list-order-desc {
+    &::before {
+      content: ' ';
+      height: 16px;
+      flex: 0 0 0;
+    }
+
+    &::after {
+      height: 24px;
+      flex: 0 0 24px;
+    }
+  }
 }
 
 `;

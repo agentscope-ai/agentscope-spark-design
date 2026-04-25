@@ -1,10 +1,8 @@
 import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef, ChatInput } from '@agentscope-ai/chat';
 import OptionsPanel from './OptionsPanel';
-import { useMemo, useRef, useState } from 'react';
-import sessionApi from './sessionApi';
+import { useMemo, useRef } from 'react';
 import defaultConfig from './OptionsPanel/defaultConfig';
 import { useLocalStorageState } from 'ahooks';
-import Weather from './Weather';
 import { Flex } from 'antd';
 import MessageImport from './MessageImport';
 
@@ -39,7 +37,6 @@ export default function () {
       },
       session: {
         multiple: true,
-        api: sessionApi,
       },
       sender: {
         ...optionsConfig.sender,

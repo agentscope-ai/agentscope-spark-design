@@ -47,7 +47,7 @@ export default function useChatController() {
   }, [setLoading, messageHandler, sessionHandler]);
 
   // API 请求处理
-  const { request } = useChatRequest({
+  const { request, reconnect } = useChatRequest({
     currentQARef,
     updateMessage: messageHandler.updateMessage,
     getCurrentSessionId: sessionHandler.getCurrentSessionId,
@@ -122,14 +122,50 @@ export default function useChatController() {
     await request(historyMessages);
   }, [messageHandler, request]);
 
-  // 监听会话切换，重置状态
+  /**
+   * 处理 SSE 重连（切回未完成的对话时）
+   * If the reconnect API returns no body or the stream ends without a completion event,
+   * treat it as idle: remove the empty placeholder and reset loading.
+   */
+  const handleReconnect = useCallback(async (sessionId: string) => {
+    currentQARef.current.abortController = new AbortController();
+    setLoading(true);
+
+    messageHandler.createResponseMessage();
+
+    await reconnect(sessionId);
+
+    // If the response is still in 'generating' state after reconnect completes,
+    // onFinish() was never called (no response body, or stream closed without a completion event).
+    // Treat as idle: remove the empty placeholder and reset loading.
+    // HTTP errors and normal SSE completions both call onFinish() → msgStatus becomes 'finished',
+    // so they are correctly excluded from this cleanup.
+    if (currentQARef.current.response?.msgStatus === 'generating') {
+      setLoading(false);
+      if (currentQARef.current.response?.id) {
+        messageHandler.removeMessageById(currentQARef.current.response.id);
+      }
+      currentQARef.current.response = undefined;
+    }
+  }, [messageHandler, reconnect, setLoading]);
+
+  // 监听会话切换，断开当前 SSE 连接（不通知后端取消）并重置状态
   useEffect(() => {
+    currentQARef.current.abortController?.abort();
     currentQARef.current = {
       request: undefined,
       response: undefined,
-      abortController: undefined
+      abortController: undefined,
     };
   }, [currentSessionId]);
+
+  // 监听重连事件
+  useChatAnywhereEventEmitter({
+    type: 'handleReconnect',
+    callback: async (data) => {
+      await handleReconnect(data.detail.session_id);
+    }
+  }, [handleReconnect]);
 
   // 监听重新生成事件
   useChatAnywhereEventEmitter({

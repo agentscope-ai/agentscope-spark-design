@@ -76,65 +76,70 @@ const ConversationsItem: React.FC<ConversationsItemProps> = React.memo((props) =
 
   return (
     <li ref={ref} {...domProps} className={mergedCls} onClick={onInternalClick} >
-      {inViewport && <div className={`${prefixCls}-content`}>
-        {info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
-        {
-          (info.timeline || selectable) && <div className={`${prefixCls}-timeline`}>
+      {inViewport && info.icon && <div className={`${prefixCls}-icon`}>{info.icon}</div>}
+      {
+        inViewport && <div className={`${prefixCls}-content-wrapper`}>
+          <div className={`${prefixCls}-content`}>
+            {
+              (info.timeline || selectable) && <div className={`${prefixCls}-timeline`}>
+
+                {
+                  selectable ?
+                    <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox checked={selected} onChange={() => onSelect?.(info.key, !selected)} /></div> :
+                    <div className={`${prefixCls}-timeline-dot`} />
+                }
+              </div>
+            }
+            <Label
+              editable={editable}
+              setEditable={setEditable}
+              prefixCls={prefixCls}
+              info={info}
+              onEdit={menu?.find(item => item.key === 'edit')?.onEdit}
+            />
 
             {
-              selectable ?
-                <div className={`${prefixCls}-timeline-checkbox`} onClick={e => e.stopPropagation()}><Checkbox checked={selected} onChange={() => onSelect?.(info.key, !selected)} /></div> :
-                <div className={`${prefixCls}-timeline-dot`} />
+              menu && !disabled && !selectable && (
+                <Popover
+                  styles={{ body: { padding: 4 } }}
+                  trigger={['click']}
+                  open={popoverVisible}
+                  onOpenChange={setPopoverVisible}
+                  content={<div className={`${prefixCls}-menu-popover`}
+                  >
+                    {menu.map(item => {
+                      const { key, ...rest } = item;
+                      const _props = {
+                        ...rest,
+                        onClick: function (e) {
+                          if (key === 'edit') {
+                            setEditable(true)
+                          } else {
+                            rest.onClick?.(info)
+                          }
+                          setPopoverVisible(false);
+                        },
+                      }
+
+                      return <MenuItem key={key} {..._props} info={info} />
+                    })}
+                  </div>} placement='bottom'>
+                  <IconButton
+                    bordered={false}
+                    icon={<SparkMoreLine />}
+                    disabled={disabled}
+                    className={`${prefixCls}-menu-icon`}
+                    onClick={e => e.stopPropagation()}
+                  />
+                </Popover>
+              )
             }
           </div>
-        }
-        <Label
-          editable={editable}
-          setEditable={setEditable}
-          prefixCls={prefixCls}
-          info={info}
-          onEdit={menu?.find(item => item.key === 'edit')?.onEdit}
-        />
+          {
+            info.desc && <div className={`${prefixCls}-desc`} style={info.timeline || selectable ? { marginLeft: 16 } : {}} >{info.desc}</div>
 
-        {
-          menu && !disabled && !selectable && (
-            <Popover
-              styles={{ body: { padding: 4 } }}
-              trigger={['click']}
-              open={popoverVisible}
-              onOpenChange={setPopoverVisible}
-              content={<div className={`${prefixCls}-menu-popover`}
-              >
-                {menu.map(item => {
-                  const { key, ...rest } = item;
-                  const _props = {
-                    ...rest,
-                    onClick: function (e) {
-                      if (key === 'edit') {
-                        setEditable(true)
-                      } else {
-                        rest.onClick?.(info)
-                      }
-                      setPopoverVisible(false);
-                    },
-                  }
-
-                  return <MenuItem key={key} {..._props} info={info} />
-                })}
-              </div>} placement='bottom'>
-              <IconButton
-                bordered={false}
-                icon={<SparkMoreLine />}
-                disabled={disabled}
-                className={`${prefixCls}-menu-icon`}
-                onClick={e => e.stopPropagation()}
-              />
-            </Popover>
-          )
-        }
-      </div>}
-      {inViewport &&
-        info.desc && <div className={`${prefixCls}-desc`} style={info.timeline || selectable ? { marginLeft: 16 } : {}} >{info.desc}</div>
+          }
+        </div>
       }
     </li>
   );

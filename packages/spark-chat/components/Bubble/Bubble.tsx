@@ -80,6 +80,16 @@ const Bubble: React.FC<BubbleProps> = (props) => {
       style={!isAssistant && contentNode ? { flexDirection: 'column-reverse' } : {}}
       className={`${prefixCls}-content-wrapper`}
     >
+      {
+        avatar && <Avatar
+          avatar={avatar}
+          msgStatus={msgStatus}
+          isAssistant={isAssistant}
+          prefixCls={prefixCls}
+          className={classNames.avatar}
+          style={styles.avatar}
+        />
+      }
       <Cards cards={cards} id={id} isLast={isLast} className={classnames(
         `${prefixCls}-content`,
         `${prefixCls}-content-wrapper-card`,
@@ -113,17 +123,6 @@ const Bubble: React.FC<BubbleProps> = (props) => {
       id={id}
       data-role={role}
     >
-      {
-        avatar && <Avatar
-          avatar={avatar}
-          msgStatus={msgStatus}
-          isAssistant={isAssistant}
-          prefixCls={prefixCls}
-          className={classNames.avatar}
-          style={styles.avatar}
-        />
-      }
-
       {fullContent}
     </div>
   </>

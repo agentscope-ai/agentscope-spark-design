@@ -9,8 +9,11 @@ export default createGlobalStyle`
   transition: all 0.3s;
   opacity: 1;
 
-  .${(p) => p.theme.prefixCls}-bubble-list {
+  .${(p) => p.theme.prefixCls}-bubble-list-wrapper {
     position: relative;
+  }
+
+  .${(p) => p.theme.prefixCls}-bubble-list {
     margin: 0 auto;
     max-width: 850px;
     min-width: 300px;

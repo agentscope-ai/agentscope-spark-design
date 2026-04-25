@@ -11,6 +11,6 @@ export default defineConfig({
   esm: {
     output: 'lib',
     input: 'components',
-    ignores: ['**/demo/**', '**/__tests__/**'],
+    ignores: ['**/demo/**', '**/__tests__/**', '**/bailian-high-code-webui/**'],
   },
 });
