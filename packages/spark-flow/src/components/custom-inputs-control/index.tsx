@@ -215,40 +215,55 @@ export const VariableSelector = memo(
     }, [props.value, markedVariableList]);
 
     return (
-      <VariableTreeSelect
-        onChange={(val) => {
-          props.onChange({
-            value: val.value,
-            type: val.type,
-          });
+      <div
+        className="spark-flow-variable-select-wrapper"
+        onClickCapture={(e) => {
+          if ((e.target as Element)?.closest('[class*="-select-clear"]')) {
+            e.stopPropagation();
+          }
         }}
-        disabled={props.disabled}
-        options={markedVariableList}
       >
-        <Select
+        <VariableTreeSelect
+          onChange={(val) => {
+            props.onChange({
+              value: val.value,
+              type: val.type,
+            });
+          }}
           disabled={props.disabled}
-          placeholder={$i18n.get({
-            id: 'spark-flow.components.CustomInputsControl.index.selectVariable',
-            dm: '请选择变量',
-          })}
-          labelRender={() =>
-            variableLabelRender({
-              value: props.value,
-              nodeInfo,
-              hiddenType: !!props.prefix,
-            })
-          }
-          className={classNames('w-full', 'spark-flow-variable-select')}
-          open={false}
-          value={!props.value.value ? undefined : props.value.value}
-          prefix={
-            props.prefix ? (
-              <VarTypePrefix prefix={props.prefix as string} />
-            ) : undefined
-          }
-          variant={props.variant}
-        />
-      </VariableTreeSelect>
+          options={markedVariableList}
+        >
+          <Select
+            disabled={props.disabled}
+            placeholder={$i18n.get({
+              id: 'spark-flow.components.CustomInputsControl.index.selectVariable',
+              dm: '请选择变量',
+            })}
+            labelRender={() =>
+              variableLabelRender({
+                value: props.value,
+                nodeInfo,
+                hiddenType: !!props.prefix,
+              })
+            }
+            className={classNames('w-full', 'spark-flow-variable-select')}
+            open={false}
+            value={!props.value.value ? undefined : props.value.value}
+            onChange={(next) => {
+              if (next === undefined || next === null || next === '') {
+                props.onChange({ value: '', type: props.value.type });
+              }
+            }}
+            prefix={
+              props.prefix ? (
+                <VarTypePrefix prefix={props.prefix as string} />
+              ) : undefined
+            }
+            variant={props.variant}
+            allowClear
+          />
+        </VariableTreeSelect>
+      </div>
     );
   },
 );
@@ -280,7 +295,7 @@ export const VariableFormComp = memo((props: IVariableFormCompProps) => {
   if (props.data.valueFrom === 'input') {
     if (props.typeSwitchDisabled) {
       return (
-        <div className="flex-1">
+        <div className="flex-1 h-full">
           <VariableBaseInput
             isCompact={props.isCompact}
             disabled={props.disabled}

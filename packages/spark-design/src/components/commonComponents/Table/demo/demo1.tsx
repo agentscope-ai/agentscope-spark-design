@@ -88,7 +88,7 @@ const App: React.FC = () => {
   }));
 
   return (
-    <Table columns={columns} dataSource={data} pagination={{ pageSize: 10 }} />
+    <Table columns={columns} dataSource={[]} pagination={{ pageSize: 10 }} />
   );
 };
 

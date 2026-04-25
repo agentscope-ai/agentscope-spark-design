@@ -154,5 +154,6 @@ export const useFlowInteraction = () => {
     autoFitView,
     focusElement,
     onLayout,
+    setNodes: reactFlow.setNodes,
   };
 };

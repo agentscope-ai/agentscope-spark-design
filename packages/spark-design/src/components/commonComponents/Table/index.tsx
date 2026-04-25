@@ -1,9 +1,10 @@
 import { getCommonConfig } from '@/config';
 import { SparkSortLine } from '@agentscope-ai/icons';
-import { Table as AntdTable, TableProps } from 'antd';
+import { Table as AntdTable, Flex, TableProps } from 'antd';
 import classNames from 'classnames';
 import { useStyle as usePaginationStyle } from '../Pagination/index.style';
 import { useStyle } from './index.style';
+import { Empty } from '@agentscope-ai/design';
 
 export default function Table<T = any>(props: TableProps<T>) {
   const commonConfig = getCommonConfig();
@@ -25,6 +26,9 @@ export default function Table<T = any>(props: TableProps<T>) {
       <AntdTable<T>
         className={classNames(`${sparkPrefix}-table`)}
         columns={columns}
+        locale={{
+          emptyText: <Flex vertical align="center"><Empty type="noData" /></Flex>,
+        }}
         {...restProps}
       />
     </>

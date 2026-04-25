@@ -299,6 +299,7 @@ export const CustomOutputsForm = memo(function ({
             <div className="spark-flow-inputs-form-item flex gap-[8px] align-center">
               <Form.Item
                 name={`var_${index}`}
+                className="spark-flow-variable-name-item"
                 style={{ flex: 1, marginBottom: 0 }}
                 validateTrigger={['onChange', 'onBlur']}
                 rules={createVariableNameRules(value, index)}
