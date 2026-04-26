@@ -328,5 +328,6 @@
   "main.pages.App.Workflow.constant.contains": "Contains",
   "main.pages.App.Workflow.constant.notContains": "Not contains",
   "main.pages.App.Workflow.constant.isTrue": "Is true",
-  "main.pages.App.Workflow.constant.isFalse": "Is false"
+  "main.pages.App.Workflow.constant.isFalse": "Is false",
+  "main.pages.Component.Plugin.Tools.List.noData": "No data"
 }
