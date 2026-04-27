@@ -27,6 +27,8 @@ group:
 - `txt`
 - `web`
 - `word`
+- `folder`
+- `folderGray`
 
 #### API
 

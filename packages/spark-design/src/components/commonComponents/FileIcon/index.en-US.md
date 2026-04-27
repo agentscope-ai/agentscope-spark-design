@@ -27,6 +27,8 @@ Supported built-in file types (via `type`):
 - `txt`
 - `web`
 - `word`
+- `folder`
+- `folderGray`
 
 #### API
 
