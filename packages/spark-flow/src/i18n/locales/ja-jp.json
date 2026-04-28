@@ -300,6 +300,7 @@
     "spark-flow.hooks.useNodesInteraction.browserDragNotSupported": "現在のブラウザはドラッグ＆ドロップを完全にサポートしていません。次の方法をお試しください：1. 最新のChromeブラウザにアップグレードする；2. ブラウザのシークレットモードを使用する；3. Edgeなど他のブラウザを使用する。",
     "spark-flow.hooks.useNodesOutputParams.builtinVariable": "組み込み変数",
     "spark-flow.components.CodeInput.index.jsonEdit": "JSON編集",
-    "spark-flow.demos.spark-flow-1.components.WorkFlowHeader.index.clear": "クリア"
+    "spark-flow.demos.spark-flow-1.components.WorkFlowHeader.index.clear": "クリア",
+    "main.pages.Component.Plugin.Tools.List.noData": "データなし"
   }
   

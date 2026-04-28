@@ -328,5 +328,6 @@
   "main.pages.App.Workflow.constant.contains": "包含",
   "main.pages.App.Workflow.constant.notContains": "不包含",
   "main.pages.App.Workflow.constant.isTrue": "为true",
-  "main.pages.App.Workflow.constant.isFalse": "为false"
+  "main.pages.App.Workflow.constant.isFalse": "为false",
+  "main.pages.Component.Plugin.Tools.List.noData": "暂无数据"
 }
