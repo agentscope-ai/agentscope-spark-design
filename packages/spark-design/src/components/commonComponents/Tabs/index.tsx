@@ -21,7 +21,7 @@ export interface SparkTabsProps extends Omit<TabsProps, 'type'> {
 }
 
 const SparkTabs = (props: SparkTabsProps) => {
-  const { type, centered, className,...restProps } = props;
+  const { type, centered, className, ...restProps } = props;
   const { sparkPrefix } = getCommonConfig();
   const [mergedActiveKey, setMergedActiveKey] = useMergedState<string>(
     () => restProps.items?.[0]?.key,
@@ -89,7 +89,7 @@ const SparkTabs = (props: SparkTabsProps) => {
   return (
     <>
       <Style />
-      <Tabs {...restProps} type={type} className={className} />
+      <Tabs {...restProps} type={type} className={className} centered={centered} />
     </>
   );
 };
