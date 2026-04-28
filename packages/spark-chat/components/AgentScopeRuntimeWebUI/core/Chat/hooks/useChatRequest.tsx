@@ -92,9 +92,12 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       return;
     }
 
+    const abortSignal = currentQARef.current.abortController?.signal;
+
     try {
       for await (const chunk of Stream({
         readableStream: response.body,
+        signal: abortSignal,
       })) {
         if (currentQARef.current.response?.msgStatus === 'interrupted') {
           currentQARef.current.abortController?.abort();
@@ -137,7 +140,22 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         }
       }
     } catch (error) {
-      console.error(error);
+      if (currentQARef.current.response?.msgStatus === 'interrupted') {
+        if (currentApiOptions.cancel) {
+          currentApiOptions.cancel({
+            session_id: getCurrentSessionId(),
+          });
+        }
+        currentQARef.current.response.cards = [
+          {
+            code: 'AgentScopeRuntimeResponseCard',
+            data: agentScopeRuntimeResponseBuilder.cancel(),
+          }
+        ];
+        updateMessage(currentQARef.current.response);
+      } else {
+        console.error(error);
+      }
     }
   }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
 

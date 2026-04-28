@@ -99,9 +99,13 @@ export default function useChatController() {
 
   /**
    * 处理取消
+   * 1. 标记 interrupted 并重置 UI（finishResponse）
+   * 2. abort SSE 连接 —— Stream 内部的 Promise.race 会立即 reject AbortError，
+   *    processSSEResponse 的 catch 会检测 interrupted 状态并调用 cancel API
    */
   const handleCancel = useCallback(() => {
     finishResponse('interrupted');
+    currentQARef.current.abortController?.abort();
   }, [finishResponse]);
 
   /**

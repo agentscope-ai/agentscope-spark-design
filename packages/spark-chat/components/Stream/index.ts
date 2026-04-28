@@ -137,6 +137,12 @@ export interface StreamOptions<Output> {
    * @link https://developer.mozilla.org/en-US/docs/Web/API/TransformStream
    */
   transformStream?: TransformStream<string, Output>;
+
+  /**
+   * @description 用于中断流读取的 AbortSignal
+   * @descriptionEn AbortSignal to cancel stream reading
+   */
+  signal?: AbortSignal;
 }
 
 type XReadableStream<R = SSEOutput> = ReadableStream<R> & AsyncGenerator<R>;
@@ -151,7 +157,7 @@ function Stream<Output = SSEOutput>(
     openaiCompatible?: boolean;
   },
 ) {
-  const { readableStream, transformStream } = options;
+  const { readableStream, transformStream, signal } = options;
 
   if (!(readableStream instanceof ReadableStream)) {
     throw new Error(
@@ -181,19 +187,40 @@ function Stream<Output = SSEOutput>(
   stream[Symbol.asyncIterator] = async function* () {
     const reader = this.getReader();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        let readPromise: Promise<ReadableStreamReadResult<Output>> = reader.read();
 
-      if (!value) continue;
+        if (signal) {
+          readPromise = Promise.race([
+            readPromise,
+            new Promise<never>((_, reject) => {
+              if (signal.aborted) {
+                reject(new DOMException('The operation was aborted.', 'AbortError'));
+                return;
+              }
+              signal.addEventListener('abort', () => {
+                reject(new DOMException('The operation was aborted.', 'AbortError'));
+              }, { once: true });
+            }),
+          ]);
+        }
 
-      // Transformed data through all transform pipes
-      yield config?.openaiCompatible
-        ? {
-            ...value,
-            data: value.data.slice(1),
-          }
-        : value;
+        const { done, value } = await readPromise;
+        if (done) break;
+
+        if (!value) continue;
+
+        // Transformed data through all transform pipes
+        yield config?.openaiCompatible
+          ? {
+              ...value,
+              data: (value as any).data.slice(1),
+            }
+          : value;
+      }
+    } finally {
+      reader.releaseLock();
     }
   };
 
