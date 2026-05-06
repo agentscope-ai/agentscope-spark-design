@@ -2118,21 +2118,30 @@ export default function () {
     'word',
   ];
 
+  const folderList = [
+    'folder',
+    'folderGray',
+  ];
+
   return (
     <div>
       <Space>
         {list.map((t) => (
           <FileIcon key={t} type={t} />
         ))}
+        {folderList.map((t) => (
+          <FileIcon key={t} type={t} width={45} height={40} />
+        ))}
       </Space>
       <div />
-      <Space wrap>
+      <Space wrap style={{ marginBottom: 8 }}>
         {list.map((t) => (
           <FileCard key={t} name={t} size={1000} type={t} />
         ))}
+        {folderList.map((t) => (
+          <FileCard key={t} name={t} size={1000} type={t} width={150} iconWidth={45} iconHeight={40} />
+        ))}
       </Space>
-
-      <div />
 
       <FileCard name={'pdf'} size={1000} type={'pdf'} width="100%">
         <Button size="small">\u5220\u9664</Button>
@@ -2939,16 +2948,17 @@ export default App;
 import React from 'react';
 
 const App: React.FC = () => {
+  const [api, contextHolder] = notification.useNotification();
   return (
-    <Button onClick={() => notification.success({
-      message: 'title',
-      description: 'content',
-      actions: (
-        <Button onClick={() => alert('click next')}>Next</Button>
-      )
-    })}>
-      Open
-    </Button>
+    <>
+      <Button onClick={() => api.success({
+        message: 'title',
+        description: 'using useNotification hooks',
+      })}>
+        Open
+      </Button>
+      {contextHolder}
+    </>
   );
 };
 
@@ -4303,7 +4313,7 @@ const App: React.FC = () => {
   }));
 
   return (
-    <Table columns={columns} dataSource={data} pagination={{ pageSize: 10 }} />
+    <Table columns={columns} dataSource={[]} pagination={{ pageSize: 10 }} />
   );
 };
 
