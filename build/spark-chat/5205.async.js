@@ -1668,7 +1668,7 @@ export default function () {
       }
     }
   }} />;
-}`},11639:function(e,n){n.Z=`import { Markdown } from '@agentscope-ai/chat';
+}`},73408:function(e,n){n.Z=`import { Markdown } from '@agentscope-ai/chat';
 
 
 const content = \`Hello, world!\`;
