@@ -7,6 +7,7 @@ class AgentScopeRuntimeResponseBuilder {
 
   static mergeToolMessages(messages: IAgentScopeRuntimeMessage[]) {
     const bufferMessagesMap = new Map<string, IDataContent>();
+    const bufferMessageIndexesMap = new Map<string, number[]>();
     let resMessages: IAgentScopeRuntimeMessage[] = [];
 
     for (const message of messages) {
@@ -18,6 +19,9 @@ class AgentScopeRuntimeResponseBuilder {
         }>;
         const key = content.data.call_id || content.data.name;
         bufferMessagesMap.set(key, content);
+        const indexes = bufferMessageIndexesMap.get(key) || [];
+        indexes.push(resMessages.length);
+        bufferMessageIndexesMap.set(key, indexes);
         resMessages.push(message);
 
       } else if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(message) && message.content?.length) {
@@ -30,8 +34,11 @@ class AgentScopeRuntimeResponseBuilder {
 
         if (bufferContent) {
 
-          resMessages = resMessages.map(i => {
-            if (!AgentScopeRuntimeResponseBuilder.maybeToolInput(i)) return i;
+          const indexes = bufferMessageIndexesMap.get(key) || [];
+          indexes.forEach(index => {
+            const i = resMessages[index];
+            if (!i) return;
+            if (!AgentScopeRuntimeResponseBuilder.maybeToolInput(i)) return;
             const preContent = i.content[0] as IDataContent<{
               name: string;
               call_id?: string;
@@ -40,9 +47,7 @@ class AgentScopeRuntimeResponseBuilder {
             const preKey = preContent.data.call_id || preContent.data.name;
 
             if (preKey === key) {
-              return { ...message, content: [...i.content, content] };
-            } else {
-              return i;
+              resMessages[index] = { ...message, content: [...i.content, content] };
             }
           });
         }
