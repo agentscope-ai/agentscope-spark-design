@@ -2,10 +2,10 @@ import XMarkdown from '@ant-design/x-markdown';
 import { InnerMarkdownXProps } from '../types';
 import Styles from '../styles';
 import useCursorContent from './hooks/useCursorContent';
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 
 
-export default function (props: InnerMarkdownXProps) {
+export default memo(function InnerMarkdownX(props: InnerMarkdownXProps) {
   const { content: originalContent, cursor, animation, ...rest } = props;
   const content = useCursorContent({
     cursor: cursor,
@@ -33,4 +33,4 @@ export default function (props: InnerMarkdownXProps) {
       }}
     />
   </>;
-};
+});
