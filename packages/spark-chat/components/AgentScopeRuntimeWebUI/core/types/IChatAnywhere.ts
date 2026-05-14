@@ -440,8 +440,8 @@ export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
 
 export interface IAgentScopeRuntimeWebUIActionsOptions {
   /**
-   * @description 操作按钮列表
-   * @descriptionEn Actions button list
+   * @description 操作按钮列表（左侧）
+   * @descriptionEn Actions button list (left side)
    */
   list: {
     icon?: React.ReactElement;
@@ -450,6 +450,16 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
     }: {
       data: IAgentScopeRuntimeResponse;
     }) => React.ReactElement;
+    onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+  }[];
+
+  /**
+   * @description 右侧操作按钮列表；不传时默认展示 token 用量；传空数组或 false 隐藏右侧
+   * @descriptionEn Right-side actions; defaults to token usage; pass [] or false to hide
+   */
+  right?: false | {
+    icon?: React.ReactElement;
+    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
 

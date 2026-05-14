@@ -10,7 +10,6 @@ import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext
 import { useTranslation } from "../../Context/ChatAnywhereI18nContext";
 import React from "react";
 
-
 function Usage(props: {
   input_tokens: string;
   output_tokens: string;
@@ -37,6 +36,7 @@ export default function Tools(props: {
   ];
 
   const replace = useChatAnywhereOptions(v => v.actions?.replace) ?? true;
+  const rightOption = useChatAnywhereOptions(v => v.actions?.right);
 
   const actions = compact([
     ...actionsOptionsList.map(i => {
@@ -62,11 +62,26 @@ export default function Tools(props: {
     } : null,
   ]);
 
+  let rightNode: React.ReactElement | null;
+  if (rightOption === false || (Array.isArray(rightOption) && rightOption.length === 0)) {
+    rightNode = null;
+  } else if (Array.isArray(rightOption)) {
+    const rightActions = rightOption.map(i => {
+      const res = { ...i } as any;
+      if (i.render) {
+        res.children = React.createElement(i.render, { data: props.data });
+      }
+      return { ...res, onClick: () => { i.onClick?.({ data: props.data }); } };
+    });
+    rightNode = <Bubble.Footer.Actions data={rightActions} />;
+  } else {
+    rightNode = <Usage input_tokens={props.data.usage?.input_tokens} output_tokens={props.data.usage?.output_tokens} />;
+  }
 
   if (!AgentScopeRuntimeResponseBuilder.maybeDone(props.data)) return null;
   return <Bubble.Footer
     left={<Bubble.Footer.Actions data={actions} />}
-    right={<Usage input_tokens={props.data.usage?.input_tokens} output_tokens={props.data.usage?.output_tokens} />}
+    right={rightNode}
   />
 }
 
