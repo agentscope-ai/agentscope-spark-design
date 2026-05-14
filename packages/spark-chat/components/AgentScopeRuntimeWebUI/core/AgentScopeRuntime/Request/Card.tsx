@@ -2,6 +2,7 @@
 import { AgentScopeRuntimeContentType, IAgentScopeRuntimeRequest } from '../types';
 import { useMemo } from 'react';
 import { Bubble } from '@agentscope-ai/chat';
+import Actions from './Actions';
 
 export default function AgentScopeRuntimeRequestCard(props: {
   data: IAgentScopeRuntimeRequest;
@@ -73,6 +74,9 @@ export default function AgentScopeRuntimeRequestCard(props: {
 
   if (!cards?.length) return null;
 
-  return <Bubble role="user" cards={cards}></Bubble>;
+  return <>
+    <Bubble role="user" cards={cards}></Bubble>
+    <Actions data={props.data} />
+  </>;
 }
 

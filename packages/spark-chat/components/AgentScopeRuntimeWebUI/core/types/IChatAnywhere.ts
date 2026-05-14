@@ -1,6 +1,7 @@
 import { UploadProps } from 'antd';
 import {
   IAgentScopeRuntimeMessage,
+  IAgentScopeRuntimeRequest,
   IAgentScopeRuntimeResponse,
   IContent,
 } from '../AgentScopeRuntime/types';
@@ -414,10 +415,27 @@ export interface IAgentScopeRuntimeWebUIOptions {
   customToolRenderConfig?: IAgentScopeRuntimeWebUICardsOptions;
 
   /**
-   * @description 操作按钮配置
-   * @descriptionEn Actions configuration
+   * @description 操作按钮配置（助手消息）
+   * @descriptionEn Actions configuration (assistant messages)
    */
   actions?: IAgentScopeRuntimeWebUIActionsOptions;
+
+  /**
+   * @description 用户消息操作按钮配置
+   * @descriptionEn Actions configuration (user messages)
+   */
+  requestActions?: IAgentScopeRuntimeWebUIRequestActionsOptions;
+}
+
+export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
+  /**
+   * @description 操作按钮列表
+   * @descriptionEn Actions button list
+   */
+  list?: {
+    icon?: React.ReactElement;
+    onClick?: ({ data }: { data: IAgentScopeRuntimeRequest }) => void;
+  }[];
 }
 
 export interface IAgentScopeRuntimeWebUIActionsOptions {
