@@ -132,6 +132,7 @@ export default function useChatController() {
    * treat it as idle: remove the empty placeholder and reset loading.
    */
   const handleReconnect = useCallback(async (sessionId: string) => {
+    currentQARef.current.abortController?.abort();
     currentQARef.current.abortController = new AbortController();
     setLoading(true);
 
@@ -160,6 +161,10 @@ export default function useChatController() {
       request: undefined,
       response: undefined,
       abortController: undefined,
+    };
+
+    return () => {
+      currentQARef.current.abortController?.abort();
     };
   }, [currentSessionId]);
 

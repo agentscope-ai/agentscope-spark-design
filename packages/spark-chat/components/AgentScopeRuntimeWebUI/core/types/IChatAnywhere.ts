@@ -1,6 +1,7 @@
 import { UploadProps } from 'antd';
 import {
   IAgentScopeRuntimeMessage,
+  IAgentScopeRuntimeRequest,
   IAgentScopeRuntimeResponse,
   IContent,
 } from '../AgentScopeRuntime/types';
@@ -414,16 +415,33 @@ export interface IAgentScopeRuntimeWebUIOptions {
   customToolRenderConfig?: IAgentScopeRuntimeWebUICardsOptions;
 
   /**
-   * @description 操作按钮配置
-   * @descriptionEn Actions configuration
+   * @description 操作按钮配置（助手消息）
+   * @descriptionEn Actions configuration (assistant messages)
    */
   actions?: IAgentScopeRuntimeWebUIActionsOptions;
+
+  /**
+   * @description 用户消息操作按钮配置
+   * @descriptionEn Actions configuration (user messages)
+   */
+  requestActions?: IAgentScopeRuntimeWebUIRequestActionsOptions;
+}
+
+export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
+  /**
+   * @description 操作按钮列表
+   * @descriptionEn Actions button list
+   */
+  list?: {
+    icon?: React.ReactElement;
+    onClick?: ({ data }: { data: IAgentScopeRuntimeRequest }) => void;
+  }[];
 }
 
 export interface IAgentScopeRuntimeWebUIActionsOptions {
   /**
-   * @description 操作按钮列表
-   * @descriptionEn Actions button list
+   * @description 操作按钮列表（左侧）
+   * @descriptionEn Actions button list (left side)
    */
   list: {
     icon?: React.ReactElement;
@@ -432,6 +450,16 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
     }: {
       data: IAgentScopeRuntimeResponse;
     }) => React.ReactElement;
+    onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+  }[];
+
+  /**
+   * @description 右侧操作按钮列表；不传时默认展示 token 用量；传空数组或 false 隐藏右侧
+   * @descriptionEn Right-side actions; defaults to token usage; pass [] or false to hide
+   */
+  right?: false | {
+    icon?: React.ReactElement;
+    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
 
