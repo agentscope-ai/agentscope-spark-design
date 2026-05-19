@@ -9,6 +9,7 @@ import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext
 
 const Message = React.memo(function ({ data }: { data: IAgentScopeRuntimeMessage }) {
   const replaceMediaURL = useChatAnywhereOptions(v => v.api?.replaceMediaURL);
+  const onFileCardClick = useChatAnywhereOptions(v => v.api?.onFileCardClick);
   const formatMediaURL = React.useCallback((url?: string) => {
     if (!url) return url;
     return replaceMediaURL?.(url) || url;
@@ -36,7 +37,7 @@ const Message = React.memo(function ({ data }: { data: IAgentScopeRuntimeMessage
               url: formatMediaURL(item.file_url),
               name: item.file_name || item.fileName || item.file_id,
               size: item.file_size,
-            }]}></Files>
+            }]} onClick={onFileCardClick}></Files>
           case AgentScopeRuntimeContentType.AUDIO:
             return <Audios key={index} data={[{ src: formatMediaURL(item.audio_url || item.data) }]}></Audios>
           default:

@@ -3,10 +3,13 @@ import { AgentScopeRuntimeContentType, IAgentScopeRuntimeRequest } from '../type
 import { useMemo } from 'react';
 import { Bubble } from '@agentscope-ai/chat';
 import Actions from './Actions';
+import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 
 export default function AgentScopeRuntimeRequestCard(props: {
   data: IAgentScopeRuntimeRequest;
 }) {
+  const onFileCardClick = useChatAnywhereOptions(v => v.api?.onFileCardClick);
+
   const cards = useMemo(() => {
 
     return props.data.input[0].content.reduce<any>((p, c) => {
@@ -63,6 +66,7 @@ export default function AgentScopeRuntimeRequestCard(props: {
           p.push({
             code: 'Files',
             data: [{ url: c.file_url, name: c.file_name || c.fileName, size: c.file_size }],
+            onClick: onFileCardClick,
           });
         } else {
           fileCard.data.push({ url: c.file_url, name: c.file_name || c.fileName, size: c.file_size });
@@ -70,7 +74,7 @@ export default function AgentScopeRuntimeRequestCard(props: {
       }
       return p;
     }, []);
-  }, [props.data.input]);
+  }, [props.data.input, onFileClick]);
 
   if (!cards?.length) return null;
 
