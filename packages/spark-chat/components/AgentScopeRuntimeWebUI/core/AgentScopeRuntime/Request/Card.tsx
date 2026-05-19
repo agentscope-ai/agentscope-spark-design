@@ -74,7 +74,7 @@ export default function AgentScopeRuntimeRequestCard(props: {
       }
       return p;
     }, []);
-  }, [props.data.input, onFileClick]);
+  }, [props.data.input, onFileCardClick]);
 
   if (!cards?.length) return null;
 
