@@ -56,7 +56,11 @@ export default function Files(props) {
 
           {
             fileInfo.url && <div className={`${prefixCls}-download`} onClick={() => {
-              window.open(fileInfo.url, '_blank');
+              if (props.onClick) {
+                props.onClick(fileInfo);
+              } else {
+                window.open(fileInfo.url, '_blank');
+              }
             }}>
               <SparkDownloadLine />
             </div>
