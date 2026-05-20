@@ -441,6 +441,7 @@ export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
   list?: {
     icon?: React.ReactElement;
     children?: React.ReactElement;
+    render?: ({ data }: { data: IAgentScopeRuntimeRequest }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeRequest }) => void;
   }[];
 }

@@ -1,3 +1,4 @@
+import React from "react";
 import { SparkCopyLine } from "@agentscope-ai/icons";
 import { AgentScopeRuntimeContentType, IAgentScopeRuntimeRequest } from "../types";
 import { Bubble } from "@agentscope-ai/chat";
@@ -27,10 +28,13 @@ export default function RequestActions(props: {
     },
   ] : [];
 
-  const actions = (requestActionsOptions.list || defaultActions).map(i => ({
-    ...i,
-    onClick: () => { i.onClick?.({ data: props.data }); },
-  }));
+  const actions = (requestActionsOptions.list || defaultActions).map(i => {
+    const res = { ...i } as any;
+    if (i.render) {
+      res.children = React.createElement(i.render, { data: props.data });
+    }
+    return { ...res, onClick: () => { i.onClick?.({ data: props.data }); } };
+  });
 
   if (!actions.length) return null;
 
