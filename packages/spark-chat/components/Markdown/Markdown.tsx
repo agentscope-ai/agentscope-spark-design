@@ -88,11 +88,12 @@ export default memo(function (props: MarkdownProps) {
   const config = useMemo(() => ({
     extensions,
     walkTokens,
-    // 当 allowHtml 为 false 时，转义 HTML 标签使其显示为字符串
+    // 当 allowHtml 为 false 时，仅放行安全的内联 HTML 标签，其余转义
     ...(!allowHtml && {
       renderer: {
         html(token: { text?: string; raw?: string }) {
           const text = token.text || token.raw || '';
+          if (/^<br\s*\/?>$/i.test(text.trim())) return '<br />';
           return text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
       }
