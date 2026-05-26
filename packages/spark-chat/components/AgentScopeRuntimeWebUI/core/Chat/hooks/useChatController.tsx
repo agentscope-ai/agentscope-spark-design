@@ -9,30 +9,49 @@ import { InputProps } from "../Input";
 import useChatMessageHandler from "./useChatMessageHandler";
 import useChatRequest from "./useChatRequest";
 import useChatSessionHandler from "./useChatSessionHandler";
+import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import ReactDOM from "react-dom";
 // import mockdata from '../../mock/mock.json'
 
 /**
- * 聊天控制器 Hook - 协调所有聊天相关操作
+ * Chat controller hook — coordinates all chat-related operations.
  */
 export default function useChatController() {
   const setLoading = useContextSelector(ChatAnywhereInputContext, v => v.setLoading);
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
+  const apiOptions = useChatAnywhereOptions(v => v.api);
+  const apiOptionsRef = useRef(apiOptions);
+  useEffect(() => {
+    apiOptionsRef.current = apiOptions;
+  }, [apiOptions]);
 
   const currentQARef = useRef<{
     request?: IAgentScopeRuntimeWebUIMessage;
     response?: IAgentScopeRuntimeWebUIMessage;
     abortController?: AbortController;
-  }>({});
+    /**
+     * Unique identifier for the currently active SSE request. Incremented on
+     * every new submit / cancel / session-switch. processSSEResponse checks its
+     * own requestId against this value before every write — a mismatch means
+     * the stream is stale and should stop writing (prevents cross-session
+     * leakage and ghost writes from cancelled runs, related to issue #4644).
+     */
+    activeRequestId: number;
+    /**
+     * Snapshot of the session id associated with the active request.
+     * Used to detect stale requests after a session switch.
+     */
+    activeSessionId?: string;
+  }>({ activeRequestId: 0 });
 
-  // 消息处理
+  // Message handler
   const messageHandler = useChatMessageHandler({ currentQARef });
 
-  // 会话处理
+  // Session handler
   const sessionHandler = useChatSessionHandler();
 
   /**
-   * 完成响应
+   * Finalize the current response and reset UI loading state.
    */
   const finishResponse = useCallback((status: 'finished' | 'interrupted' = 'finished') => {
     if (!currentQARef.current.response) return;
@@ -46,7 +65,7 @@ export default function useChatController() {
     sessionHandler.syncSessionMessages(messageHandler.getMessages());
   }, [setLoading, messageHandler, sessionHandler]);
 
-  // API 请求处理
+  // API request handling
   const { request, reconnect } = useChatRequest({
     currentQARef,
     updateMessage: messageHandler.updateMessage,
@@ -55,90 +74,133 @@ export default function useChatController() {
   });
 
   /**
-   * 处理用户提交
+   * Handle user message submission.
    */
   const handleSubmit = useCallback<InputProps['onSubmit']>(async (data) => {
-    // 1. 确保会话存在
+    // 0. Increment requestId and abort any previous in-flight SSE.
+    //    We do NOT call the cancel API here — the user is sending a new
+    //    message, not explicitly cancelling. Cancel is only invoked from
+    //    handleCancel.
+    currentQARef.current.abortController?.abort();
+    const myRequestId = ++currentQARef.current.activeRequestId;
+
+    // 1. Ensure session exists
     await sessionHandler.ensureSession(data.query);
 
-    // 2. 更新会话名称（如果是第一条消息）
+    // 2. Update session name (only for the first message)
     const messages = messageHandler.getMessages();
     if (sessionHandler.getCurrentSessionId()) {
       await sessionHandler.updateSessionName(data.query, messages);
     }
 
-    // 3. 创建用户请求消息
+    // Snapshot current session id for downstream SSE guard checks
+    currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
+
+    // 3. Create user request message
     messageHandler.createRequestMessage(data);
     setLoading(true);
     await sleep(100);
 
-    // 4. 创建助手响应消息
+    // If requestId changed during the sleep (session switch / cancel / new submit), bail out
+    if (myRequestId !== currentQARef.current.activeRequestId) return;
+
+    // 4. Create assistant response placeholder
     messageHandler.createResponseMessage();
 
-    // 5. 获取历史消息并发起请求
+    // 5. Gather history messages and fire the request
     const historyMessages = messageHandler.getHistoryMessages();
     await sessionHandler.syncSessionMessages(messageHandler.getMessages());
 
-    await request(historyMessages, data.biz_params);
+    await request(historyMessages, data.biz_params, myRequestId);
     // mockRequest(mockdata);
-  }, [messageHandler, sessionHandler, request]);
+  }, [messageHandler, sessionHandler, request, setLoading]);
 
 
   const handleApproval = useCallback(async ({ input }) => {
+    currentQARef.current.abortController?.abort();
+    const myRequestId = ++currentQARef.current.activeRequestId;
+    currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
+
     messageHandler.createApprovalMessage(input);
 
     setLoading(true);
     await sleep(100);
 
+    if (myRequestId !== currentQARef.current.activeRequestId) return;
+
     messageHandler.createResponseMessage();
     const historyMessages = messageHandler.getHistoryMessages();
     await sessionHandler.syncSessionMessages(messageHandler.getMessages());
 
-    await request(historyMessages);
-  }, [messageHandler, sessionHandler, request]);
+    await request(historyMessages, undefined, myRequestId);
+  }, [messageHandler, sessionHandler, request, setLoading]);
 
   /**
-   * 处理取消
-   * 1. 标记 interrupted 并重置 UI（finishResponse）
-   * 2. abort SSE 连接 —— Stream 内部的 Promise.race 会立即 reject AbortError，
-   *    processSSEResponse 的 catch 会检测 interrupted 状态并调用 cancel API
+   * Handle cancel / stop.
+   * 1. Mark response as interrupted and reset UI (finishResponse).
+   * 2. Invoke the cancel API immediately — do NOT wait for the next SSE
+   *    chunk to deliver the cancellation (fixes "backend keeps running
+   *    after stop" issue).
+   * 3. Abort the SSE connection.
+   * 4. Increment activeRequestId so any lingering SSE chunks from the
+   *    old run fail the isStillActive() guard and are discarded.
    */
   const handleCancel = useCallback(() => {
     finishResponse('interrupted');
+    const sessionId = sessionHandler.getCurrentSessionId();
+    const cancelFn = apiOptionsRef.current.cancel;
+    if (cancelFn && sessionId) {
+      try {
+        cancelFn({ session_id: sessionId });
+      } catch (e) {
+        console.error('cancel api failed:', e);
+      }
+    }
     currentQARef.current.abortController?.abort();
-  }, [finishResponse]);
+    // Increment requestId so un-aborted residual SSE chunks fail the guard
+    currentQARef.current.activeRequestId += 1;
+  }, [finishResponse, sessionHandler]);
 
   /**
-   * 处理重新生成
+   * Handle regenerate (retry the last assistant response).
    */
   const handleRegenerate = useCallback(async (messageId: string) => {
+    currentQARef.current.abortController?.abort();
+    const myRequestId = ++currentQARef.current.activeRequestId;
+    currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
+
     setLoading(true);
 
-    // 1. 移除旧消息
+    // 1. Remove old message
     messageHandler.removeMessageById(messageId);
 
-    // 2. 创建新的响应消息
+    // 2. Create new response placeholder
     currentQARef.current.abortController = new AbortController();
     messageHandler.createResponseMessage();
 
-    // 3. 发起请求
+    // 3. Fire the request
     const historyMessages = messageHandler.getHistoryMessages();
-    await request(historyMessages);
-  }, [messageHandler, request]);
+    await request(historyMessages, undefined, myRequestId);
+  }, [messageHandler, request, sessionHandler, setLoading]);
 
   /**
-   * 处理 SSE 重连（切回未完成的对话时）
+   * Handle SSE reconnection (when switching back to an unfinished conversation).
    * If the reconnect API returns no body or the stream ends without a completion event,
    * treat it as idle: remove the empty placeholder and reset loading.
    */
   const handleReconnect = useCallback(async (sessionId: string) => {
     currentQARef.current.abortController?.abort();
     currentQARef.current.abortController = new AbortController();
+    const myRequestId = ++currentQARef.current.activeRequestId;
+    currentQARef.current.activeSessionId = sessionId;
     setLoading(true);
 
     messageHandler.createResponseMessage();
 
-    await reconnect(sessionId);
+    await reconnect(sessionId, myRequestId);
+
+    // If session was switched or a new request fired during reconnect, bail out
+    if (myRequestId !== currentQARef.current.activeRequestId) return;
 
     // If the response is still in 'generating' state after reconnect completes,
     // onFinish() was never called (no response body, or stream closed without a completion event).
@@ -154,21 +216,26 @@ export default function useChatController() {
     }
   }, [messageHandler, reconnect, setLoading]);
 
-  // 监听会话切换，断开当前 SSE 连接（不通知后端取消）并重置状态
+  // On session switch: abort current SSE (without notifying backend cancel)
+  // and reset state. Also increment activeRequestId so any residual SSE
+  // chunks from the old session are discarded, preventing cross-session leakage.
   useEffect(() => {
     currentQARef.current.abortController?.abort();
     currentQARef.current = {
       request: undefined,
       response: undefined,
       abortController: undefined,
+      activeRequestId: currentQARef.current.activeRequestId + 1,
+      activeSessionId: currentSessionId,
     };
 
     return () => {
       currentQARef.current.abortController?.abort();
+      currentQARef.current.activeRequestId += 1;
     };
   }, [currentSessionId]);
 
-  // 监听重连事件
+  // Listen for reconnect events
   useChatAnywhereEventEmitter({
     type: 'handleReconnect',
     callback: async (data) => {
@@ -176,7 +243,7 @@ export default function useChatController() {
     }
   }, [handleReconnect]);
 
-  // 监听重新生成事件
+  // Listen for regenerate events
   useChatAnywhereEventEmitter({
     type: 'handleReplace',
     callback: async (data) => {
