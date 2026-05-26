@@ -122,7 +122,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         const chunkData = responseParser(chunk.data);
         const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
 
-        if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.[0]?.content?.length) continue;
+        if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.some(msg => msg.content?.length)) continue;
 
         if (currentQARef.current.response) {
           currentQARef.current.response.cards = [

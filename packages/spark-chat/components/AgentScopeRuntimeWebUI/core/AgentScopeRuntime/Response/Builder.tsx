@@ -105,10 +105,41 @@ class AgentScopeRuntimeResponseBuilder {
 
   handleResponse(data: IAgentScopeRuntimeResponse) {
     this.data = produce(this.data, (draft) => {
-      if (!data.output) {
-        data.output = [];
-      }
+      const existingOutput = draft.output || [];
+      const incomingOutput = data.output;
+
       Object.assign(draft, data);
+
+      // If incoming response has no output or empty output, preserve the
+      // accumulated output from streaming to avoid losing intermediate
+      // tool-call messages that were already collected.
+      if (!incomingOutput || incomingOutput.length === 0) {
+        draft.output = existingOutput;
+      } else if (existingOutput.length > 0) {
+        // Merge by id: prefer the version with non-empty content to avoid
+        // a partial-update response wiping out previously accumulated
+        // tool-call data (Bug 2 of issue #4644).
+        const existingMap = new Map(existingOutput.map(m => [m.id, m]));
+        const incomingIds = new Set(incomingOutput.map(m => m.id));
+        const merged = incomingOutput.map(incoming => {
+          const existing = existingMap.get(incoming.id);
+          if (!existing) return incoming;
+          // Prefer the message with content already populated.
+          const incomingHasContent = incoming.content?.length > 0;
+          const existingHasContent = existing.content?.length > 0;
+          if (existingHasContent && !incomingHasContent) {
+            return { ...incoming, content: existing.content };
+          }
+          return incoming;
+        });
+        // Append existing-only messages (not present in incoming).
+        for (const existing of existingOutput) {
+          if (!incomingIds.has(existing.id)) {
+            merged.push(existing);
+          }
+        }
+        draft.output = merged;
+      }
     });
   }
 
