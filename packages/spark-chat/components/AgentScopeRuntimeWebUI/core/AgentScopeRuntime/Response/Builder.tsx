@@ -61,6 +61,7 @@ class AgentScopeRuntimeResponseBuilder {
     return [
       AgentScopeRuntimeMessageType.FUNCTION_CALL_OUTPUT,
       AgentScopeRuntimeMessageType.PLUGIN_CALL_OUTPUT,
+      AgentScopeRuntimeMessageType.TOOL_CALL_OUTPUT,
       AgentScopeRuntimeMessageType.COMPONENT_CALL_OUTPUT,
       AgentScopeRuntimeMessageType.MCP_CALL_OUTPUT,
     ].includes(message.type);
@@ -70,6 +71,7 @@ class AgentScopeRuntimeResponseBuilder {
     return [
       AgentScopeRuntimeMessageType.FUNCTION_CALL,
       AgentScopeRuntimeMessageType.PLUGIN_CALL,
+      AgentScopeRuntimeMessageType.TOOL_CALL,
       AgentScopeRuntimeMessageType.COMPONENT_CALL,
       AgentScopeRuntimeMessageType.MCP_CALL,
     ].includes(message.type);
