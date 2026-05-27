@@ -453,6 +453,7 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    */
   list: {
     icon?: React.ReactElement;
+    children?: React.ReactElement;
     render?: ({
       data,
     }: {
@@ -467,6 +468,7 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    */
   right?: false | {
     icon?: React.ReactElement;
+    children?: React.ReactElement;
     render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];
