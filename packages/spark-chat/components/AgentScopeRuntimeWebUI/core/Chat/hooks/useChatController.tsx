@@ -141,9 +141,18 @@ export default function useChatController() {
    * 2. Invoke the cancel API immediately — do NOT wait for the next SSE
    *    chunk to deliver the cancellation (fixes "backend keeps running
    *    after stop" issue).
-   * 3. Abort the SSE connection.
-   * 4. Increment activeRequestId so any lingering SSE chunks from the
-   *    old run fail the isStillActive() guard and are discarded.
+   * 3. Abort the SSE connection — its catch branch will see
+   *    msgStatus === 'interrupted' and call builder.cancel() to flip the
+   *    in-progress TEXT content to Canceled, so the trailing Markdown
+   *    cursor ("...") disappears.
+   *
+   * NOTE: we intentionally do NOT bump activeRequestId here. Doing so
+   * would make isStillActive() in processSSEResponse return false for
+   * this very cancel, which would short-circuit the catch branch before
+   * builder.cancel() runs and leave the trailing cursor blinking forever.
+   * Stale-chunk protection still holds: abort() breaks the SSE loop
+   * immediately, and the next submit / session switch will bump
+   * activeRequestId on its own.
    */
   const handleCancel = useCallback(() => {
     finishResponse('interrupted');
@@ -157,8 +166,6 @@ export default function useChatController() {
       }
     }
     currentQARef.current.abortController?.abort();
-    // Increment requestId so un-aborted residual SSE chunks fail the guard
-    currentQARef.current.activeRequestId += 1;
   }, [finishResponse, sessionHandler]);
 
   /**
