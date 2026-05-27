@@ -121,6 +121,7 @@ export interface IAgentScopeRuntimeError {
 }
 
 export interface IAgentScopeRuntimeRequest {
+  created_at?: number;
   input: {
     role: AgentScopeRuntimeMessageRole | string;
     type: AgentScopeRuntimeMessageType;

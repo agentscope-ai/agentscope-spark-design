@@ -101,6 +101,9 @@ class AgentScopeRuntimeRequestBuilder {
     }
 
     this.data = {
+      // Client-side send timestamp (seconds), aligns with response.created_at.
+      // Backend has not yet returned, so this represents the local send moment.
+      created_at: Math.floor(Date.now() / 1000),
       input: [
         {
           role: 'user',
@@ -113,7 +116,10 @@ class AgentScopeRuntimeRequestBuilder {
   }
 
   handleApproval(input) {
-    this.data = { input };
+    this.data = {
+      created_at: Math.floor(Date.now() / 1000),
+      input,
+    };
     return this.data;
   }
 }
