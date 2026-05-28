@@ -19,6 +19,8 @@ export enum AgentScopeRuntimeMessageType {
   REASONING = "reasoning",
   PLUGIN_CALL = "plugin_call",
   PLUGIN_CALL_OUTPUT = "plugin_call_output",
+  TOOL_CALL = "tool_call",
+  TOOL_CALL_OUTPUT = "tool_call_output",
   FUNCTION_CALL = "function_call",
   FUNCTION_CALL_OUTPUT = "function_call_output",
   COMPONENT_CALL = "component_call",
