@@ -77,24 +77,29 @@ export default function useChatController() {
    * Handle user message submission.
    */
   const handleSubmit = useCallback<InputProps['onSubmit']>(async (data) => {
-    // 0. Increment requestId and abort any previous in-flight SSE.
-    //    We do NOT call the cancel API here — the user is sending a new
-    //    message, not explicitly cancelling. Cancel is only invoked from
-    //    handleCancel.
+    // 0. Abort any previous in-flight SSE. We do NOT call the cancel API here
+    //    — the user is sending a new message, not explicitly cancelling.
+    //    Cancel is only invoked from handleCancel.
     currentQARef.current.abortController?.abort();
-    const myRequestId = ++currentQARef.current.activeRequestId;
 
-    // 1. Ensure session exists
+    // 1. Ensure session exists FIRST. Bumping activeRequestId before this can
+    //    race with the [currentSessionId] effect below: ensureSession may set
+    //    a new sessionId, that effect then bumps activeRequestId again, and
+    //    our own myRequestId becomes stale → the guard after sleep(100) bails
+    //    out and the request is silently dropped. Establishing the session
+    //    first guarantees the effect (if any) has flushed before we snapshot
+    //    myRequestId.
     await sessionHandler.ensureSession(data.query);
+
+    const myRequestId = ++currentQARef.current.activeRequestId;
+    // Snapshot current session id for downstream SSE guard checks
+    currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
 
     // 2. Update session name (only for the first message)
     const messages = messageHandler.getMessages();
     if (sessionHandler.getCurrentSessionId()) {
       await sessionHandler.updateSessionName(data.query, messages);
     }
-
-    // Snapshot current session id for downstream SSE guard checks
-    currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
 
     // 3. Create user request message
     messageHandler.createRequestMessage(data);
@@ -118,8 +123,11 @@ export default function useChatController() {
 
   const handleApproval = useCallback(async ({ input }) => {
     currentQARef.current.abortController?.abort();
-    const myRequestId = ++currentQARef.current.activeRequestId;
+    // Snapshot the current session id BEFORE bumping requestId, then bump.
+    // Order matches handleSubmit so a concurrent session-change effect cannot
+    // invalidate myRequestId between the bump and the sleep guard below.
     currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
+    const myRequestId = ++currentQARef.current.activeRequestId;
 
     messageHandler.createApprovalMessage(input);
 
@@ -173,8 +181,8 @@ export default function useChatController() {
    */
   const handleRegenerate = useCallback(async (messageId: string) => {
     currentQARef.current.abortController?.abort();
-    const myRequestId = ++currentQARef.current.activeRequestId;
     currentQARef.current.activeSessionId = sessionHandler.getCurrentSessionId();
+    const myRequestId = ++currentQARef.current.activeRequestId;
 
     setLoading(true);
 
@@ -226,7 +234,21 @@ export default function useChatController() {
   // On session switch: abort current SSE (without notifying backend cancel)
   // and reset state. Also increment activeRequestId so any residual SSE
   // chunks from the old session are discarded, preventing cross-session leakage.
+  //
+  // IMPORTANT: only bump on a real session change. Running this on initial
+  // mount or when sessionId merely transitions from undefined → <same id>
+  // (e.g. after route navigate / refreshKey churn) would invalidate the
+  // myRequestId taken by an in-flight handleSubmit and silently drop the
+  // outgoing chat request — that was the regression that made existing
+  // sessions unable to send messages until a new chat was created.
   useEffect(() => {
+    const prevSessionId = currentQARef.current.activeSessionId;
+    if (!prevSessionId || prevSessionId === currentSessionId) {
+      // First mount, or no real switch: just sync the snapshot, do not bump.
+      currentQARef.current.activeSessionId = currentSessionId;
+      return;
+    }
+
     currentQARef.current.abortController?.abort();
     currentQARef.current = {
       request: undefined,
