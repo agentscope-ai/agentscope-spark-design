@@ -1,13 +1,19 @@
 
+import React, { useMemo } from 'react';
 import { AgentScopeRuntimeContentType, IAgentScopeRuntimeRequest } from '../types';
-import { useMemo } from 'react';
 import { Bubble } from '@agentscope-ai/chat';
 import Actions from './Actions';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 
-export default function AgentScopeRuntimeRequestCard(props: {
-  data: IAgentScopeRuntimeRequest;
-}) {
+function sortByOrder<T extends { order?: number }>(arr: T[]): T[] {
+  return arr.slice().sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+}
+
+/**
+ * Default SDK rendering of the user request bubble, extracted so plugin
+ * `request.render` can opt into the original rendering via fallback().
+ */
+function DefaultRequestRender(props: { data: IAgentScopeRuntimeRequest }) {
   const onFileCardClick = useChatAnywhereOptions(v => v.api?.onFileCardClick);
 
   const cards = useMemo(() => {
@@ -81,6 +87,43 @@ export default function AgentScopeRuntimeRequestCard(props: {
   return <>
     <Bubble role="user" cards={cards}></Bubble>
     <Actions data={props.data} />
+  </>;
+}
+
+export default function AgentScopeRuntimeRequestCard(props: {
+  data: IAgentScopeRuntimeRequest;
+}) {
+  const requestOptions = useChatAnywhereOptions(v => v.request);
+
+  const fallback = () => <DefaultRequestRender data={props.data} />;
+  const main = requestOptions?.render
+    ? requestOptions.render({ data: props.data, fallback })
+    : fallback();
+
+  const prependList = sortByOrder(requestOptions?.prepend ?? []);
+  const appendList = sortByOrder(requestOptions?.append ?? []);
+
+  if (
+    !requestOptions?.render &&
+    prependList.length === 0 &&
+    appendList.length === 0
+  ) {
+    // Hot path: zero customization → no Fragment wrapping overhead.
+    return fallback();
+  }
+
+  return <>
+    {prependList.map((e, i) => (
+      <React.Fragment key={e.id ?? `pre-${i}`}>
+        {e.render({ data: props.data })}
+      </React.Fragment>
+    ))}
+    {main}
+    {appendList.map((e, i) => (
+      <React.Fragment key={e.id ?? `post-${i}`}>
+        {e.render({ data: props.data })}
+      </React.Fragment>
+    ))}
   </>;
 }
 
