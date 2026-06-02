@@ -61,6 +61,7 @@ class AgentScopeRuntimeResponseBuilder {
     return [
       AgentScopeRuntimeMessageType.FUNCTION_CALL_OUTPUT,
       AgentScopeRuntimeMessageType.PLUGIN_CALL_OUTPUT,
+      AgentScopeRuntimeMessageType.TOOL_CALL_OUTPUT,
       AgentScopeRuntimeMessageType.COMPONENT_CALL_OUTPUT,
       AgentScopeRuntimeMessageType.MCP_CALL_OUTPUT,
     ].includes(message.type);
@@ -70,6 +71,7 @@ class AgentScopeRuntimeResponseBuilder {
     return [
       AgentScopeRuntimeMessageType.FUNCTION_CALL,
       AgentScopeRuntimeMessageType.PLUGIN_CALL,
+      AgentScopeRuntimeMessageType.TOOL_CALL,
       AgentScopeRuntimeMessageType.COMPONENT_CALL,
       AgentScopeRuntimeMessageType.MCP_CALL,
     ].includes(message.type);
@@ -186,7 +188,27 @@ class AgentScopeRuntimeResponseBuilder {
           } else if (data.type === AgentScopeRuntimeContentType.IMAGE) {
             (lastContent as IImageContent).image_url = (data as IImageContent).image_url;
           } else if (data.type === AgentScopeRuntimeContentType.DATA) {
-            (lastContent as IDataContent).data = (data as IDataContent).data;
+            const isStreamingToolInput = [
+              AgentScopeRuntimeMessageType.PLUGIN_CALL,
+              AgentScopeRuntimeMessageType.TOOL_CALL,
+              AgentScopeRuntimeMessageType.MCP_CALL,
+            ].includes(msg.type as AgentScopeRuntimeMessageType);
+
+            if (isStreamingToolInput) {
+              const oldData = (lastContent as IDataContent).data || {};
+              const newData = (data as IDataContent).data || {};
+              const merged: Record<string, any> = { ...oldData };
+              for (const [key, value] of Object.entries(newData)) {
+                if (typeof value === 'string' && typeof merged[key] === 'string') {
+                  merged[key] = merged[key] + value;
+                } else {
+                  merged[key] = value;
+                }
+              }
+              (lastContent as IDataContent).data = merged;
+            } else {
+              (lastContent as IDataContent).data = (data as IDataContent).data;
+            }
           }
         } else {
           msg.content.push(data);
