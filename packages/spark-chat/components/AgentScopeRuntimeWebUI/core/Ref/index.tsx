@@ -6,7 +6,7 @@ import { emit } from '../Context/useChatAnywhereEventEmitter';
 import { IAgentScopeRuntimeWebUIInputData } from '../types';
 
 // 逐步放开
-function Ref(_, ref) {
+function Ref(props, ref) {
   const messages = useChatAnywhereMessages()
   const setDisabled = useContextSelector(ChatAnywhereInputContext, v => v.setDisabled);
 

@@ -3,7 +3,7 @@ import { useMessages } from '../hooks/useMessages';
 import { useInput } from '../hooks/useInput';
 import { useSessionList } from '../hooks/useSessionList';
 
-export default React.forwardRef(function Ref(_, ref) {
+export default React.forwardRef(function Ref(props, ref) {
 
   const messageContext = useMessages();
   const inputContext = useInput();
