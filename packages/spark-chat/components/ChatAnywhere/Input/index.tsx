@@ -12,7 +12,7 @@ import UploadPopover from './UploadPopover';
 
 type AttachedFiles = GetProp<typeof Attachments, 'items'>;
 
-export default forwardRef(function (props, ref) {
+export default forwardRef(function (_props, ref) {
   const [content, setContent] = React.useState('');
   const inputContext = useInput();
   const onUpload = useChatAnywhere(v => {

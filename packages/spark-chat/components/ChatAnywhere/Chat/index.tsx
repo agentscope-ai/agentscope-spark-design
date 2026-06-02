@@ -56,7 +56,7 @@ function useFrontendHistoryPagination(
   return { visibleMessages, noMore, loadMore };
 }
 
-export default forwardRef(function (props, ref) {
+export default forwardRef(function (_props, ref) {
   const messages = useChatAnywhere(v => v.messages);
   const setMessages = useChatAnywhere(v => v.setMessages);
   const onLoadMore = useChatAnywhere(v => v.onLoadMore);
