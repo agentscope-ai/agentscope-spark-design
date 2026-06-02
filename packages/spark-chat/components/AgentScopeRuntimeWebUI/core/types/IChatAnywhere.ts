@@ -68,6 +68,12 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @descriptionEn Custom media URL transformer (e.g. sign URL, replace CDN domain)
    */
   replaceMediaURL?: (url: string) => string;
+
+  /**
+   * @description 自定义文件点击事件（桌面端可通过此钩子调用原生 API 打开文件链接），不传则默认 window.open
+   * @descriptionEn Custom file click handler (desktop apps can use native APIs to open file URLs), defaults to window.open
+   */
+  onFileCardClick?: (file: { url?: string; name?: string; size?: number }) => void;
 }
 
 /**
@@ -434,6 +440,8 @@ export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
    */
   list?: {
     icon?: React.ReactElement;
+    children?: React.ReactElement;
+    render?: ({ data }: { data: IAgentScopeRuntimeRequest }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeRequest }) => void;
   }[];
 }
@@ -445,6 +453,7 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    */
   list: {
     icon?: React.ReactElement;
+    children?: React.ReactElement;
     render?: ({
       data,
     }: {
@@ -459,6 +468,7 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    */
   right?: false | {
     icon?: React.ReactElement;
+    children?: React.ReactElement;
     render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
   }[];

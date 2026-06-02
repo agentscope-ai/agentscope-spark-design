@@ -11,6 +11,10 @@ interface UseChatRequestOptions {
     request?: IAgentScopeRuntimeWebUIMessage;
     response?: IAgentScopeRuntimeWebUIMessage;
     abortController?: AbortController;
+    /** Active request id, maintained by the controller. Incrementing it invalidates any in-flight SSE. */
+    activeRequestId: number;
+    /** Session id snapshot for the active request. */
+    activeSessionId?: string;
   }>;
   updateMessage: (message: IAgentScopeRuntimeWebUIMessage) => void;
   getCurrentSessionId: () => string;
@@ -18,13 +22,13 @@ interface UseChatRequestOptions {
 }
 
 /**
- * 处理 API 请求和流式响应的 Hook
+ * Hook for handling API requests and streaming SSE responses.
  */
 export default function useChatRequest(options: UseChatRequestOptions) {
   const { currentQARef, updateMessage, getCurrentSessionId, onFinish } = options;
   const apiOptions = useChatAnywhereOptions(v => v.api);
 
-  // 使用 ref 保存最新的 apiOptions，避免闭包陷阱
+  // Keep apiOptions in a ref to avoid stale closure issues
   const apiOptionsRef = useRef(apiOptions);
 
   useEffect(() => {
@@ -57,13 +61,30 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   }, [])
 
 
-  const processSSEResponse = useCallback(async (response: Response) => {
+  const processSSEResponse = useCallback(async (
+    response: Response,
+    myRequestId: number,
+    mySessionId?: string,
+  ) => {
     const currentApiOptions = apiOptionsRef.current;
     const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
       id: '',
       status: AgentScopeRuntimeRunStatus.Created,
       created_at: 0,
     });
+
+    /**
+     * Guard: check whether this SSE stream is still the active request.
+     * If any of the following is true, writing should stop immediately:
+     *   - requestId mismatch: user cancelled / sent new message / switched session
+     *   - sessionId mismatch: session was switched away, prevents cross-session leakage
+     */
+    const isStillActive = () => {
+      if (currentQARef.current.activeRequestId !== myRequestId) return false;
+      if (mySessionId && currentQARef.current.activeSessionId &&
+          currentQARef.current.activeSessionId !== mySessionId) return false;
+      return true;
+    };
 
     if (!response.ok) {
       try {
@@ -79,16 +100,18 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           message: JSON.stringify(data),
         });
 
-        currentQARef.current.response.cards = [
-          {
-            code: 'AgentScopeRuntimeResponseCard',
-            data: res,
-          }
-        ];
+        if (isStillActive() && currentQARef.current.response) {
+          currentQARef.current.response.cards = [
+            {
+              code: 'AgentScopeRuntimeResponseCard',
+              data: res,
+            }
+          ];
+        }
       } catch {
         // Ignore JSON parse errors — still call onFinish to reset loading state
       }
-      onFinish();
+      if (isStillActive()) onFinish();
       return;
     }
 
@@ -99,22 +122,23 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         readableStream: response.body,
         signal: abortSignal,
       })) {
+        // Primary guard: if this SSE is no longer active, stop immediately
+        // to prevent ghost writes into a different session/request.
+        if (!isStillActive()) break;
+
         if (currentQARef.current.response?.msgStatus === 'interrupted') {
           currentQARef.current.abortController?.abort();
-          if (currentApiOptions.cancel) {
-            currentApiOptions.cancel({
-              session_id: getCurrentSessionId(),
-            });
+          // Cancel was already sent by handleCancel; don't repeat it here.
+
+          if (isStillActive() && currentQARef.current.response) {
+            currentQARef.current.response.cards = [
+              {
+                code: 'AgentScopeRuntimeResponseCard',
+                data: agentScopeRuntimeResponseBuilder.cancel(),
+              }
+            ];
+            updateMessage(currentQARef.current.response);
           }
-
-          currentQARef.current.response.cards = [
-            {
-              code: 'AgentScopeRuntimeResponseCard',
-              data: agentScopeRuntimeResponseBuilder.cancel(),
-            }
-          ];
-
-          updateMessage(currentQARef.current.response);
           break;
         }
 
@@ -122,7 +146,9 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         const chunkData = responseParser(chunk.data);
         const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
 
-        if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.[0]?.content?.length) continue;
+        if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.some(msg => msg.content?.length)) continue;
+
+        if (!isStillActive()) break;
 
         if (currentQARef.current.response) {
           currentQARef.current.response.cards = [
@@ -140,19 +166,21 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         }
       }
     } catch (error) {
+      if (!isStillActive()) {
+        // Request is no longer active; do not write cards or fire cancel.
+        return;
+      }
       if (currentQARef.current.response?.msgStatus === 'interrupted') {
-        if (currentApiOptions.cancel) {
-          currentApiOptions.cancel({
-            session_id: getCurrentSessionId(),
-          });
+        // Cancel was already sent by handleCancel; don't repeat it here.
+        if (currentQARef.current.response) {
+          currentQARef.current.response.cards = [
+            {
+              code: 'AgentScopeRuntimeResponseCard',
+              data: agentScopeRuntimeResponseBuilder.cancel(),
+            }
+          ];
+          updateMessage(currentQARef.current.response);
         }
-        currentQARef.current.response.cards = [
-          {
-            code: 'AgentScopeRuntimeResponseCard',
-            data: agentScopeRuntimeResponseBuilder.cancel(),
-          }
-        ];
-        updateMessage(currentQARef.current.response);
       } else {
         console.error(error);
       }
@@ -160,10 +188,16 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
 
 
-  const request = useCallback(async (historyMessages: any[], biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params']) => {
+  const request = useCallback(async (
+    historyMessages: any[],
+    biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'],
+    myRequestId?: number,
+  ) => {
     const currentApiOptions = apiOptionsRef.current;
     const { enableHistoryMessages = false } = currentApiOptions;
     const abortSignal = currentQARef.current.abortController?.signal;
+    const requestId = myRequestId ?? currentQARef.current.activeRequestId;
+    const sessionId = currentQARef.current.activeSessionId ?? getCurrentSessionId();
     let response
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
@@ -188,15 +222,16 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     }
 
     if (response && response.body) {
-      await processSSEResponse(response);
+      await processSSEResponse(response, requestId, sessionId);
     }
   }, [getCurrentSessionId, currentQARef, processSSEResponse]);
 
-  const reconnect = useCallback(async (sessionId: string) => {
+  const reconnect = useCallback(async (sessionId: string, myRequestId?: number) => {
     const currentApiOptions = apiOptionsRef.current;
     if (!currentApiOptions.reconnect) return;
 
     const abortSignal = currentQARef.current.abortController?.signal;
+    const requestId = myRequestId ?? currentQARef.current.activeRequestId;
     let response: Response | undefined;
     try {
       response = await currentApiOptions.reconnect({
@@ -207,7 +242,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     }
 
     if (response && response.body) {
-      await processSSEResponse(response);
+      await processSSEResponse(response, requestId, sessionId);
     }
   }, [currentQARef, processSSEResponse]);
 

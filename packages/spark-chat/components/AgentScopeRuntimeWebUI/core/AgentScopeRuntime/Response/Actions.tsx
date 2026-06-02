@@ -40,7 +40,7 @@ export default function Tools(props: {
 
   const actions = compact([
     ...actionsOptionsList.map(i => {
-      const res = i;
+      const res = { ...i } as any;
 
       if (i.render) {
         res.children = React.createElement(i.render, { data: props });
