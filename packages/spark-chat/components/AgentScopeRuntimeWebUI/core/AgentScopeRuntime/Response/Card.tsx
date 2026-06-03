@@ -17,10 +17,19 @@ function sortByOrder<T extends { order?: number }>(arr: T[]): T[] {
 /**
  * Default SDK rendering of the assistant response bubble, extracted so
  * plugin `response.render` can opt back into the original via fallback().
+ *
+ * `contentPrepend` / `contentAppend` are slot props for host integrations
+ * that need to inject UI BETWEEN the messages and the action bar (e.g.
+ * per-response footers, char counts, etc). They land in a position where
+ * Actions stay anchored at the end of the card — separate from the
+ * outer `responseOptions.prepend / append` lists, which sit OUTSIDE the
+ * card and are intended for surrounding banners.
  */
 function DefaultResponseRender(props: {
   data: IAgentScopeRuntimeResponse;
   isLast?: boolean;
+  contentPrepend?: React.ReactNode;
+  contentAppend?: React.ReactNode;
 }) {
   const avatar = useChatAnywhereOptions(v => v.welcome.avatar);
   const nick = useChatAnywhereOptions(v => v.welcome.nick);
@@ -36,6 +45,7 @@ function DefaultResponseRender(props: {
       <Avatar src={avatar} />
       {nick && <span>{nick as string}</span>}
     </Flex>}
+    {props.contentPrepend ?? null}
     {
 
       messages.map(item => {
@@ -66,6 +76,7 @@ function DefaultResponseRender(props: {
     {
       props.data.error && <Error data={props.data.error} />
     }
+    {props.contentAppend ?? null}
     <Actions {...props} />
   </>
 }
@@ -73,11 +84,18 @@ function DefaultResponseRender(props: {
 export default function AgentScopeRuntimeResponseCard(props: {
   data: IAgentScopeRuntimeResponse;
   isLast?: boolean;
+  contentPrepend?: React.ReactNode;
+  contentAppend?: React.ReactNode;
 }) {
   const responseOptions = useChatAnywhereOptions(v => v.response);
 
   const fallback = () => (
-    <DefaultResponseRender data={props.data} isLast={props.isLast} />
+    <DefaultResponseRender
+      data={props.data}
+      isLast={props.isLast}
+      contentPrepend={props.contentPrepend}
+      contentAppend={props.contentAppend}
+    />
   );
 
   const main = responseOptions?.render

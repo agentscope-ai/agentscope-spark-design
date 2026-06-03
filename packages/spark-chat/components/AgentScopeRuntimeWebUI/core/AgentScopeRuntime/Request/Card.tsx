@@ -12,8 +12,17 @@ function sortByOrder<T extends { order?: number }>(arr: T[]): T[] {
 /**
  * Default SDK rendering of the user request bubble, extracted so plugin
  * `request.render` can opt into the original rendering via fallback().
+ *
+ * `contentPrepend` / `contentAppend` are slot props for host integrations
+ * that need to inject UI BETWEEN the bubble and the action bar — Actions
+ * stay anchored at the end of the card. Separate from the outer
+ * `requestOptions.prepend / append` lists, which sit OUTSIDE the card.
  */
-function DefaultRequestRender(props: { data: IAgentScopeRuntimeRequest }) {
+function DefaultRequestRender(props: {
+  data: IAgentScopeRuntimeRequest;
+  contentPrepend?: React.ReactNode;
+  contentAppend?: React.ReactNode;
+}) {
   const onFileCardClick = useChatAnywhereOptions(v => v.api?.onFileCardClick);
 
   const cards = useMemo(() => {
@@ -85,17 +94,27 @@ function DefaultRequestRender(props: { data: IAgentScopeRuntimeRequest }) {
   if (!cards?.length) return null;
 
   return <>
+    {props.contentPrepend ?? null}
     <Bubble role="user" cards={cards}></Bubble>
+    {props.contentAppend ?? null}
     <Actions data={props.data} />
   </>;
 }
 
 export default function AgentScopeRuntimeRequestCard(props: {
   data: IAgentScopeRuntimeRequest;
+  contentPrepend?: React.ReactNode;
+  contentAppend?: React.ReactNode;
 }) {
   const requestOptions = useChatAnywhereOptions(v => v.request);
 
-  const fallback = () => <DefaultRequestRender data={props.data} />;
+  const fallback = () => (
+    <DefaultRequestRender
+      data={props.data}
+      contentPrepend={props.contentPrepend}
+      contentAppend={props.contentAppend}
+    />
+  );
   const main = requestOptions?.render
     ? requestOptions.render({ data: props.data, fallback })
     : fallback();
