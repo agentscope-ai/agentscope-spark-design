@@ -16,7 +16,13 @@ const Tool = React.memo(function ({ data, isApproval = false }: { data: IAgentSc
     AgentScopeRuntimeMessageType.MCP_CALL_OUTPUT,
   ].includes(data.type);
 
-  const [autoCollapsed, setAutoCollapsed] = useState(false);
+  // Already-completed outputs start collapsed so the 2s auto-collapse timer
+  // below skips them entirely — otherwise every historical output would
+  // mount with key='open' and then unmount/remount to key='collapsed' 2s
+  // later, churning component instances on page load.
+  const [autoCollapsed, setAutoCollapsed] = useState(
+    () => data.status !== AgentScopeRuntimeRunStatus.InProgress,
+  );
   useEffect(() => {
     if (!isOutput || autoCollapsed) return;
     const timer = setTimeout(() => setAutoCollapsed(true), OUTPUT_AUTO_COLLAPSE_MS);
@@ -41,7 +47,13 @@ const Tool = React.memo(function ({ data, isApproval = false }: { data: IAgentSc
     AgentScopeRuntimeMessageType.MCP_CALL,
   ].includes(data.type);
 
-  const defaultOpen = isInput || (isOutput && !autoCollapsed);
+  // Only the actively-running tool call shows its args/output expanded.
+  // Historical (completed) tool calls stay collapsed so OperateCard does
+  // not mount the body subtree — each input/output Block holds a
+  // CodeMirror EditorView (~380ms init); 30 historical tool calls would
+  // otherwise mount 60 editors at once, locking the UI for ~22s on long
+  // conversations. Users click the card header to view past args/output.
+  const defaultOpen = loading;
 
   let node
 
