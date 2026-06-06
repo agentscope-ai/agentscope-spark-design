@@ -69,6 +69,10 @@ export default forwardRef(function (_, ref) {
         setContent(content);
         setAttachedFiles(fileList || [[]]);
       },
+      clearInput: () => {
+        setContent('');
+        setAttachedFiles(attachedFilesRef.current.map(() => []));
+      },
       getAttachedFiles: () => attachedFilesRef.current,
 
     };

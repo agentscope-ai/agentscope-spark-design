@@ -319,6 +319,11 @@ export interface IChatAnywhereRef extends IChatAnywhereContext {
    */
   setInputContent: (content: string, fileList?: UploadFile[][]) => void;
   /**
+   * @description 清空输入框内容和附件
+   * @descriptionEn Clear input content and attached files
+   */
+  clearInput: () => void;
+  /**
    * @description 滚动到底部的方法
    * @descriptionEn Method to scroll to bottom
    */
