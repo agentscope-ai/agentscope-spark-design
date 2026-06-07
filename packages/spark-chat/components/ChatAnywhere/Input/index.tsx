@@ -170,6 +170,7 @@ export default forwardRef(function (_, ref) {
             key={index}
             items={files}
             replaceable={true}
+            customRequest={onUpload[index]?.customRequest}
             onChange={(info) => handleFileChange(index, info.fileList)}
           />
         })
