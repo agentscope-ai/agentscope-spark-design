@@ -10,7 +10,9 @@ import { ChatAnyWhereLayoutContext } from "../Context/ChatAnywhereLayoutContext"
 export default function Header() {
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere');
   const { narrowMode, rightHeader } = useChatAnywhereOptions(v => v.theme);
+  const hideBuiltInSessionList = useChatAnywhereOptions(v => v.session?.hideBuiltInSessionList);
   const { toggleCollapsed, collapsed } = useContext(ChatAnyWhereLayoutContext);
+  const showNarrowSessionList = narrowMode && !hideBuiltInSessionList;
 
   return <>
     <Style />
@@ -19,7 +21,7 @@ export default function Header() {
       className={`${prefixCls}-layout-right-header`}
     >
       {
-        narrowMode ? <InnerHeader className={`${prefixCls}-default-header-inner`} /> : null
+        showNarrowSessionList ? <InnerHeader className={`${prefixCls}-default-header-inner`} /> : null
       }
       {
         rightHeader && <div className={`${prefixCls}-default-header-right`}>{rightHeader}</div>
@@ -27,7 +29,7 @@ export default function Header() {
     </div>
 
     {
-      narrowMode && <Drawer
+      showNarrowSessionList && <Drawer
         width="80vw"
         styles={{ body: { padding: 0 } }}
         open={collapsed}

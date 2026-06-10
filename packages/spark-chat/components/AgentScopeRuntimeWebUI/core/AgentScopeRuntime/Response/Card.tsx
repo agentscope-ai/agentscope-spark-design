@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 import { AgentScopeRuntimeMessageType, IAgentScopeRuntimeResponse } from "../types";
 import AgentScopeRuntimeResponseBuilder from "./Builder";
 import Message from "./Message";
@@ -10,9 +10,26 @@ import Actions from "./Actions";
 import { Avatar, Flex } from 'antd';
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 
-export default function AgentScopeRuntimeResponseCard(props: {
+function sortByOrder<T extends { order?: number }>(arr: T[]): T[] {
+  return arr.slice().sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+}
+
+/**
+ * Default SDK rendering of the assistant response bubble, extracted so
+ * plugin `response.render` can opt back into the original via fallback().
+ *
+ * `contentPrepend` / `contentAppend` are slot props for host integrations
+ * that need to inject UI BETWEEN the messages and the action bar (e.g.
+ * per-response footers, char counts, etc). They land in a position where
+ * Actions stay anchored at the end of the card — separate from the
+ * outer `responseOptions.prepend / append` lists, which sit OUTSIDE the
+ * card and are intended for surrounding banners.
+ */
+function DefaultResponseRender(props: {
   data: IAgentScopeRuntimeResponse;
   isLast?: boolean;
+  contentPrepend?: React.ReactNode;
+  contentAppend?: React.ReactNode;
 }) {
   const avatar = useChatAnywhereOptions(v => v.welcome.avatar);
   const nick = useChatAnywhereOptions(v => v.welcome.nick);
@@ -28,6 +45,7 @@ export default function AgentScopeRuntimeResponseCard(props: {
       <Avatar src={avatar} />
       {nick && <span>{nick as string}</span>}
     </Flex>}
+    {props.contentPrepend ?? null}
     {
 
       messages.map(item => {
@@ -58,6 +76,58 @@ export default function AgentScopeRuntimeResponseCard(props: {
     {
       props.data.error && <Error data={props.data.error} />
     }
+    {props.contentAppend ?? null}
     <Actions {...props} />
+  </>
+}
+
+export default function AgentScopeRuntimeResponseCard(props: {
+  data: IAgentScopeRuntimeResponse;
+  isLast?: boolean;
+  contentPrepend?: React.ReactNode;
+  contentAppend?: React.ReactNode;
+}) {
+  const responseOptions = useChatAnywhereOptions(v => v.response);
+
+  const fallback = () => (
+    <DefaultResponseRender
+      data={props.data}
+      isLast={props.isLast}
+      contentPrepend={props.contentPrepend}
+      contentAppend={props.contentAppend}
+    />
+  );
+
+  const main = responseOptions?.render
+    ? responseOptions.render({
+        data: props.data,
+        isLast: props.isLast,
+        fallback,
+      })
+    : fallback();
+
+  const prependList = sortByOrder(responseOptions?.prepend ?? []);
+  const appendList = sortByOrder(responseOptions?.append ?? []);
+
+  if (
+    !responseOptions?.render &&
+    prependList.length === 0 &&
+    appendList.length === 0
+  ) {
+    return fallback();
+  }
+
+  return <>
+    {prependList.map((e, i) => (
+      <React.Fragment key={e.id ?? `pre-${i}`}>
+        {e.render({ data: props.data, isLast: props.isLast })}
+      </React.Fragment>
+    ))}
+    {main}
+    {appendList.map((e, i) => (
+      <React.Fragment key={e.id ?? `post-${i}`}>
+        {e.render({ data: props.data, isLast: props.isLast })}
+      </React.Fragment>
+    ))}
   </>
 }
