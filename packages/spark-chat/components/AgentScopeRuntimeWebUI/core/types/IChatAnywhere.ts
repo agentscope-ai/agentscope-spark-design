@@ -431,6 +431,87 @@ export interface IAgentScopeRuntimeWebUIOptions {
    * @descriptionEn Actions configuration (user messages)
    */
   requestActions?: IAgentScopeRuntimeWebUIRequestActionsOptions;
+
+  /**
+   * @description 用户请求气泡自定义槽。可整段替换或在气泡前后追加节点。
+   * @descriptionEn Customization slots for the user request bubble: whole-bubble render override and before/after slots.
+   */
+  request?: IAgentScopeRuntimeWebUIRequestOptions;
+
+  /**
+   * @description AI 响应气泡自定义槽。可整段替换或在气泡前后追加节点。
+   * @descriptionEn Customization slots for the assistant response bubble: whole-bubble render override and before/after slots.
+   */
+  response?: IAgentScopeRuntimeWebUIResponseOptions;
+}
+
+/**
+ * @description 用户请求气泡前后追加的插槽项
+ * @descriptionEn Prepend/append slot item rendered around the user request bubble.
+ */
+export interface IAgentScopeRuntimeWebUIRequestSlot {
+  /** 稳定 id,用于 React key 与去重 / Stable id for React key + de-duplication. */
+  id?: string;
+  /** 排序权重,小在前;默认 100 / Order weight, smaller renders first; defaults to 100. */
+  order?: number;
+  /** 渲染函数,可访问当前请求数据;返回 null 表示该气泡不渲染本槽 / Render fn receiving the current request data; returning null skips this bubble. */
+  render: (ctx: { data: IAgentScopeRuntimeRequest }) => React.ReactNode;
+}
+
+/**
+ * @description 用户请求气泡自定义槽配置
+ * @descriptionEn Customization options for the user request bubble.
+ */
+export interface IAgentScopeRuntimeWebUIRequestOptions {
+  /**
+   * @description 整段替换默认 user 气泡。调用 fallback() 可拿到 SDK 默认渲染。
+   * @descriptionEn Replace the default user bubble entirely. Call fallback() to obtain the SDK default render.
+   */
+  render?: (ctx: {
+    data: IAgentScopeRuntimeRequest;
+    fallback: () => React.ReactNode;
+  }) => React.ReactNode;
+  /**
+   * @description 在 user 气泡之前追加的插槽列表(按 order 排序)
+   * @descriptionEn Slots rendered above the user bubble (sorted by order).
+   */
+  prepend?: IAgentScopeRuntimeWebUIRequestSlot[];
+  /**
+   * @description 在 user 气泡之后追加的插槽列表(按 order 排序)
+   * @descriptionEn Slots rendered below the user bubble (sorted by order).
+   */
+  append?: IAgentScopeRuntimeWebUIRequestSlot[];
+}
+
+/**
+ * @description AI 响应气泡前后追加的插槽项
+ * @descriptionEn Prepend/append slot item rendered around the assistant response bubble.
+ */
+export interface IAgentScopeRuntimeWebUIResponseSlot {
+  id?: string;
+  order?: number;
+  render: (ctx: {
+    data: IAgentScopeRuntimeResponse;
+    isLast?: boolean;
+  }) => React.ReactNode;
+}
+
+/**
+ * @description AI 响应气泡自定义槽配置
+ * @descriptionEn Customization options for the assistant response bubble.
+ */
+export interface IAgentScopeRuntimeWebUIResponseOptions {
+  /**
+   * @description 整段替换默认 AI 气泡。调用 fallback() 可拿到 SDK 默认渲染。
+   * @descriptionEn Replace the default AI bubble entirely. Call fallback() to obtain the SDK default render.
+   */
+  render?: (ctx: {
+    data: IAgentScopeRuntimeResponse;
+    isLast?: boolean;
+    fallback: () => React.ReactNode;
+  }) => React.ReactNode;
+  prepend?: IAgentScopeRuntimeWebUIResponseSlot[];
+  append?: IAgentScopeRuntimeWebUIResponseSlot[];
 }
 
 export interface IAgentScopeRuntimeWebUIRequestActionsOptions {

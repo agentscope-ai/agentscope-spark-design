@@ -58,10 +58,27 @@ export interface IRagProps {
   filters?: string;
 }
 
-function Images({ images }: { images: string[] }) {
+// 兼容上游传入的 images 类型不规范（如单个字符串、null 等），统一归一化为字符串数组
+function normalizeImages(images?: string[] | string | null): string[] {
+  if (Array.isArray(images)) {
+    return images.filter((image): image is string => typeof image === 'string' && !!image);
+  }
+  if (typeof images === 'string' && images) {
+    return [images];
+  }
+  return [];
+}
+
+function Images({ images }: { images?: string[] | string | null }) {
   const { getPrefixCls } = useProviderContext();
 
   const prefixCls = getPrefixCls('operate-card');
+
+  const imageList = normalizeImages(images);
+
+  if (!imageList.length) {
+    return null;
+  }
 
   return <ConfigProvider
     locale={{
@@ -69,7 +86,7 @@ function Images({ images }: { images: string[] }) {
     } as Locale}
   >
     <Image.PreviewGroup>
-      {images.map((image, index) => <Image src={image} key={index} width={44} height={44} />)}
+      {imageList.map((image, index) => <Image src={image} key={index} width={44} height={44} />)}
     </Image.PreviewGroup>
   </ConfigProvider>
 
@@ -106,10 +123,10 @@ function Item({ item }) {
         <div className={`${prefixCls}-rag-item-content-text`}>{item.content}</div>
 
         {
-          item.images &&
+          normalizeImages(item.images).length ?
           <div className={`${prefixCls}-rag-item-images`}>
             <Images images={item.images} />
-          </div>
+          </div> : null
         }
 
         {
@@ -146,7 +163,7 @@ export default function (props: IRagProps) {
     </div>
 
     {
-      images?.length ? <div>
+      normalizeImages(images).length ? <div>
         <div className={`${prefixCls}-rag-group-title`}>检索图片</div>
         <div className={`${prefixCls}-rag-group-content ${prefixCls}-rag-group-content-images`}>
           <Images images={images} />
