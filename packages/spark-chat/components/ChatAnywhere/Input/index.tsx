@@ -69,6 +69,10 @@ export default forwardRef(function (_, ref) {
         setContent(content);
         setAttachedFiles(fileList || [[]]);
       },
+      clearInput: () => {
+        setContent('');
+        setAttachedFiles(attachedFilesRef.current.map(() => []));
+      },
       getAttachedFiles: () => attachedFilesRef.current,
 
     };
@@ -166,6 +170,7 @@ export default forwardRef(function (_, ref) {
             key={index}
             items={files}
             replaceable={true}
+            customRequest={onUpload[index]?.customRequest}
             onChange={(info) => handleFileChange(index, info.fileList)}
           />
         })

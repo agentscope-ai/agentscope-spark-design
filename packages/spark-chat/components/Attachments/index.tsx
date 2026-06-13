@@ -178,14 +178,15 @@ function Attachments(props: AttachmentsProps, ref: React.Ref<AttachmentsRef>) {
   };
 
   const onItemReplace = useEvent((oldItem: Attachment, file: File) => {
+    const { customRequest } = uploadProps;
     const newAttachment: Attachment = {
       uid: oldItem.uid,
       name: file.name,
       size: file.size,
       type: file.type,
       originFileObj: file as any,
-      status: 'done',
-      percent: 100,
+      status: customRequest ? 'uploading' : 'done',
+      percent: customRequest ? 0 : 100,
     };
     const newFileList = fileList.map((fileItem) =>
       fileItem.uid === oldItem.uid ? newAttachment : fileItem,
@@ -194,6 +195,33 @@ function Attachments(props: AttachmentsProps, ref: React.Ref<AttachmentsRef>) {
       file: newAttachment,
       fileList: newFileList,
     });
+
+    if (customRequest) {
+      const updateFile = (updates: Partial<Attachment>) => {
+        setFileList((prev) => {
+          const updated = prev.map((f) =>
+            f.uid === oldItem.uid ? { ...f, ...updates } : f,
+          );
+          onChange?.({ file: { ...newAttachment, ...updates }, fileList: updated });
+          return updated;
+        });
+      };
+
+      customRequest({
+        file: file as any,
+        onSuccess: (response: any) => {
+          updateFile({ status: 'done', percent: 100, response });
+        },
+        onError: (error: any) => {
+          updateFile({ status: 'error', error });
+        },
+        onProgress: (event: any) => {
+          updateFile({ percent: event?.percent });
+        },
+      } as any, {
+        defaultRequest: () => { }
+      });
+    }
   });
 
   let renderChildren: React.ReactElement;
