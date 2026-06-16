@@ -1,11 +1,21 @@
 import { sleep } from "@agentscope-ai/chat";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useContextSelector } from "use-context-selector";
 import { ChatAnywhereInputContext } from "../../Context/ChatAnywhereInputContext";
 import { ChatAnywhereSessionsContext } from "../../Context/ChatAnywhereSessionsContext";
 import useChatAnywhereEventEmitter from "../../Context/useChatAnywhereEventEmitter";
 import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
 import { InputProps } from "../Input";
+import {
+  canSubmitDirectly,
+  dequeueNextQueuedInput,
+  enqueueQueuedInput,
+  MAX_INPUT_QUEUE_SIZE,
+  removeQueuedInput,
+  restoreFailedQueuedInput,
+  retryQueuedInput,
+  type QueuedInputItem,
+} from "../InputQueue";
 import useChatMessageHandler from "./useChatMessageHandler";
 import useChatRequest from "./useChatRequest";
 import useChatSessionHandler from "./useChatSessionHandler";
@@ -18,6 +28,7 @@ import ReactDOM from "react-dom";
  */
 export default function useChatController() {
   const setLoading = useContextSelector(ChatAnywhereInputContext, v => v.setLoading);
+  const getLoading = useContextSelector(ChatAnywhereInputContext, v => v.getLoading);
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
   const apiOptions = useChatAnywhereOptions(v => v.api);
   const apiOptionsRef = useRef(apiOptions);
@@ -43,6 +54,15 @@ export default function useChatController() {
      */
     activeSessionId?: string;
   }>({ activeRequestId: 0 });
+  const [inputQueue, setInputQueue] = useState<QueuedInputItem[]>([]);
+  const inputQueueRef = useRef<QueuedInputItem[]>([]);
+  const drainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drainingRef = useRef(false);
+  const drainQueueRef = useRef<(() => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    inputQueueRef.current = inputQueue;
+  }, [inputQueue]);
 
   // Message handler
   const messageHandler = useChatMessageHandler({ currentQARef });
@@ -53,6 +73,17 @@ export default function useChatController() {
   /**
    * Finalize the current response and reset UI loading state.
    */
+  const scheduleDrainQueue = useCallback(() => {
+    if (drainTimerRef.current) {
+      clearTimeout(drainTimerRef.current);
+    }
+
+    drainTimerRef.current = setTimeout(() => {
+      drainTimerRef.current = null;
+      void drainQueueRef.current?.();
+    }, 0);
+  }, []);
+
   const finishResponse = useCallback((status: 'finished' | 'interrupted' = 'finished') => {
     if (!currentQARef.current.response) return;
 
@@ -63,7 +94,8 @@ export default function useChatController() {
     });
 
     sessionHandler.syncSessionMessages(messageHandler.getMessages());
-  }, [setLoading, messageHandler, sessionHandler]);
+    scheduleDrainQueue();
+  }, [setLoading, messageHandler, sessionHandler, scheduleDrainQueue]);
 
   // API request handling
   const { request, reconnect } = useChatRequest({
@@ -76,7 +108,7 @@ export default function useChatController() {
   /**
    * Handle user message submission.
    */
-  const handleSubmit = useCallback<InputProps['onSubmit']>(async (data) => {
+  const submitNow = useCallback<InputProps['onSubmit']>(async (data) => {
     // 0. Abort any previous in-flight SSE. We do NOT call the cancel API here
     //    — the user is sending a new message, not explicitly cancelling.
     //    Cancel is only invoked from handleCancel.
@@ -119,6 +151,61 @@ export default function useChatController() {
     await request(historyMessages, data.biz_params, myRequestId);
     // mockRequest(mockdata);
   }, [messageHandler, sessionHandler, request, setLoading]);
+
+  const enqueueInput = useCallback((data: Parameters<InputProps['onSubmit']>[0]) => {
+    const result = enqueueQueuedInput(inputQueueRef.current, data, {
+      maxSize: MAX_INPUT_QUEUE_SIZE,
+    });
+    inputQueueRef.current = result.queue;
+    setInputQueue(result.queue);
+  }, []);
+
+  const drainQueue = useCallback(async () => {
+    if (drainingRef.current || getLoading()) return;
+
+    const result = dequeueNextQueuedInput(inputQueueRef.current);
+    const nextItem = result.item;
+
+    if (!nextItem) return;
+
+    inputQueueRef.current = result.queue;
+    setInputQueue(result.queue);
+
+    drainingRef.current = true;
+    try {
+      await submitNow(nextItem.data);
+    } catch (error) {
+      setLoading(false);
+      const restored = restoreFailedQueuedInput(inputQueueRef.current, nextItem, error);
+      inputQueueRef.current = restored;
+      setInputQueue(restored);
+    } finally {
+      drainingRef.current = false;
+    }
+  }, [getLoading, setLoading, submitNow]);
+
+  useEffect(() => {
+    drainQueueRef.current = drainQueue;
+  }, [drainQueue]);
+
+  const handleSubmit = useCallback<InputProps['onSubmit']>(async (data) => {
+    if (!canSubmitDirectly({
+      loading: getLoading(),
+      queueLength: inputQueueRef.current.length,
+      draining: drainingRef.current,
+    })) {
+      enqueueInput(data);
+      return;
+    }
+
+    await submitNow(data);
+  }, [enqueueInput, getLoading, submitNow]);
+
+  useEffect(() => {
+    if (!getLoading() && inputQueue.length > 0) {
+      scheduleDrainQueue();
+    }
+  }, [getLoading, inputQueue.length, scheduleDrainQueue]);
 
 
   const handleApproval = useCallback(async ({ input }) => {
@@ -259,6 +346,10 @@ export default function useChatController() {
     };
 
     return () => {
+      if (drainTimerRef.current) {
+        clearTimeout(drainTimerRef.current);
+        drainTimerRef.current = null;
+      }
       currentQARef.current.abortController?.abort();
       currentQARef.current.activeRequestId += 1;
     };
@@ -298,6 +389,22 @@ export default function useChatController() {
   return {
     handleSubmit,
     handleCancel,
+    inputQueue,
+    enqueueQueuedInput: enqueueInput,
+    removeQueuedInput: (id: string) => {
+      const next = removeQueuedInput(inputQueueRef.current, id);
+      inputQueueRef.current = next;
+      setInputQueue(next);
+    },
+    clearQueuedInputs: () => {
+      inputQueueRef.current = [];
+      setInputQueue([]);
+    },
+    retryQueuedInput: (id: string) => {
+      const next = retryQueuedInput(inputQueueRef.current, id);
+      inputQueueRef.current = next;
+      setInputQueue(next);
+      scheduleDrainQueue();
+    },
   };
 }
-

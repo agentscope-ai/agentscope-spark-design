@@ -5,10 +5,19 @@ import { useGetState } from 'ahooks';
 import { useChatAnywhereInput } from "../../Context/ChatAnywhereInputContext";
 import useAttachments from "./useAttachments";
 import { IAgentScopeRuntimeWebUIInputData } from "@agentscope-ai/chat";
+import InputQueuePanel from "../InputQueue/Panel";
+import type { QueuedInputItem } from "../InputQueue";
 
 export interface InputProps {
   onCancel: () => void;
   onSubmit: (data: IAgentScopeRuntimeWebUIInputData) => void;
+  queue?: {
+    items: QueuedInputItem[];
+    onEnqueue: (data: IAgentScopeRuntimeWebUIInputData) => void;
+    onRemove: (id: string) => void;
+    onClear: () => void;
+    onRetry: (id: string) => void;
+  };
 }
 
 export default function Input(props: InputProps) {
@@ -44,18 +53,42 @@ export default function Input(props: InputProps) {
     if (!next) return;
 
     const fileList = (getFileList?.() || []).filter(i => i.response?.url);
-    props.onSubmit({ query: getContent(), fileList });
+    const data = { query: getContent(), fileList };
+    if (inputContext.loading || props.queue?.items.length) {
+      props.queue?.onEnqueue(data);
+    } else {
+      props.onSubmit(data);
+    }
     setContent('');
-    setFileList && setFileList([]);
-  }, []);
+    setFileList?.([]);
+  }, [beforeSubmit, getContent, getFileList, inputContext.loading, props.onSubmit, props.queue, setContent, setFileList]);
+
+  const handleKeyDownCapture = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey) return;
+    if (event.nativeEvent?.isComposing) return;
+    if (!inputContext.loading && !props.queue?.items.length) return;
+
+    const fileList = (getFileList?.() || []).filter(i => i.response?.url);
+    if (!getContent().trim() && fileList.length === 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    void handleSubmit();
+  }, [getContent, getFileList, handleSubmit, inputContext.loading, props.queue?.items.length]);
 
   const handleCancel = useCallback(() => {
     props.onCancel();
   }, []);
 
-  return <div className={prefixCls}>
+  return <div className={prefixCls} onKeyDownCapture={handleKeyDownCapture}>
     <div className={`${prefixCls}-wrapper`}>
       {beforeUI}
+      {props.queue?.items.length ? <InputQueuePanel
+        items={props.queue.items}
+        onRemove={props.queue.onRemove}
+        onClear={props.queue.onClear}
+        onRetry={props.queue.onRetry}
+      /> : null}
       <ChatInput
         loading={inputContext.loading}
         disabled={inputContext.disabled}

@@ -35,6 +35,13 @@ const messages = {
     'common.saveSuccess': '保存成功',
     'common.saveFailed': '保存失败',
 
+    // Queue 相关
+    'queue.title': '待发送队列',
+    'queue.clear': '清空队列',
+    'queue.retry': '重试发送',
+    'queue.failed': '发送失败',
+    'queue.attachmentOnly': '附件消息',
+
     // Actions 相关
     'actions.regenerate': '重新生成',
 
@@ -72,6 +79,13 @@ const messages = {
     'common.loading': 'Loading...',
     'common.saveSuccess': 'Saved successfully',
     'common.saveFailed': 'Failed to save',
+
+    // Queue related
+    'queue.title': 'Queued inputs',
+    'queue.clear': 'Clear queue',
+    'queue.retry': 'Retry',
+    'queue.failed': 'Failed to send',
+    'queue.attachmentOnly': 'Attachment message',
 
     // Actions related
     'actions.regenerate': 'Regenerate',

@@ -7,14 +7,32 @@ import { useChatAnywhereSessionLoader } from "../Context/ChatAnywhereSessionsCon
 
 export default function Chat() {
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-chat');
-  const { handleSubmit, handleCancel } = useChatController();
+  const {
+    handleSubmit,
+    handleCancel,
+    inputQueue,
+    enqueueQueuedInput,
+    removeQueuedInput,
+    clearQueuedInputs,
+    retryQueuedInput,
+  } = useChatController();
   useChatAnywhereSessionLoader();
 
   return <>
     <Style />
     <div className={prefixCls}>
       <MessageList onSubmit={handleSubmit} />
-      <Input onCancel={handleCancel} onSubmit={handleSubmit} />
+      <Input
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+        queue={{
+          items: inputQueue,
+          onEnqueue: enqueueQueuedInput,
+          onRemove: removeQueuedInput,
+          onClear: clearQueuedInputs,
+          onRetry: retryQueuedInput,
+        }}
+      />
     </div>
   </>;
 }

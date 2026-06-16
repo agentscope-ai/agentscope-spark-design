@@ -34,6 +34,7 @@
     "prepare": "dumi setup",
     "src:build": "father build",
     "start": "npm run dev",
+    "test": "tsx components/AgentScopeRuntimeWebUI/core/Chat/InputQueue/__tests__/inputQueue.test.ts",
     "release:beta": "node publish-beta.js",
     "release": "node publish.js"
   },
