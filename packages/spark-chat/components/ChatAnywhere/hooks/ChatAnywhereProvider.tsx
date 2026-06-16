@@ -220,6 +220,7 @@ export type ChatAnywhereRef =
   ReturnType<typeof useSessionList> &
   {
     setInputContent: (content: string, fileList?: UploadFile[][]) => void;
+    clearInput: () => void;
     scrollToBottom: (options?: ScrollToBottomOptions) => void;
     reload: () => void;
   };

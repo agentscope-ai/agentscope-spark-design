@@ -10,7 +10,7 @@ try {
   const version = `${oldVersion}-beta.${Date.now()}`;
   execSync(`npm version ${version} --no-git-tag-version`, { stdio: 'inherit' });
 
-  execSync('npm publish --registry=https://registry.npmjs.org --access public --tag beta', { stdio: 'inherit' });
+  execSync('npm publish --access public --tag beta', { stdio: 'inherit' });
   console.log('Publish completed successfully');
   execSync('tnpm sync @agentscope-ai/chat', { stdio: 'inherit' });
 
