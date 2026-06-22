@@ -99,13 +99,18 @@ export const useChatAnywhereSessions = () => {
   const options = useChatAnywhereOptions(v => v.session);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
 
+  const setActiveSessionId = React.useCallback((sessionId: string | undefined) => {
+    setCurrentSessionId(sessionId);
+    options.onCurrentSessionChange?.(sessionId);
+  }, [options, setCurrentSessionId]);
+
 
   const removeSession = React.useCallback(async (session: Partial<IAgentScopeRuntimeWebUISession> & { id: string }) => {
     const res = await options.api.removeSession(session);
     setMessages([]);
-    setCurrentSessionId(undefined);
+    setActiveSessionId(undefined);
     setSessions(res);
-  }, []);
+  }, [options.api, setActiveSessionId, setMessages, setSessions]);
 
   const updateSession = React.useCallback(async (session: Partial<IAgentScopeRuntimeWebUISession>) => {
     const res = session.id ?
@@ -130,18 +135,17 @@ export const useChatAnywhereSessions = () => {
       if (skipNextSessionLoadIdRef) {
         skipNextSessionLoadIdRef.current = session.id;
       }
-      setCurrentSessionId(session.id);
+      setActiveSessionId(session.id);
       setMessages(session.messages || []);
     }
 
     return session?.id;
-  }, [getSessions, options.api, setCurrentSessionId, setMessages, setSessions, skipNextSessionLoadIdRef]);
+  }, [getSessions, options.api, setActiveSessionId, setMessages, setSessions, skipNextSessionLoadIdRef]);
 
 
   const changeCurrentSessionId = React.useCallback((sessionId: string) => {
-    setCurrentSessionId(sessionId);
-
-  }, []);
+    setActiveSessionId(sessionId);
+  }, [setActiveSessionId]);
 
 
   return {

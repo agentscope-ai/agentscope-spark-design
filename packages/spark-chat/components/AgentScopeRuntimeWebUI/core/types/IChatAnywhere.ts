@@ -393,6 +393,11 @@ export interface IAgentScopeRuntimeWebUISessionOptions {
    * @descriptionEn Session API interface
    */
   api?: IAgentScopeRuntimeWebUISessionAPI;
+  /**
+   * @description 当前会话切换回调，可用于同步业务路由
+   * @descriptionEn Called when current session changes. Useful for syncing external routes.
+   */
+  onCurrentSessionChange?: (sessionId: string | undefined) => void;
 }
 
 /**
