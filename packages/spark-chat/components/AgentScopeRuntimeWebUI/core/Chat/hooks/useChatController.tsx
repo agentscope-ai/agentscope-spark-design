@@ -2,6 +2,7 @@ import { sleep } from "@agentscope-ai/chat";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useContextSelector } from "use-context-selector";
 import { ChatAnywhereInputContext } from "../../Context/ChatAnywhereInputContext";
+import { ChatAnywhereMessagesContext } from "../../Context/ChatAnywhereMessagesContext";
 import { ChatAnywhereSessionsContext } from "../../Context/ChatAnywhereSessionsContext";
 import useChatAnywhereEventEmitter from "../../Context/useChatAnywhereEventEmitter";
 import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
@@ -49,12 +50,29 @@ function getQueueLocks() {
     : undefined;
 }
 
+function patchMessageSnapshot(
+  messages: IAgentScopeRuntimeWebUIMessage[],
+  message: Partial<IAgentScopeRuntimeWebUIMessage> & { id: string },
+) {
+  const index = messages.findIndex(item => item.id === message.id);
+  if (index === -1) {
+    return [...messages, message as IAgentScopeRuntimeWebUIMessage];
+  }
+
+  const nextMessage = {
+    ...messages[index],
+    ...message,
+  };
+  return [...messages.slice(0, index), nextMessage, ...messages.slice(index + 1)];
+}
+
 /**
  * Chat controller hook — coordinates all chat-related operations.
  */
 export default function useChatController() {
   const setLoading = useContextSelector(ChatAnywhereInputContext, v => v.setLoading);
   const getLoading = useContextSelector(ChatAnywhereInputContext, v => v.getLoading);
+  const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
   const apiOptions = useChatAnywhereOptions(v => v.api);
   const queueOptions = useChatAnywhereOptions(v => v.sender?.queue);
@@ -194,6 +212,20 @@ export default function useChatController() {
     });
   }, [commitQueueState, readQueueState, withQueueMutationLock]);
 
+  const syncMessagesToPeerTabs = useCallback((
+    sessionId: string | undefined,
+    messages: IAgentScopeRuntimeWebUIMessage[],
+  ) => {
+    if (!queueEnabled || !sessionId) return;
+
+    broadcastRef.current?.postMessage({
+      type: 'input-queue-messages-change',
+      sessionId,
+      messages,
+      sourceTabId: tabIdRef.current,
+    });
+  }, [queueEnabled]);
+
   const canExecuteQueue = useCallback((state = inputQueueStateRef.current) => {
     return isInputQueueOwner(state, tabIdRef.current);
   }, []);
@@ -259,6 +291,13 @@ export default function useChatController() {
       channel.onmessage = (event) => {
         if (event.data?.type === 'input-queue-change') {
           applyRemoteState(event.data.sessionId, event.data.state);
+          return;
+        }
+
+        if (event.data?.type === 'input-queue-messages-change') {
+          if (event.data.sourceTabId === tabIdRef.current) return;
+          if (event.data.sessionId !== currentSessionIdRef.current) return;
+          setMessages(event.data.messages || []);
         }
       };
     }
@@ -268,7 +307,7 @@ export default function useChatController() {
       broadcastRef.current?.close();
       broadcastRef.current = null;
     };
-  }, [resolveQueueSessionId]);
+  }, [resolveQueueSessionId, setMessages]);
 
   /**
    * The first tab that starts the queue owns real sending. This heartbeat keeps
@@ -327,6 +366,15 @@ export default function useChatController() {
   // Session handler
   const sessionHandler = useChatSessionHandler();
 
+  const updateMessageAndSync = useCallback((message: IAgentScopeRuntimeWebUIMessage) => {
+    messageHandler.updateMessage(message);
+    const sessionId = currentQARef.current.activeSessionId || sessionHandler.getCurrentSessionId();
+    syncMessagesToPeerTabs(
+      sessionId,
+      patchMessageSnapshot(messageHandler.getMessages(), message),
+    );
+  }, [messageHandler, sessionHandler, syncMessagesToPeerTabs]);
+
   /**
    * Finalize the current response and reset UI loading state.
    */
@@ -349,18 +397,23 @@ export default function useChatController() {
     ReactDOM.flushSync(() => {
       messageHandler.updateMessage(currentQARef.current.response);
     });
+    const nextMessages = patchMessageSnapshot(
+      messageHandler.getMessages(),
+      currentQARef.current.response,
+    );
+    syncMessagesToPeerTabs(currentQARef.current.activeSessionId, nextMessages);
 
     sessionHandler.syncSessionMessages(
-      messageHandler.getMessages(),
+      nextMessages,
       currentQARef.current.activeSessionId,
     );
     scheduleDrainQueue();
-  }, [setLoading, messageHandler, sessionHandler, scheduleDrainQueue]);
+  }, [setLoading, messageHandler, sessionHandler, scheduleDrainQueue, syncMessagesToPeerTabs]);
 
   // API request handling
   const { request, reconnect } = useChatRequest({
     currentQARef,
-    updateMessage: messageHandler.updateMessage,
+    updateMessage: updateMessageAndSync,
     getCurrentSessionId: sessionHandler.getCurrentSessionId,
     onFinish: () => finishResponse('finished'),
   });
@@ -401,6 +454,7 @@ export default function useChatController() {
 
     // 3. Create user request message
     messageHandler.createRequestMessage(data);
+    syncMessagesToPeerTabs(submitSessionId, messageHandler.getMessages());
     setLoading(true);
     await sleep(100);
 
@@ -408,7 +462,11 @@ export default function useChatController() {
     if (myRequestId !== currentQARef.current.activeRequestId) return;
 
     // 4. Create assistant response placeholder
-    messageHandler.createResponseMessage();
+    const responseMessage = messageHandler.createResponseMessage();
+    syncMessagesToPeerTabs(
+      submitSessionId,
+      patchMessageSnapshot(messageHandler.getMessages(), responseMessage),
+    );
 
     // 5. Gather history messages and fire the request
     const historyMessages = messageHandler.getHistoryMessages();
@@ -419,7 +477,7 @@ export default function useChatController() {
 
     await request(historyMessages, data.biz_params, myRequestId);
     // mockRequest(mockdata);
-  }, [messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, updateQueueState]);
+  }, [messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
 
   const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
     const ensuredSessionId = await sessionHandler.ensureSession(data.query);

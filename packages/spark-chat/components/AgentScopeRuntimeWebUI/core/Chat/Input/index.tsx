@@ -136,6 +136,7 @@ export default function Input(props: InputProps) {
         maxLength={maxLength}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
+        allowSubmitWhenLoading={!!props.queue}
         allowSpeech={allowSpeech}
         onPasteFile={handlePasteFile}
         suggestions={suggestions}

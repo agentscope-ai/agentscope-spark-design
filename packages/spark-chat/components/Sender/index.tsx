@@ -101,6 +101,12 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
   allowEmptySubmit?: boolean;
 
   /**
+   * @description 是否允许在 loading 中继续触发发送
+   * @descriptionEn Whether to allow submitting while loading
+   */
+  allowSubmitWhenLoading?: boolean;
+
+  /**
    * @description 是否启用用户focus时展开输入框组件
    * @descriptionEn Whether to enable the user focus to expand the input box component
    */
@@ -280,6 +286,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     enableFocusExpand = false,
     sendDisabled = false,
     allowEmptySubmit = false,
+    allowSubmitWhenLoading = false,
     submitType = 'enter',
     onSubmit,
     loading,
@@ -418,7 +425,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   // ============================ Events ============================
   const triggerSend = () => {
-    if (!contextValue.onSendDisabled && onSubmit && !loading) {
+    if (!contextValue.onSendDisabled && onSubmit && (!loading || allowSubmitWhenLoading)) {
       onSubmit(innerValue);
     }
   };
@@ -493,9 +500,12 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     return nodes.filter((node): node is React.ReactNode => node !== undefined && node !== null);
   }, [props.prefix])
 
+  const onSendDisabled = ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
+  const showSendButton = !loading || (allowSubmitWhenLoading && !onSendDisabled);
+
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
-      {loading ? <LoadingButton loading={loading} disabled={!!disabled} /> : <SendButton disabled={!!disabled} />}
+      {showSendButton ? <SendButton disabled={!!disabled} /> : <LoadingButton loading={loading} disabled={!!disabled} />}
     </Flex>
   );
 
@@ -514,7 +524,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const contextValue = {
     prefixCls: actionBtnCls,
     onSend: triggerSend,
-    onSendDisabled: ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled,
+    onSendDisabled,
     onClear: triggerClear,
     onClearDisabled: !innerValue,
     onCancel,
