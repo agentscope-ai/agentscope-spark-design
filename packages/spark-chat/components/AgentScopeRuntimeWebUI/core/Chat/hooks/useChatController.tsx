@@ -391,35 +391,6 @@ export default function useChatController() {
     };
   }, [canExecuteQueue, currentQueueSessionId, updateQueueState]);
 
-  /**
-   * TTL expiry does not trigger a React render by itself. Poll lightly so an
-   * open peer tab can reclaim a queue after the original owner tab disappears.
-   */
-  useEffect(() => {
-    const queueSessionId = currentQueueSessionId;
-    if (!queueSessionId) return;
-
-    const claimAvailableOwner = () => {
-      const snapshot = readQueueState(queueSessionId);
-      if (!shouldClaimInputQueueOwner(snapshot, tabIdRef.current)) return;
-
-      void updateQueueState(queueSessionId, state => {
-        if (!shouldClaimInputQueueOwner(state, tabIdRef.current)) return state;
-        return assignInputQueueOwner(state, tabIdRef.current);
-      });
-
-      if (!snapshot.paused) {
-        scheduleDrainQueue();
-      }
-    };
-
-    claimAvailableOwner();
-    const timer = window.setInterval(claimAvailableOwner, 5000);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [currentQueueSessionId, readQueueState, scheduleDrainQueue, updateQueueState]);
-
   // Release ownership when the tab is actually leaving, not merely hidden.
   useEffect(() => {
     const queueSessionId = currentQueueSessionId;
@@ -486,6 +457,35 @@ export default function useChatController() {
       void drainQueueRef.current?.();
     }, 0);
   }, []);
+
+  /**
+   * TTL expiry does not trigger a React render by itself. Poll lightly so an
+   * open peer tab can reclaim a queue after the original owner tab disappears.
+   */
+  useEffect(() => {
+    const queueSessionId = currentQueueSessionId;
+    if (!queueSessionId) return;
+
+    const claimAvailableOwner = () => {
+      const snapshot = readQueueState(queueSessionId);
+      if (!shouldClaimInputQueueOwner(snapshot, tabIdRef.current)) return;
+
+      void updateQueueState(queueSessionId, state => {
+        if (!shouldClaimInputQueueOwner(state, tabIdRef.current)) return state;
+        return assignInputQueueOwner(state, tabIdRef.current);
+      });
+
+      if (!snapshot.paused) {
+        scheduleDrainQueue();
+      }
+    };
+
+    claimAvailableOwner();
+    const timer = window.setInterval(claimAvailableOwner, 5000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [currentQueueSessionId, readQueueState, scheduleDrainQueue, updateQueueState]);
 
   const finishResponse = useCallback((status: 'finished' | 'interrupted' = 'finished') => {
     if (!currentQARef.current.response) return;
