@@ -9,6 +9,7 @@ import ReactDOM from 'react-dom';
 import { useAsyncEffect } from 'ahooks';
 import { emit } from './useChatAnywhereEventEmitter';
 
+const hasOwn = Object.prototype.hasOwnProperty;
 
 export const ChatAnywhereSessionsContext = createContext<IAgentScopeRuntimeWebUISessionsContext>({
   sessions: [],
@@ -26,12 +27,20 @@ export function ChatAnywhereSessionsContextProvider(props: {
   const [sessions, setSessions, getSessions] = useGetState<IAgentScopeRuntimeWebUISession[]>([]);
   const [currentSessionId, setCurrentSessionId, getCurrentSessionId] = useGetState<string | undefined>(undefined);
   const skipNextSessionLoadIdRef = React.useRef<string | undefined>(undefined);
+  const isCurrentSessionControlled = hasOwn.call(options, 'currentSessionId');
 
   useMount(async () => {
     const sessionList = await options.api.getSessionList();
     setSessions(sessionList);
-    setCurrentSessionId(sessionList?.[0]?.id);
+    // In controlled mode the route owns the active session. This keeps /chat
+    // as an empty new-chat page instead of falling back to the first history item.
+    setCurrentSessionId(isCurrentSessionControlled ? options.currentSessionId : sessionList?.[0]?.id);
   })
+
+  React.useEffect(() => {
+    if (!isCurrentSessionControlled) return;
+    setCurrentSessionId(options.currentSessionId);
+  }, [isCurrentSessionControlled, options.currentSessionId, setCurrentSessionId]);
 
 
   return <ChatAnywhereSessionsContext.Provider value={{

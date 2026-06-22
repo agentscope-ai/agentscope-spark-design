@@ -384,6 +384,11 @@ export interface IAgentScopeRuntimeWebUISessionOptions {
    */
   multiple?: boolean;
   /**
+   * @description 当前会话 ID。传入该字段后，会话状态会跟随外部路由；传 undefined 表示新建会话页。
+   * @descriptionEn Current session id. When provided, the session state follows the external route; undefined means the new-chat page.
+   */
+  currentSessionId?: string;
+  /**
    * @description 隐藏内置的会话列表面板，由外部自行实现
    * @descriptionEn Hide the built-in session list panel, allowing external custom implementation
    */
