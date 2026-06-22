@@ -8,15 +8,23 @@ import {
   dequeueNextQueuedInput,
   enqueueInputQueueState,
   enqueueQueuedInput,
+  getInputQueueStorageKey,
   INPUT_QUEUE_OWNER_TTL,
   isInputQueueOwner,
   isInputQueueStateEmpty,
-  reorderQueuedInput,
   removeQueuedInput,
+  reorderQueuedInput,
   restoreFailedQueuedInput,
   retryQueuedInput,
+  shouldClaimInputQueueOwner,
   updateQueuedInputQuery,
 } from '../index';
+import {
+  getInputQueueRouteQueueSessionId,
+  getInputQueueVisibleChatSessionId,
+  getInputQueueVisibleSessionId,
+  resolveInputQueueSessionId,
+} from '../session';
 
 const input = (query: string) => ({ query });
 
@@ -42,7 +50,10 @@ test('enqueue appends inputs in FIFO order and dequeue consumes the head', () =>
 
   const first = dequeueNextQueuedInput(queue);
   assert.equal(first.item?.data.query, 'first');
-  assert.deepEqual(first.queue.map(item => item.data.query), ['second']);
+  assert.deepEqual(
+    first.queue.map((item) => item.data.query),
+    ['second'],
+  );
 
   const second = dequeueNextQueuedInput(first.queue);
   assert.equal(second.item?.data.query, 'second');
@@ -97,15 +108,22 @@ test('enqueue rejects new input when the queue reaches max size', () => {
   });
 
   assert.equal(result.reason, 'full');
-  assert.deepEqual(result.queue.map(item => item.id), ['q1']);
+  assert.deepEqual(
+    result.queue.map((item) => item.id),
+    ['q1'],
+  );
 });
 
 test('full queue state is not rewritten when enqueue is rejected', () => {
-  const state = enqueueInputQueueState(createEmptyInputQueueState(1), input('first'), {
-    id: 'q1',
-    maxSize: 1,
-    now: 2,
-  }).state;
+  const state = enqueueInputQueueState(
+    createEmptyInputQueueState(1),
+    input('first'),
+    {
+      id: 'q1',
+      maxSize: 1,
+      now: 2,
+    },
+  ).state;
   const result = enqueueInputQueueState(state, input('second'), {
     id: 'q2',
     maxSize: 1,
@@ -159,11 +177,14 @@ test('remove deletes only the selected queued input', () => {
   let queue = enqueueQueuedInput([], input('first'), { id: 'q1' }).queue;
   queue = enqueueQueuedInput(queue, input('second'), { id: 'q2' }).queue;
 
-  assert.deepEqual(removeQueuedInput(queue, 'q1').map(item => item.id), ['q2']);
-  assert.deepEqual(removeQueuedInput(queue, 'missing').map(item => item.id), [
-    'q1',
-    'q2',
-  ]);
+  assert.deepEqual(
+    removeQueuedInput(queue, 'q1').map((item) => item.id),
+    ['q2'],
+  );
+  assert.deepEqual(
+    removeQueuedInput(queue, 'missing').map((item) => item.id),
+    ['q1', 'q2'],
+  );
 });
 
 test('queue state keeps owner and paused metadata separate from items', () => {
@@ -177,15 +198,52 @@ test('queue state keeps owner and paused metadata separate from items', () => {
   assert.equal(queued.ownerTabId, 'tab-a');
   assert.equal(queued.ownerUpdatedAt, 2);
   assert.equal(queued.paused, false);
-  assert.deepEqual(queued.items.map(item => item.id), ['q1']);
+  assert.deepEqual(
+    queued.items.map((item) => item.id),
+    ['q1'],
+  );
 });
 
 test('queue owner is isolated by tab and can be reclaimed when stale', () => {
-  const owned = assignInputQueueOwner(createEmptyInputQueueState(1), 'tab-a', 10);
+  const owned = assignInputQueueOwner(
+    createEmptyInputQueueState(1),
+    'tab-a',
+    10,
+  );
 
   assert.equal(isInputQueueOwner(owned, 'tab-a', 12), true);
   assert.equal(isInputQueueOwner(owned, 'tab-b', 12), false);
-  assert.equal(isInputQueueOwner(owned, 'tab-b', 10 + INPUT_QUEUE_OWNER_TTL + 1), true);
+  assert.equal(
+    isInputQueueOwner(owned, 'tab-b', 10 + INPUT_QUEUE_OWNER_TTL + 1),
+    true,
+  );
+});
+
+test('peer tab claims ownership only when a non-empty queue is ownerless or stale', () => {
+  const ownerless = enqueueInputQueueState(
+    createEmptyInputQueueState(1),
+    input('pending'),
+    { id: 'q1', now: 2 },
+  ).state;
+  assert.equal(shouldClaimInputQueueOwner(ownerless, 'tab-b', 3), true);
+
+  const ownedByA = assignInputQueueOwner(ownerless, 'tab-a', 10, {
+    force: true,
+  });
+  assert.equal(shouldClaimInputQueueOwner(ownedByA, 'tab-a', 11), false);
+  assert.equal(shouldClaimInputQueueOwner(ownedByA, 'tab-b', 11), false);
+  assert.equal(
+    shouldClaimInputQueueOwner(
+      ownedByA,
+      'tab-b',
+      10 + INPUT_QUEUE_OWNER_TTL + 1,
+    ),
+    true,
+  );
+  assert.equal(
+    shouldClaimInputQueueOwner(createEmptyInputQueueState(20), 'tab-b', 21),
+    false,
+  );
 });
 
 test('drag reorder moves a queued input before the drop target', () => {
@@ -193,11 +251,10 @@ test('drag reorder moves a queued input before the drop target', () => {
   queue = enqueueQueuedInput(queue, input('second'), { id: 'q2' }).queue;
   queue = enqueueQueuedInput(queue, input('third'), { id: 'q3' }).queue;
 
-  assert.deepEqual(reorderQueuedInput(queue, 'q3', 'q1').map(item => item.id), [
-    'q3',
-    'q1',
-    'q2',
-  ]);
+  assert.deepEqual(
+    reorderQueuedInput(queue, 'q3', 'q1').map((item) => item.id),
+    ['q3', 'q1', 'q2'],
+  );
   assert.equal(reorderQueuedInput(queue, 'missing', 'q1'), queue);
   assert.equal(reorderQueuedInput(queue, 'q2', 'q2'), queue);
 });
@@ -219,9 +276,13 @@ test('queued input query can be edited before sending', () => {
 test('empty queue state is removable from storage', () => {
   assert.equal(isInputQueueStateEmpty(createEmptyInputQueueState()), true);
 
-  const queued = enqueueInputQueueState(createEmptyInputQueueState(), input('first'), {
-    id: 'q1',
-  }).state;
+  const queued = enqueueInputQueueState(
+    createEmptyInputQueueState(),
+    input('first'),
+    {
+      id: 'q1',
+    },
+  ).state;
   assert.equal(isInputQueueStateEmpty(queued), false);
 });
 
@@ -232,4 +293,177 @@ test('send-now command carries selected task and source tab', () => {
   assert.equal(command.itemId, 'q1');
   assert.equal(command.sourceTabId, 'tab-a');
   assert.equal(command.createdAt, 100);
+});
+
+test('queue session resolver requires an enabled queue and a resolvable session id', () => {
+  assert.equal(
+    resolveInputQueueSessionId('session-a', { queueEnabled: false }),
+    undefined,
+  );
+  assert.equal(
+    resolveInputQueueSessionId(undefined, { queueEnabled: true }),
+    undefined,
+  );
+  assert.equal(
+    resolveInputQueueSessionId('session-a', {
+      queueEnabled: true,
+      getSessionId: () => undefined,
+    }),
+    'session-a',
+  );
+  assert.equal(
+    resolveInputQueueSessionId('session-a', {
+      queueEnabled: true,
+      getSessionId: () => '',
+    }),
+    undefined,
+  );
+  assert.equal(
+    resolveInputQueueSessionId('session-a', {
+      queueEnabled: true,
+      getSessionId: (sessionId) => `queue-${sessionId}`,
+    }),
+    'queue-session-a',
+  );
+});
+
+test('initial conversation uses pending route session for queue before external route catches up', () => {
+  const snapshot = {
+    currentSessionId: undefined,
+    pendingRouteSessionId: 'temp-session',
+    activeSessionId: undefined,
+  };
+
+  assert.equal(getInputQueueVisibleChatSessionId(snapshot), 'temp-session');
+  assert.equal(
+    getInputQueueRouteQueueSessionId(snapshot, { queueEnabled: true }),
+    'temp-session',
+  );
+});
+
+test('queue does not start when no current, pending or active session id exists', () => {
+  const snapshot = {
+    currentSessionId: undefined,
+    pendingRouteSessionId: undefined,
+    activeSessionId: undefined,
+  };
+
+  assert.equal(getInputQueueVisibleChatSessionId(snapshot), undefined);
+  assert.equal(
+    getInputQueueVisibleSessionId(snapshot, { queueEnabled: true }),
+    undefined,
+  );
+});
+
+test('active session can back the queue while route-backed queue is still absent', () => {
+  const snapshot = {
+    currentSessionId: undefined,
+    pendingRouteSessionId: undefined,
+    activeSessionId: 'active-session',
+  };
+
+  assert.equal(getInputQueueVisibleChatSessionId(snapshot), 'active-session');
+  assert.equal(
+    getInputQueueVisibleSessionId(snapshot, { queueEnabled: true }),
+    'active-session',
+  );
+  assert.equal(
+    getInputQueueRouteQueueSessionId(snapshot, { queueEnabled: true }),
+    undefined,
+  );
+});
+
+test('current session takes precedence over pending route and active request ids', () => {
+  const snapshot = {
+    currentSessionId: 'current-session',
+    pendingRouteSessionId: 'pending-session',
+    activeSessionId: 'active-session',
+  };
+
+  assert.equal(getInputQueueVisibleChatSessionId(snapshot), 'current-session');
+  assert.equal(
+    getInputQueueVisibleSessionId(snapshot, { queueEnabled: true }),
+    'current-session',
+  );
+});
+
+test('custom queue session resolver can keep CoPaw temp id and real id on one stable key', () => {
+  const backendSessionById = new Map([
+    ['temp-1700000000000', 'temp-1700000000000'],
+    ['real-chat-uuid', 'temp-1700000000000'],
+  ]);
+  const getStableBackendSessionId = (sessionId?: string) =>
+    backendSessionById.get(sessionId || '') || sessionId;
+
+  assert.equal(
+    resolveInputQueueSessionId('temp-1700000000000', {
+      queueEnabled: true,
+      getSessionId: getStableBackendSessionId,
+    }),
+    'temp-1700000000000',
+  );
+  assert.equal(
+    resolveInputQueueSessionId('real-chat-uuid', {
+      queueEnabled: true,
+      getSessionId: getStableBackendSessionId,
+    }),
+    'temp-1700000000000',
+  );
+});
+
+test('switching sessions keeps each session queue isolated by storage key', () => {
+  const storage = new Map<
+    string,
+    ReturnType<typeof createEmptyInputQueueState>
+  >();
+  const write = (
+    sessionId: string,
+    state: ReturnType<typeof createEmptyInputQueueState>,
+  ) => {
+    storage.set(getInputQueueStorageKey(sessionId), state);
+  };
+  const read = (sessionId: string) =>
+    storage.get(getInputQueueStorageKey(sessionId)) ||
+    createEmptyInputQueueState();
+
+  const sessionA = enqueueInputQueueState(
+    createEmptyInputQueueState(1),
+    input('a-1'),
+    { id: 'qa-1', now: 2 },
+  ).state;
+  write('session-a', sessionA);
+
+  const sessionB = enqueueInputQueueState(
+    createEmptyInputQueueState(3),
+    input('b-1'),
+    { id: 'qb-1', now: 4 },
+  ).state;
+  write('session-b', sessionB);
+
+  assert.deepEqual(
+    read('session-a').items.map((item) => item.data.query),
+    ['a-1'],
+  );
+  assert.deepEqual(
+    read('session-b').items.map((item) => item.data.query),
+    ['b-1'],
+  );
+  assert.notEqual(
+    getInputQueueStorageKey('session-a'),
+    getInputQueueStorageKey('session-b'),
+  );
+});
+
+test('two tabs opened on the same session share a queue key but keep one send owner', () => {
+  const sessionKeyFromTabA = getInputQueueStorageKey('shared-session');
+  const sessionKeyFromTabB = getInputQueueStorageKey('shared-session');
+  const ownedByA = assignInputQueueOwner(
+    createEmptyInputQueueState(1),
+    'tab-a',
+    10,
+  );
+
+  assert.equal(sessionKeyFromTabA, sessionKeyFromTabB);
+  assert.equal(isInputQueueOwner(ownedByA, 'tab-a', 11), true);
+  assert.equal(isInputQueueOwner(ownedByA, 'tab-b', 11), false);
 });

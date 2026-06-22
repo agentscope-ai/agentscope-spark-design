@@ -24,10 +24,17 @@ import {
   removeQueuedInput,
   restoreFailedQueuedInput,
   retryQueuedInput,
+  shouldClaimInputQueueOwner,
   updateQueuedInputQuery,
   type InputQueueState,
   type QueueEnqueueResult,
 } from "../InputQueue";
+import {
+  getInputQueueRouteQueueSessionId,
+  getInputQueueVisibleChatSessionId,
+  getInputQueueVisibleSessionId,
+  resolveInputQueueSessionId,
+} from "../InputQueue/session";
 import useChatMessageHandler from "./useChatMessageHandler";
 import useChatRequest from "./useChatRequest";
 import useChatSessionHandler from "./useChatSessionHandler";
@@ -157,29 +164,40 @@ export default function useChatController() {
   }, []);
 
   const resolveQueueSessionId = useCallback((sessionId?: string) => {
-    if (!queueEnabled) return undefined;
-    const resolved = getQueueSessionId?.(sessionId) ?? sessionId;
-    if (!resolved) return undefined;
-    return resolved;
+    return resolveInputQueueSessionId(sessionId, {
+      queueEnabled,
+      getSessionId: getQueueSessionId,
+    });
   }, [getQueueSessionId, queueEnabled]);
 
   // The route prop may lag behind createSession in controlled mode; keep the
   // queue bound to the confirmed session id during that small handoff window.
-  const currentQueueSessionId = resolveQueueSessionId(
-    currentSessionId || pendingRouteSessionIdRef?.current,
-  );
+  const currentQueueSessionId = getInputQueueRouteQueueSessionId({
+    currentSessionId,
+    pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+  }, {
+    queueEnabled,
+    getSessionId: getQueueSessionId,
+  });
 
   const getVisibleChatSessionId = useCallback(() => {
-    return (
-      currentSessionIdRef.current ||
-      pendingRouteSessionIdRef?.current ||
-      currentQARef.current.activeSessionId
-    );
+    return getInputQueueVisibleChatSessionId({
+      currentSessionId: currentSessionIdRef.current,
+      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+      activeSessionId: currentQARef.current.activeSessionId,
+    });
   }, [pendingRouteSessionIdRef]);
 
   const getVisibleQueueSessionId = useCallback(() => {
-    return resolveQueueSessionId(getVisibleChatSessionId());
-  }, [getVisibleChatSessionId, resolveQueueSessionId]);
+    return getInputQueueVisibleSessionId({
+      currentSessionId: currentSessionIdRef.current,
+      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+      activeSessionId: currentQARef.current.activeSessionId,
+    }, {
+      queueEnabled,
+      getSessionId: getQueueSessionId,
+    });
+  }, [getQueueSessionId, pendingRouteSessionIdRef, queueEnabled]);
 
   useEffect(() => {
     queueDrainBlockedSessionRef.current = currentQueueSessionId;
@@ -373,6 +391,35 @@ export default function useChatController() {
     };
   }, [canExecuteQueue, currentQueueSessionId, updateQueueState]);
 
+  /**
+   * TTL expiry does not trigger a React render by itself. Poll lightly so an
+   * open peer tab can reclaim a queue after the original owner tab disappears.
+   */
+  useEffect(() => {
+    const queueSessionId = currentQueueSessionId;
+    if (!queueSessionId) return;
+
+    const claimAvailableOwner = () => {
+      const snapshot = readQueueState(queueSessionId);
+      if (!shouldClaimInputQueueOwner(snapshot, tabIdRef.current)) return;
+
+      void updateQueueState(queueSessionId, state => {
+        if (!shouldClaimInputQueueOwner(state, tabIdRef.current)) return state;
+        return assignInputQueueOwner(state, tabIdRef.current);
+      });
+
+      if (!snapshot.paused) {
+        scheduleDrainQueue();
+      }
+    };
+
+    claimAvailableOwner();
+    const timer = window.setInterval(claimAvailableOwner, 5000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [currentQueueSessionId, readQueueState, scheduleDrainQueue, updateQueueState]);
+
   // Release ownership when the tab is actually leaving, not merely hidden.
   useEffect(() => {
     const queueSessionId = currentQueueSessionId;
@@ -406,9 +453,11 @@ export default function useChatController() {
   const sessionHandler = useChatSessionHandler();
 
   const getActiveChatSessionId = useCallback(() => {
-    return sessionHandler.getCurrentSessionId() ||
-      pendingRouteSessionIdRef?.current ||
-      currentQARef.current.activeSessionId;
+    return getInputQueueVisibleChatSessionId({
+      currentSessionId: sessionHandler.getCurrentSessionId(),
+      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+      activeSessionId: currentQARef.current.activeSessionId,
+    });
   }, [pendingRouteSessionIdRef, sessionHandler]);
 
   const getActiveQueueSessionId = useCallback(() => {

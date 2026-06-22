@@ -286,6 +286,18 @@ export function assignInputQueueOwner(
   };
 }
 
+export function shouldClaimInputQueueOwner(
+  state: InputQueueState,
+  tabId: string,
+  now = Date.now(),
+) {
+  return (
+    !isInputQueueStateEmpty(state) &&
+    state.ownerTabId !== tabId &&
+    isInputQueueOwner(state, tabId, now)
+  );
+}
+
 export function restoreFailedQueuedInput(
   queue: QueuedInputItem[],
   item: QueuedInputItem,
