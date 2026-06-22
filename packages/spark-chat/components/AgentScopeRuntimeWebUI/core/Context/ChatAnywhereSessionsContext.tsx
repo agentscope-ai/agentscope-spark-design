@@ -2,7 +2,7 @@ import { createContext, useContextSelector } from 'use-context-selector';
 import { IAgentScopeRuntimeWebUISessionsContext } from '../types/ISessions';
 import { useGetState, useMount } from 'ahooks';
 import { IAgentScopeRuntimeWebUISession } from '../types/ISessions';
-import React, { useEffect } from "react";
+import React from "react";
 import { ChatAnywhereMessagesContext } from './ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from './ChatAnywhereOptionsContext';
 import ReactDOM from 'react-dom';
@@ -25,6 +25,7 @@ export function ChatAnywhereSessionsContextProvider(props: {
   const options = useChatAnywhereOptions(v => v.session);
   const [sessions, setSessions, getSessions] = useGetState<IAgentScopeRuntimeWebUISession[]>([]);
   const [currentSessionId, setCurrentSessionId, getCurrentSessionId] = useGetState<string | undefined>(undefined);
+  const skipNextSessionLoadIdRef = React.useRef<string | undefined>(undefined);
 
   useMount(async () => {
     const sessionList = await options.api.getSessionList();
@@ -39,7 +40,8 @@ export function ChatAnywhereSessionsContextProvider(props: {
     getSessions,
     currentSessionId,
     setCurrentSessionId,
-    getCurrentSessionId
+    getCurrentSessionId,
+    skipNextSessionLoadIdRef,
   }}>
     {props.children}
   </ChatAnywhereSessionsContext.Provider>;
@@ -50,10 +52,16 @@ export function ChatAnywhereSessionsContextProvider(props: {
  */
 export const useChatAnywhereSessionLoader = () => {
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
+  const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
   const options = useChatAnywhereOptions(v => v.session);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
 
   useAsyncEffect(async () => {
+    if (skipNextSessionLoadIdRef?.current === currentSessionId) {
+      skipNextSessionLoadIdRef.current = undefined;
+      return;
+    }
+
     ReactDOM.flushSync(() => {
       setMessages([])
     })
@@ -86,8 +94,8 @@ export const useChatAnywhereSessions = () => {
     getSessions,
     getCurrentSessionId,
     setCurrentSessionId,
-    currentSessionId,
   } = useContextSelector(ChatAnywhereSessionsContext, v => v);
+  const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
   const options = useChatAnywhereOptions(v => v.session);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
 
@@ -110,14 +118,24 @@ export const useChatAnywhereSessions = () => {
   }, [])
 
   const createSession = React.useCallback(async (data?: { name?: string }) => {
-    const session = await updateSession({
+    const prevIds = new Set(getSessions().map(session => session.id));
+    const nextSessions = await options.api.createSession({
       name: data?.name || '',
       messages: [],
     });
-    setCurrentSessionId(session.id);
-    setMessages(session.messages);
-    return session.id;
-  }, []);
+    const session = nextSessions.find(item => !prevIds.has(item.id)) || nextSessions[0];
+    setSessions(nextSessions);
+
+    if (session?.id) {
+      if (skipNextSessionLoadIdRef) {
+        skipNextSessionLoadIdRef.current = session.id;
+      }
+      setCurrentSessionId(session.id);
+      setMessages(session.messages || []);
+    }
+
+    return session?.id;
+  }, [getSessions, options.api, setCurrentSessionId, setMessages, setSessions, skipNextSessionLoadIdRef]);
 
 
   const changeCurrentSessionId = React.useCallback((sessionId: string) => {

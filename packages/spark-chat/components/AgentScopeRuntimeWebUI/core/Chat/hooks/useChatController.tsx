@@ -350,7 +350,10 @@ export default function useChatController() {
       messageHandler.updateMessage(currentQARef.current.response);
     });
 
-    sessionHandler.syncSessionMessages(messageHandler.getMessages());
+    sessionHandler.syncSessionMessages(
+      messageHandler.getMessages(),
+      currentQARef.current.activeSessionId,
+    );
     scheduleDrainQueue();
   }, [setLoading, messageHandler, sessionHandler, scheduleDrainQueue]);
 
@@ -378,8 +381,7 @@ export default function useChatController() {
     //    out and the request is silently dropped. Establishing the session
     //    first guarantees the effect (if any) has flushed before we snapshot
     //    myRequestId.
-    await sessionHandler.ensureSession(data.query);
-    const submitSessionId = sessionHandler.getCurrentSessionId();
+    const submitSessionId = await sessionHandler.ensureSession(data.query);
     const queueSessionId = resolveQueueSessionId(submitSessionId);
     if (queueSessionId) {
       await updateQueueState(queueSessionId, state =>
@@ -393,8 +395,8 @@ export default function useChatController() {
 
     // 2. Update session name (only for the first message)
     const messages = messageHandler.getMessages();
-    if (sessionHandler.getCurrentSessionId()) {
-      await sessionHandler.updateSessionName(data.query, messages);
+    if (submitSessionId) {
+      await sessionHandler.updateSessionName(data.query, messages, submitSessionId);
     }
 
     // 3. Create user request message
@@ -410,16 +412,19 @@ export default function useChatController() {
 
     // 5. Gather history messages and fire the request
     const historyMessages = messageHandler.getHistoryMessages();
-    await sessionHandler.syncSessionMessages(messageHandler.getMessages());
+    await sessionHandler.syncSessionMessages(
+      messageHandler.getMessages(),
+      submitSessionId,
+    );
 
     await request(historyMessages, data.biz_params, myRequestId);
     // mockRequest(mockdata);
   }, [messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, updateQueueState]);
 
   const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
-    await sessionHandler.ensureSession(data.query);
+    const ensuredSessionId = await sessionHandler.ensureSession(data.query);
     const sessionId = resolveQueueSessionId(
-      sessionHandler.getCurrentSessionId() || currentSessionIdRef.current,
+      ensuredSessionId || currentSessionIdRef.current,
     );
     if (!sessionId) return { ok: false, reason: 'session-not-ready' };
 
