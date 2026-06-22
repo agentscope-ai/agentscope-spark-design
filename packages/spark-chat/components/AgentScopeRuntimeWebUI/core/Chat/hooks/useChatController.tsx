@@ -75,6 +75,10 @@ function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
   }
 }
 
+function isQueueSessionSwitchedError(error: unknown) {
+  return error instanceof Error && error.message === 'input queue session switched';
+}
+
 /**
  * Chat controller hook — coordinates all chat-related operations.
  */
@@ -457,7 +461,18 @@ export default function useChatController() {
   /**
    * Handle user message submission.
    */
-  const submitNow = useCallback<InputProps['onSubmit']>(async (data) => {
+  const submitNow = useCallback(async (
+    data: Parameters<InputProps['onSubmit']>[0],
+    options?: { sessionId?: string },
+  ) => {
+    // Queue sends are session-bound. If the user has already switched away,
+    // do not abort or render into the newly visible conversation.
+    const visibleSessionId =
+      currentSessionIdRef.current || currentQARef.current.activeSessionId || transientSessionId;
+    if (options?.sessionId && visibleSessionId !== options.sessionId) {
+      throw new Error('input queue session switched');
+    }
+
     // 0. Abort any previous in-flight SSE. We do NOT call the cancel API here
     //    — the user is sending a new message, not explicitly cancelling.
     //    Cancel is only invoked from handleCancel.
@@ -470,13 +485,23 @@ export default function useChatController() {
     //    out and the request is silently dropped. Establishing the session
     //    first guarantees the effect (if any) has flushed before we snapshot
     //    myRequestId.
-    const submitSessionId = await sessionHandler.ensureSession(data.query);
+    const submitSessionId = options?.sessionId || await sessionHandler.ensureSession(data.query);
     currentQARef.current.activeSessionId = submitSessionId;
     // When a brand-new chat has created its session but the route is still
     // /chat, keep a temporary local session id so follow-up inputs can queue.
     if (!currentSessionIdRef.current && submitSessionId) {
       setTransientSessionId(submitSessionId);
     }
+
+    // A queued task belongs to the session it was dequeued from. If the user
+    // switches conversations before the task starts rendering, restore it
+    // instead of writing the request into the newly visible conversation.
+    const nextVisibleSessionId =
+      currentSessionIdRef.current || currentQARef.current.activeSessionId || transientSessionId;
+    if (options?.sessionId && nextVisibleSessionId !== submitSessionId) {
+      throw new Error('input queue session switched');
+    }
+
     const queueSessionId = resolveQueueSessionId(submitSessionId);
     if (queueSessionId) {
       await updateQueueState(queueSessionId, state =>
@@ -519,7 +544,7 @@ export default function useChatController() {
 
     await request(historyMessages, data.biz_params, myRequestId);
     // mockRequest(mockdata);
-  }, [messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
+  }, [messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, transientSessionId, updateQueueState]);
 
   const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
     const ensuredSessionId = getActiveChatSessionId() || await sessionHandler.ensureSession(data.query);
@@ -581,12 +606,17 @@ export default function useChatController() {
 
       drainingRef.current = true;
       try {
-        await submitNow(nextItem.data);
+        await submitNow(nextItem.data, { sessionId });
       } catch (error) {
-        setLoading(false);
+        const sessionSwitched = isQueueSessionSwitchedError(error);
+        if (!sessionSwitched) {
+          setLoading(false);
+        }
         await updateQueueState(sessionId, current => ({
           ...current,
-          items: restoreFailedQueuedInput(current.items, nextItem, error),
+          items: sessionSwitched
+            ? [nextItem, ...current.items]
+            : restoreFailedQueuedInput(current.items, nextItem, error),
           updatedAt: Date.now(),
         }));
       } finally {
@@ -730,7 +760,18 @@ export default function useChatController() {
 
       drainingRef.current = true;
       handleCancel();
-      await Promise.resolve(submitNow(target.data)).finally(() => {
+      await Promise.resolve(submitNow(target.data, { sessionId })).catch(error => {
+        if (isQueueSessionSwitchedError(error)) {
+          return updateQueueState(sessionId, current => ({
+            ...current,
+            items: current.items.some(item => item.id === target.id)
+              ? current.items
+              : [target, ...current.items],
+            updatedAt: Date.now(),
+          }));
+        }
+        throw error;
+      }).finally(() => {
         drainingRef.current = false;
       });
     });
