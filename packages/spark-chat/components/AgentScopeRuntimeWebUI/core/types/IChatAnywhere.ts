@@ -250,7 +250,7 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @description 提交前的钩子函数
    * @descriptionEn Hook function before submit
    */
-  beforeSubmit?: () => Promise<Boolean>;
+  beforeSubmit?: () => Promise<boolean>;
   /**
    * @description 提交回调函数
    * @descriptionEn Submit callback function
@@ -271,6 +271,11 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @descriptionEn Attachments configuration
    */
   attachments?: IAgentScopeRuntimeWebUISenderAttachmentsOptions;
+  /**
+   * @description 输入队列配置。传 false 可关闭队列，传 true 使用默认配置。
+   * @descriptionEn Input queue configuration. Pass false to disable, true to use defaults.
+   */
+  queue?: boolean | IAgentScopeRuntimeWebUIQueueOptions;
   /**
    * @description 输入框前缀 UI，显示在输入框底部操作栏
    * @descriptionEn Prefix UI displayed in the bottom action bar of the input
@@ -305,6 +310,29 @@ export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
   trigger?: React.FC<{
     disabled?: boolean;
   }>;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueOptions {
+  /**
+   * @description 是否启用输入队列。传 false 可关闭队列。
+   * @descriptionEn Whether to enable the input queue. Pass false to disable it.
+   */
+  enable?: boolean;
+  /**
+   * @description 队列最大条目数
+   * @descriptionEn Maximum number of queued inputs
+   */
+  maxSize?: number;
+  /**
+   * @description 获取队列使用的会话 id
+   * @descriptionEn Resolve the session id used by the input queue
+   */
+  getSessionId?: (sessionId?: string) => string | undefined;
+  /**
+   * @description 队列满时的回调
+   * @descriptionEn Called when the queue reaches maxSize
+   */
+  onFull?: (maxSize: number) => void;
 }
 
 /**
@@ -609,10 +637,35 @@ export interface IAgentScopeRuntimeWebUIInputData {
    */
   query: string;
   /**
+   * @description 队列文本字段，兼容后续完整消息体扩展
+   * @descriptionEn Queue text field for future full-message-body extensions
+   */
+  text?: string;
+  /**
    * @description 文件列表
    * @descriptionEn File list
    */
   fileList?: (UploadProps['fileList'][number] & { file_id?: string })[];
+  /**
+   * @description 队列附件引用
+   * @descriptionEn Queued attachment references
+   */
+  attachments?: (UploadProps['fileList'][number] & { file_id?: string })[];
+  /**
+   * @description 图片引用
+   * @descriptionEn Image references
+   */
+  images?: { url: string; thumbUrl?: string; name?: string }[];
+  /**
+   * @description 提及信息
+   * @descriptionEn Mention data
+   */
+  mentions?: { id: string; name: string }[];
+  /**
+   * @description 引用消息
+   * @descriptionEn Quoted message
+   */
+  quote?: { messageId: string; text: string };
   /**
    * @description 业务参数
    * @descriptionEn Business parameters

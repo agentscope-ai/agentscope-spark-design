@@ -1,22 +1,20 @@
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { useProviderContext, ChatInput, Disclaimer } from '@agentscope-ai/chat';
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import { useGetState } from 'ahooks';
 import { useChatAnywhereInput } from "../../Context/ChatAnywhereInputContext";
 import useAttachments from "./useAttachments";
 import { IAgentScopeRuntimeWebUIInputData } from "@agentscope-ai/chat";
-import InputQueuePanel from "../InputQueue/Panel";
-import type { QueuedInputItem } from "../InputQueue";
+import type { QueueEnqueueResult, QueuedInputItem } from "../InputQueue";
 
 export interface InputProps {
   onCancel: () => void;
   onSubmit: (data: IAgentScopeRuntimeWebUIInputData) => void;
   queue?: {
     items: QueuedInputItem[];
-    onEnqueue: (data: IAgentScopeRuntimeWebUIInputData) => void;
-    onRemove: (id: string) => void;
-    onClear: () => void;
-    onRetry: (id: string) => void;
+    isOwner: boolean;
+    panel?: ReactNode;
+    onEnqueue: (data: IAgentScopeRuntimeWebUIInputData) => QueueEnqueueResult | Promise<QueueEnqueueResult>;
   };
 }
 
@@ -47,48 +45,83 @@ export default function Input(props: InputProps) {
     uploadFileListHeader
   } = useAttachments(attachments, { disabled: !!inputContext.disabled });
 
+  const getSubmittableData = useCallback(() => {
+    const fileList = (getFileList?.() || []).filter(i => i.response?.url);
+    const query = getContent();
+    if (!query.trim() && fileList.length === 0) return;
+
+    return {
+      query,
+      text: query,
+      fileList,
+      attachments: fileList,
+    };
+  }, [getContent, getFileList]);
+
+  const clearInput = useCallback(() => {
+    setContent('');
+    setFileList?.([]);
+  }, [setContent, setFileList]);
+
+  const handleEnqueue = useCallback(async () => {
+    const next = await beforeSubmit();
+    if (!next) return;
+
+    const data = getSubmittableData();
+    if (!data) return;
+    if (!props.queue) return;
+
+    const result = await props.queue.onEnqueue(data);
+    if (result.ok) {
+      clearInput();
+    }
+  }, [beforeSubmit, clearInput, getSubmittableData, props.queue]);
 
   const handleSubmit = useCallback(async () => {
     const next = await beforeSubmit();
     if (!next) return;
 
-    const fileList = (getFileList?.() || []).filter(i => i.response?.url);
-    const data = { query: getContent(), fileList };
-    if (inputContext.loading || props.queue?.items.length) {
-      props.queue?.onEnqueue(data);
+    const data = getSubmittableData();
+    if (!data) return;
+
+    if (props.queue && (
+      inputContext.loading ||
+      props.queue.items.length ||
+      props.queue.isOwner === false
+    )) {
+      const result = await props.queue.onEnqueue(data);
+      if (result.ok) {
+        clearInput();
+      }
     } else {
       props.onSubmit(data);
+      clearInput();
     }
-    setContent('');
-    setFileList?.([]);
-  }, [beforeSubmit, getContent, getFileList, inputContext.loading, props.onSubmit, props.queue, setContent, setFileList]);
+  }, [beforeSubmit, clearInput, getSubmittableData, inputContext.loading, props.onSubmit, props.queue]);
 
   const handleKeyDownCapture = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Enter' || event.shiftKey) return;
     if (event.nativeEvent?.isComposing) return;
-    if (!inputContext.loading && !props.queue?.items.length) return;
+    if (!props.queue) return;
+    const forceEnqueue = event.ctrlKey || event.metaKey;
+    if (!forceEnqueue && !inputContext.loading && !props.queue?.items.length) return;
 
-    const fileList = (getFileList?.() || []).filter(i => i.response?.url);
-    if (!getContent().trim() && fileList.length === 0) return;
+    const data = getSubmittableData();
+    if (!data) return;
 
     event.preventDefault();
     event.stopPropagation();
-    void handleSubmit();
-  }, [getContent, getFileList, handleSubmit, inputContext.loading, props.queue?.items.length]);
+    void (forceEnqueue ? handleEnqueue() : handleSubmit());
+  }, [getSubmittableData, handleEnqueue, handleSubmit, inputContext.loading, props.queue, props.queue?.items.length]);
 
   const handleCancel = useCallback(() => {
     props.onCancel();
-  }, []);
+  }, [props.onCancel]);
 
   return <div className={prefixCls} onKeyDownCapture={handleKeyDownCapture}>
     <div className={`${prefixCls}-wrapper`}>
       {beforeUI}
-      {props.queue?.items.length ? <InputQueuePanel
-        items={props.queue.items}
-        onRemove={props.queue.onRemove}
-        onClear={props.queue.onClear}
-        onRetry={props.queue.onRetry}
-      /> : null}
+      {props.queue?.panel}
       <ChatInput
         loading={inputContext.loading}
         disabled={inputContext.disabled}

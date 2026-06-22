@@ -1,5 +1,6 @@
 import { useProviderContext } from "@agentscope-ai/chat";
 import Input from "./Input";
+import InputQueuePanel from "./InputQueue/Panel";
 import MessageList from "./MessageList";
 import Style from './styles';
 import useChatController from "./hooks/useChatController";
@@ -10,13 +11,34 @@ export default function Chat() {
   const {
     handleSubmit,
     handleCancel,
+    inputQueueEnabled,
     inputQueue,
+    inputQueuePaused,
+    inputQueueIsOwner,
     enqueueQueuedInput,
     removeQueuedInput,
     clearQueuedInputs,
     retryQueuedInput,
+    toggleQueuePaused,
+    reorderQueuedInput,
+    updateQueuedInputQuery,
+    sendQueuedInputNow,
   } = useChatController();
   useChatAnywhereSessionLoader();
+  const inputQueuePanel = inputQueue.length ? (
+    <InputQueuePanel
+      items={inputQueue}
+      paused={inputQueuePaused}
+      isOwner={inputQueueIsOwner}
+      onRemove={removeQueuedInput}
+      onClear={clearQueuedInputs}
+      onRetry={retryQueuedInput}
+      onTogglePaused={toggleQueuePaused}
+      onReorder={reorderQueuedInput}
+      onUpdateQuery={updateQueuedInputQuery}
+      onSendNow={sendQueuedInputNow}
+    />
+  ) : null;
 
   return <>
     <Style />
@@ -25,13 +47,12 @@ export default function Chat() {
       <Input
         onCancel={handleCancel}
         onSubmit={handleSubmit}
-        queue={{
+        queue={inputQueueEnabled ? {
           items: inputQueue,
+          isOwner: inputQueueIsOwner,
+          panel: inputQueuePanel,
           onEnqueue: enqueueQueuedInput,
-          onRemove: removeQueuedInput,
-          onClear: clearQueuedInputs,
-          onRetry: retryQueuedInput,
-        }}
+        } : undefined}
       />
     </div>
   </>;

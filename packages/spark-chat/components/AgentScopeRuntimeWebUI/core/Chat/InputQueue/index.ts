@@ -2,6 +2,8 @@ import type { IAgentScopeRuntimeWebUIInputData } from '../../types';
 
 export type QueuedInputStatus = 'pending' | 'failed';
 
+export type InputQueueCommandType = 'send-now';
+
 export interface QueuedInputItem {
   id: string;
   data: IAgentScopeRuntimeWebUIInputData;
@@ -11,15 +13,77 @@ export interface QueuedInputItem {
   createdAt: number;
 }
 
+export interface InputQueueCommand {
+  id: string;
+  type: InputQueueCommandType;
+  itemId: string;
+  createdAt: number;
+  sourceTabId: string;
+}
+
+export interface InputQueueState {
+  items: QueuedInputItem[];
+  paused: boolean;
+  ownerTabId?: string;
+  ownerUpdatedAt?: number;
+  command?: InputQueueCommand;
+  updatedAt: number;
+}
+
 export interface EnqueueQueuedInputResult {
   queue: QueuedInputItem[];
   item?: QueuedInputItem;
   reason?: 'full';
 }
 
+export interface QueueEnqueueResult {
+  ok: boolean;
+  item?: QueuedInputItem;
+  reason?: 'full' | 'session-not-ready';
+}
+
 export const MAX_INPUT_QUEUE_SIZE = 50;
+export const INPUT_QUEUE_OWNER_TTL = 60_000;
+export const INPUT_QUEUE_STORAGE_PREFIX = 'agentscope-runtime-webui-input-queue';
 
 let queueId = 0;
+let commandId = 0;
+
+export function createEmptyInputQueueState(now = Date.now()): InputQueueState {
+  return {
+    items: [],
+    paused: false,
+    updatedAt: now,
+  };
+}
+
+export function normalizeInputQueueState(
+  state?: Partial<InputQueueState> | null,
+  now = Date.now(),
+): InputQueueState {
+  return {
+    items: Array.isArray(state?.items) ? state.items : [],
+    paused: !!state?.paused,
+    ownerTabId: state?.ownerTabId,
+    ownerUpdatedAt: state?.ownerUpdatedAt,
+    command: state?.command,
+    updatedAt: state?.updatedAt ?? now,
+  };
+}
+
+export function getInputQueueStorageKey(sessionId: string) {
+  return `${INPUT_QUEUE_STORAGE_PREFIX}:${sessionId}`;
+}
+
+export function createInputQueueTabId(now = Date.now()) {
+  return `input-queue-tab-${now.toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+// Generate one executor id per page runtime; do not persist it because duplicated
+// tabs can clone sessionStorage and accidentally share the same owner id.
+export function getInputQueueTabId() {
+  return createInputQueueTabId();
+}
 
 export function createQueuedInputItem(
   data: IAgentScopeRuntimeWebUIInputData,
@@ -28,11 +92,17 @@ export function createQueuedInputItem(
     now?: number;
   },
 ): QueuedInputItem {
+  const nextData = {
+    ...data,
+    text: data.text ?? data.query,
+    attachments: data.attachments ?? data.fileList,
+  };
+
   return {
     id:
       options?.id ||
       `input-queue-${Date.now().toString(36)}-${(++queueId).toString(36)}`,
-    data,
+    data: nextData,
     status: 'pending',
     retryCount: 0,
     createdAt: options?.now ?? Date.now(),
@@ -57,6 +127,37 @@ export function enqueueQueuedInput(
   return {
     queue: [...queue, item],
     item,
+  };
+}
+
+export function enqueueInputQueueState(
+  state: InputQueueState,
+  data: IAgentScopeRuntimeWebUIInputData,
+  options?: {
+    maxSize?: number;
+    id?: string;
+    now?: number;
+    ownerTabId?: string;
+  },
+): EnqueueQueuedInputResult & { state: InputQueueState } {
+  const result = enqueueQueuedInput(state.items, data, options);
+  const now = options?.now ?? Date.now();
+  if (result.reason === 'full') {
+    return {
+      ...result,
+      state,
+    };
+  }
+
+  return {
+    ...result,
+    state: {
+      ...state,
+      items: result.queue,
+      ownerTabId: state.ownerTabId || options?.ownerTabId,
+      ownerUpdatedAt: state.ownerTabId ? state.ownerUpdatedAt : now,
+      updatedAt: now,
+    },
   };
 }
 
@@ -97,6 +198,94 @@ export function retryQueuedInput(
   );
 }
 
+// Native drag-and-drop drops the source item before the hovered target item.
+export function reorderQueuedInput(
+  queue: QueuedInputItem[],
+  sourceId: string,
+  targetId: string,
+): QueuedInputItem[] {
+  if (sourceId === targetId) return queue;
+
+  const sourceIndex = queue.findIndex(item => item.id === sourceId);
+  const targetIndex = queue.findIndex(item => item.id === targetId);
+  if (sourceIndex < 0 || targetIndex < 0) return queue;
+
+  const next = [...queue];
+  const [item] = next.splice(sourceIndex, 1);
+  next.splice(targetIndex, 0, item);
+  return next;
+}
+
+// Editing a failed item makes it eligible for the next drain attempt.
+export function updateQueuedInputQuery(
+  queue: QueuedInputItem[],
+  id: string,
+  query: string,
+): QueuedInputItem[] {
+  return queue.map(item =>
+    item.id === id
+      ? {
+          ...item,
+          data: {
+            ...item.data,
+            query,
+            text: query,
+          },
+          status: 'pending',
+          errorMessage: undefined,
+        }
+      : item,
+  );
+}
+
+export function createSendNowCommand(itemId: string, sourceTabId: string, now = Date.now()): InputQueueCommand {
+  return {
+    id: `input-queue-command-${now.toString(36)}-${(++commandId).toString(36)}`,
+    type: 'send-now',
+    itemId,
+    sourceTabId,
+    createdAt: now,
+  };
+}
+
+// Empty states are removed from storage instead of being persisted as [].
+export function isInputQueueStateEmpty(state: InputQueueState) {
+  return state.items.length === 0 && !state.command;
+}
+
+// Missing or stale ownership is treated as claimable by the current tab.
+export function isInputQueueOwner(
+  state: InputQueueState,
+  tabId: string,
+  now = Date.now(),
+  ttl = INPUT_QUEUE_OWNER_TTL,
+) {
+  return (
+    state.ownerTabId === tabId ||
+    !state.ownerTabId ||
+    !state.ownerUpdatedAt ||
+    now - state.ownerUpdatedAt > ttl
+  );
+}
+
+export function assignInputQueueOwner(
+  state: InputQueueState,
+  tabId: string,
+  now = Date.now(),
+  options?: { force?: boolean },
+): InputQueueState {
+  if (!options?.force && state.ownerTabId && !isInputQueueOwner(state, tabId, now)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    ownerTabId: tabId,
+    ownerUpdatedAt: now,
+    updatedAt: now,
+  };
+}
+
 export function restoreFailedQueuedInput(
   queue: QueuedInputItem[],
   item: QueuedInputItem,
@@ -117,6 +306,14 @@ export function canSubmitDirectly(options: {
   loading: boolean | string;
   queueLength: number;
   draining: boolean;
+  paused?: boolean;
+  canExecute?: boolean;
 }) {
-  return !options.loading && options.queueLength === 0 && !options.draining;
+  return (
+    options.canExecute !== false &&
+    !options.paused &&
+    !options.loading &&
+    options.queueLength === 0 &&
+    !options.draining
+  );
 }

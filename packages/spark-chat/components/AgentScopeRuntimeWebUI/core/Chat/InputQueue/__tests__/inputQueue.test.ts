@@ -1,11 +1,21 @@
 import assert from 'node:assert/strict';
 import {
+  assignInputQueueOwner,
   canSubmitDirectly,
+  createEmptyInputQueueState,
+  createQueuedInputItem,
+  createSendNowCommand,
   dequeueNextQueuedInput,
+  enqueueInputQueueState,
   enqueueQueuedInput,
+  INPUT_QUEUE_OWNER_TTL,
+  isInputQueueOwner,
+  isInputQueueStateEmpty,
+  reorderQueuedInput,
   removeQueuedInput,
   restoreFailedQueuedInput,
   retryQueuedInput,
+  updateQueuedInputQuery,
 } from '../index';
 
 const input = (query: string) => ({ query });
@@ -56,6 +66,24 @@ test('direct submit is allowed only when idle, queue is empty and no drain is ac
     canSubmitDirectly({ loading: false, queueLength: 0, draining: true }),
     false,
   );
+  assert.equal(
+    canSubmitDirectly({
+      loading: false,
+      queueLength: 0,
+      draining: false,
+      paused: true,
+    }),
+    false,
+  );
+  assert.equal(
+    canSubmitDirectly({
+      loading: false,
+      queueLength: 0,
+      draining: false,
+      canExecute: false,
+    }),
+    false,
+  );
 });
 
 test('enqueue rejects new input when the queue reaches max size', () => {
@@ -70,6 +98,33 @@ test('enqueue rejects new input when the queue reaches max size', () => {
 
   assert.equal(result.reason, 'full');
   assert.deepEqual(result.queue.map(item => item.id), ['q1']);
+});
+
+test('full queue state is not rewritten when enqueue is rejected', () => {
+  const state = enqueueInputQueueState(createEmptyInputQueueState(1), input('first'), {
+    id: 'q1',
+    maxSize: 1,
+    now: 2,
+  }).state;
+  const result = enqueueInputQueueState(state, input('second'), {
+    id: 'q2',
+    maxSize: 1,
+    now: 3,
+  });
+
+  assert.equal(result.reason, 'full');
+  assert.equal(result.state, state);
+});
+
+test('queued input item preserves full message body aliases', () => {
+  const file = { uid: 'f1', name: 'shot.png', response: { url: '/shot.png' } };
+  const item = createQueuedInputItem({
+    query: 'with file',
+    fileList: [file as any],
+  });
+
+  assert.equal(item.data.text, 'with file');
+  assert.deepEqual(item.data.attachments, [file]);
 });
 
 test('failed send is restored at the queue head and blocks automatic dequeue', () => {
@@ -109,4 +164,72 @@ test('remove deletes only the selected queued input', () => {
     'q1',
     'q2',
   ]);
+});
+
+test('queue state keeps owner and paused metadata separate from items', () => {
+  const empty = createEmptyInputQueueState(1);
+  const queued = enqueueInputQueueState(empty, input('first'), {
+    id: 'q1',
+    now: 2,
+    ownerTabId: 'tab-a',
+  }).state;
+
+  assert.equal(queued.ownerTabId, 'tab-a');
+  assert.equal(queued.ownerUpdatedAt, 2);
+  assert.equal(queued.paused, false);
+  assert.deepEqual(queued.items.map(item => item.id), ['q1']);
+});
+
+test('queue owner is isolated by tab and can be reclaimed when stale', () => {
+  const owned = assignInputQueueOwner(createEmptyInputQueueState(1), 'tab-a', 10);
+
+  assert.equal(isInputQueueOwner(owned, 'tab-a', 12), true);
+  assert.equal(isInputQueueOwner(owned, 'tab-b', 12), false);
+  assert.equal(isInputQueueOwner(owned, 'tab-b', 10 + INPUT_QUEUE_OWNER_TTL + 1), true);
+});
+
+test('drag reorder moves a queued input before the drop target', () => {
+  let queue = enqueueQueuedInput([], input('first'), { id: 'q1' }).queue;
+  queue = enqueueQueuedInput(queue, input('second'), { id: 'q2' }).queue;
+  queue = enqueueQueuedInput(queue, input('third'), { id: 'q3' }).queue;
+
+  assert.deepEqual(reorderQueuedInput(queue, 'q3', 'q1').map(item => item.id), [
+    'q3',
+    'q1',
+    'q2',
+  ]);
+  assert.equal(reorderQueuedInput(queue, 'missing', 'q1'), queue);
+  assert.equal(reorderQueuedInput(queue, 'q2', 'q2'), queue);
+});
+
+test('queued input query can be edited before sending', () => {
+  const queue = enqueueQueuedInput([], input('old'), { id: 'q1' }).queue;
+  const edited = updateQueuedInputQuery(
+    restoreFailedQueuedInput([], queue[0], 'boom'),
+    'q1',
+    'new',
+  );
+
+  assert.equal(edited[0].data.query, 'new');
+  assert.equal(edited[0].data.text, 'new');
+  assert.equal(edited[0].status, 'pending');
+  assert.equal(edited[0].errorMessage, undefined);
+});
+
+test('empty queue state is removable from storage', () => {
+  assert.equal(isInputQueueStateEmpty(createEmptyInputQueueState()), true);
+
+  const queued = enqueueInputQueueState(createEmptyInputQueueState(), input('first'), {
+    id: 'q1',
+  }).state;
+  assert.equal(isInputQueueStateEmpty(queued), false);
+});
+
+test('send-now command carries selected task and source tab', () => {
+  const command = createSendNowCommand('q1', 'tab-a', 100);
+
+  assert.equal(command.type, 'send-now');
+  assert.equal(command.itemId, 'q1');
+  assert.equal(command.sourceTabId, 'tab-a');
+  assert.equal(command.createdAt, 100);
 });
