@@ -11,6 +11,7 @@ import {
   getInputQueueStorageKey,
   INPUT_QUEUE_OWNER_TTL,
   isInputQueueOwner,
+  isInputQueueOwnedByTab,
   isInputQueueStateEmpty,
   removeQueuedInput,
   reorderQueuedInput,
@@ -213,9 +214,15 @@ test('queue owner is isolated by tab and can be reclaimed when stale', () => {
 
   assert.equal(isInputQueueOwner(owned, 'tab-a', 12), true);
   assert.equal(isInputQueueOwner(owned, 'tab-b', 12), false);
+  assert.equal(isInputQueueOwnedByTab(owned, 'tab-a'), true);
+  assert.equal(isInputQueueOwnedByTab(owned, 'tab-b'), false);
   assert.equal(
     isInputQueueOwner(owned, 'tab-b', 10 + INPUT_QUEUE_OWNER_TTL + 1),
     true,
+  );
+  assert.equal(
+    isInputQueueOwnedByTab(owned, 'tab-b'),
+    false,
   );
 });
 

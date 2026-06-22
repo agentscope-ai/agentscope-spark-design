@@ -268,6 +268,13 @@ export function isInputQueueOwner(
   );
 }
 
+export function isInputQueueOwnedByTab(
+  state: InputQueueState,
+  tabId: string,
+) {
+  return state.ownerTabId === tabId;
+}
+
 export function assignInputQueueOwner(
   state: InputQueueState,
   tabId: string,

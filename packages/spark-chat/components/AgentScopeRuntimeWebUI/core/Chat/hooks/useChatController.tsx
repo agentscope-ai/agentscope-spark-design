@@ -18,6 +18,7 @@ import {
   getInputQueueTabId,
   isInputQueueStateEmpty,
   isInputQueueOwner,
+  isInputQueueOwnedByTab,
   MAX_INPUT_QUEUE_SIZE,
   normalizeInputQueueState,
   reorderQueuedInput,
@@ -283,7 +284,7 @@ export default function useChatController() {
   }, [queueEnabled]);
 
   const canExecuteQueue = useCallback((state = inputQueueStateRef.current) => {
-    return isInputQueueOwner(state, tabIdRef.current);
+    return isInputQueueOwnedByTab(state, tabIdRef.current);
   }, []);
 
   const withQueueSendLock = useCallback(async <T,>(
