@@ -333,6 +333,11 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
    * @descriptionEn Called when the queue reaches maxSize
    */
   onFull?: (maxSize: number) => void;
+  /**
+   * @description 当前会话还未准备好，无法加入输入队列时的回调
+   * @descriptionEn Called when the current session is not ready for input queueing
+   */
+  onSessionNotReady?: () => void;
 }
 
 /**

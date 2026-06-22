@@ -33,4 +33,6 @@ export interface IAgentScopeRuntimeWebUISessionsContext {
   setCurrentSessionId: (sessionId: string | undefined) => void;
   getCurrentSessionId: () => string | undefined;
   skipNextSessionLoadIdRef?: MutableRefObject<string | undefined>;
+  pendingRouteSessionIdRef?: MutableRefObject<string | undefined>;
+  isCurrentSessionControlled?: boolean;
 }

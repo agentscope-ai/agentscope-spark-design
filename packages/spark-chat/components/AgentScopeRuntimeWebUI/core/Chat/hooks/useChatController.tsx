@@ -87,6 +87,7 @@ export default function useChatController() {
   const getLoading = useContextSelector(ChatAnywhereInputContext, v => v.getLoading);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
+  const pendingRouteSessionIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.pendingRouteSessionIdRef);
   const apiOptions = useChatAnywhereOptions(v => v.api);
   const queueOptions = useChatAnywhereOptions(v => v.sender?.queue);
   const queueConfig = useMemo(
@@ -97,6 +98,7 @@ export default function useChatController() {
   const queueMaxSize = queueConfig.maxSize ?? MAX_INPUT_QUEUE_SIZE;
   const getQueueSessionId = queueConfig.getSessionId;
   const onQueueFull = queueConfig.onFull;
+  const onQueueSessionNotReady = queueConfig.onSessionNotReady;
   const apiOptionsRef = useRef(apiOptions);
   useEffect(() => {
     apiOptionsRef.current = apiOptions;
@@ -126,7 +128,6 @@ export default function useChatController() {
     createEmptyInputQueueState(),
   );
   const [inputQueueSessionId, setInputQueueSessionId] = useState<string | undefined>(undefined);
-  const [transientSessionId, setTransientSessionId] = useState<string | undefined>(undefined);
   const inputQueueStateRef = useRef<InputQueueState>(inputQueueState);
   const drainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drainingRef = useRef(false);
@@ -162,10 +163,23 @@ export default function useChatController() {
     return resolved;
   }, [getQueueSessionId, queueEnabled]);
 
-  const currentQueueSessionId = useMemo(
-    () => resolveQueueSessionId(currentSessionId || transientSessionId),
-    [currentSessionId, resolveQueueSessionId, transientSessionId],
+  // The route prop may lag behind createSession in controlled mode; keep the
+  // queue bound to the confirmed session id during that small handoff window.
+  const currentQueueSessionId = resolveQueueSessionId(
+    currentSessionId || pendingRouteSessionIdRef?.current,
   );
+
+  const getVisibleChatSessionId = useCallback(() => {
+    return (
+      currentSessionIdRef.current ||
+      pendingRouteSessionIdRef?.current ||
+      currentQARef.current.activeSessionId
+    );
+  }, [pendingRouteSessionIdRef]);
+
+  const getVisibleQueueSessionId = useCallback(() => {
+    return resolveQueueSessionId(getVisibleChatSessionId());
+  }, [getVisibleChatSessionId, resolveQueueSessionId]);
 
   useEffect(() => {
     queueDrainBlockedSessionRef.current = currentQueueSessionId;
@@ -194,9 +208,7 @@ export default function useChatController() {
       console.error('write input queue failed:', error);
     }
 
-    const visibleSessionId =
-      currentSessionIdRef.current || currentQARef.current.activeSessionId || transientSessionId;
-    if (resolveQueueSessionId(visibleSessionId) === sessionId) {
+    if (getVisibleQueueSessionId() === sessionId) {
       setInputQueueSessionId(sessionId);
       inputQueueStateRef.current = next;
       setInputQueueState(next);
@@ -209,7 +221,7 @@ export default function useChatController() {
     });
 
     return next;
-  }, [resolveQueueSessionId, transientSessionId]);
+  }, [getVisibleQueueSessionId]);
 
   const withQueueMutationLock = useCallback(async <T,>(
     sessionId: string,
@@ -287,7 +299,7 @@ export default function useChatController() {
    */
   useEffect(() => {
     const applyRemoteState = (sessionId: string, state: InputQueueState) => {
-      if (sessionId !== resolveQueueSessionId(currentSessionIdRef.current)) return;
+      if (sessionId !== getVisibleQueueSessionId()) return;
       const next = normalizeInputQueueState(state);
       setInputQueueSessionId(sessionId);
       inputQueueStateRef.current = next;
@@ -295,7 +307,7 @@ export default function useChatController() {
     };
 
     const handleStorage = (event: StorageEvent) => {
-      const sessionId = resolveQueueSessionId(currentSessionIdRef.current);
+      const sessionId = getVisibleQueueSessionId();
       if (!sessionId || event.key !== getInputQueueStorageKey(sessionId)) {
         return;
       }
@@ -323,7 +335,7 @@ export default function useChatController() {
 
         if (event.data?.type === 'input-queue-messages-change') {
           if (event.data.sourceTabId === tabIdRef.current) return;
-          if (event.data.sessionId !== currentSessionIdRef.current) return;
+          if (event.data.sessionId !== getVisibleChatSessionId()) return;
           setMessages(event.data.messages || []);
         }
       };
@@ -334,7 +346,7 @@ export default function useChatController() {
       broadcastRef.current?.close();
       broadcastRef.current = null;
     };
-  }, [resolveQueueSessionId, setMessages]);
+  }, [getVisibleChatSessionId, getVisibleQueueSessionId, setMessages]);
 
   /**
    * The first tab that starts the queue owns real sending. This heartbeat keeps
@@ -342,7 +354,7 @@ export default function useChatController() {
    * the shared queue until the owner closes or becomes stale.
    */
   useEffect(() => {
-    const queueSessionId = resolveQueueSessionId(currentSessionId);
+    const queueSessionId = currentQueueSessionId;
     if (!queueSessionId || !canExecuteQueue()) return;
 
     const refreshOwner = () => {
@@ -359,11 +371,11 @@ export default function useChatController() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [canExecuteQueue, currentSessionId, resolveQueueSessionId, updateQueueState]);
+  }, [canExecuteQueue, currentQueueSessionId, updateQueueState]);
 
   // Release ownership when the tab is actually leaving, not merely hidden.
   useEffect(() => {
-    const queueSessionId = resolveQueueSessionId(currentSessionId);
+    const queueSessionId = currentQueueSessionId;
     if (!queueSessionId) return;
 
     const releaseOwner = () => {
@@ -385,7 +397,7 @@ export default function useChatController() {
       window.removeEventListener('pagehide', releaseOwner);
       window.removeEventListener('beforeunload', releaseOwner);
     };
-  }, [currentSessionId, resolveQueueSessionId, updateQueueState]);
+  }, [currentQueueSessionId, updateQueueState]);
 
   // Message handler
   const messageHandler = useChatMessageHandler({ currentQARef });
@@ -394,8 +406,10 @@ export default function useChatController() {
   const sessionHandler = useChatSessionHandler();
 
   const getActiveChatSessionId = useCallback(() => {
-    return sessionHandler.getCurrentSessionId() || currentQARef.current.activeSessionId || transientSessionId;
-  }, [sessionHandler, transientSessionId]);
+    return sessionHandler.getCurrentSessionId() ||
+      pendingRouteSessionIdRef?.current ||
+      currentQARef.current.activeSessionId;
+  }, [pendingRouteSessionIdRef, sessionHandler]);
 
   const getActiveQueueSessionId = useCallback(() => {
     return resolveQueueSessionId(getActiveChatSessionId());
@@ -463,13 +477,12 @@ export default function useChatController() {
    */
   const submitNow = useCallback(async (
     data: Parameters<InputProps['onSubmit']>[0],
-    options?: { sessionId?: string },
+    options?: { sessionId?: string; queueSessionId?: string },
   ) => {
     // Queue sends are session-bound. If the user has already switched away,
     // do not abort or render into the newly visible conversation.
-    const visibleSessionId =
-      currentSessionIdRef.current || currentQARef.current.activeSessionId || transientSessionId;
-    if (options?.sessionId && visibleSessionId !== options.sessionId) {
+    const visibleQueueSessionId = getVisibleQueueSessionId();
+    if (options?.queueSessionId && visibleQueueSessionId !== options.queueSessionId) {
       throw new Error('input queue session switched');
     }
 
@@ -487,24 +500,18 @@ export default function useChatController() {
     //    myRequestId.
     const submitSessionId = options?.sessionId || await sessionHandler.ensureSession(data.query);
     currentQARef.current.activeSessionId = submitSessionId;
-    // When a brand-new chat has created its session but the route is still
-    // /chat, keep a temporary local session id so follow-up inputs can queue.
-    if (!currentSessionIdRef.current && submitSessionId) {
-      setTransientSessionId(submitSessionId);
-    }
 
     // A queued task belongs to the session it was dequeued from. If the user
     // switches conversations before the task starts rendering, restore it
     // instead of writing the request into the newly visible conversation.
-    const nextVisibleSessionId =
-      currentSessionIdRef.current || currentQARef.current.activeSessionId || transientSessionId;
-    if (options?.sessionId && nextVisibleSessionId !== submitSessionId) {
+    const submitQueueSessionId = options?.queueSessionId || resolveQueueSessionId(submitSessionId);
+    const nextVisibleQueueSessionId = getVisibleQueueSessionId();
+    if (options?.queueSessionId && nextVisibleQueueSessionId !== options.queueSessionId) {
       throw new Error('input queue session switched');
     }
 
-    const queueSessionId = resolveQueueSessionId(submitSessionId);
-    if (queueSessionId) {
-      await updateQueueState(queueSessionId, state =>
+    if (submitQueueSessionId) {
+      await updateQueueState(submitQueueSessionId, state =>
         assignInputQueueOwner(state, tabIdRef.current),
       );
     }
@@ -544,15 +551,18 @@ export default function useChatController() {
 
     await request(historyMessages, data.biz_params, myRequestId);
     // mockRequest(mockdata);
-  }, [messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, transientSessionId, updateQueueState]);
+  }, [getVisibleQueueSessionId, messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
 
   const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
-    const ensuredSessionId = getActiveChatSessionId() || await sessionHandler.ensureSession(data.query);
-    if (!currentSessionIdRef.current && ensuredSessionId) {
-      setTransientSessionId(ensuredSessionId);
+    const sessionId = getActiveQueueSessionId();
+    if (!sessionId) {
+      if (onQueueSessionNotReady) {
+        onQueueSessionNotReady();
+      } else {
+        message.warning('Current session is still being generated. Please wait before queuing another input.');
+      }
+      return { ok: false, reason: 'session-not-ready' };
     }
-    const sessionId = resolveQueueSessionId(ensuredSessionId);
-    if (!sessionId) return { ok: false, reason: 'session-not-ready' };
 
     let full = false;
     let queuedItem: QueueEnqueueResult['item'];
@@ -575,7 +585,7 @@ export default function useChatController() {
     }
 
     return { ok: true, item: queuedItem };
-  }, [getActiveChatSessionId, onQueueFull, queueMaxSize, resolveQueueSessionId, sessionHandler, updateQueueState]);
+  }, [getActiveQueueSessionId, onQueueFull, onQueueSessionNotReady, queueMaxSize, updateQueueState]);
 
   const drainQueue = useCallback(async () => {
     const sessionId = getActiveQueueSessionId();
@@ -606,7 +616,10 @@ export default function useChatController() {
 
       drainingRef.current = true;
       try {
-        await submitNow(nextItem.data, { sessionId });
+        await submitNow(nextItem.data, {
+          sessionId: getVisibleChatSessionId(),
+          queueSessionId: sessionId,
+        });
       } catch (error) {
         const sessionSwitched = isQueueSessionSwitchedError(error);
         if (!sessionSwitched) {
@@ -628,8 +641,8 @@ export default function useChatController() {
     commitQueueState,
     getLoading,
     getActiveQueueSessionId,
+    getVisibleChatSessionId,
     readQueueState,
-    resolveQueueSessionId,
     setLoading,
     submitNow,
     updateQueueState,
@@ -661,7 +674,7 @@ export default function useChatController() {
   useEffect(() => {
     if (
       !getLoading() &&
-      queueDrainBlockedSessionRef.current !== resolveQueueSessionId(currentSessionId) &&
+      queueDrainBlockedSessionRef.current !== currentQueueSessionId &&
       inputQueueSessionId === currentQueueSessionId &&
       inputQueueState.items.length > 0 &&
       !inputQueueState.paused &&
@@ -669,7 +682,7 @@ export default function useChatController() {
     ) {
       scheduleDrainQueue();
     }
-  }, [canExecuteQueue, currentQueueSessionId, currentSessionId, getLoading, inputQueueSessionId, inputQueueState, resolveQueueSessionId, scheduleDrainQueue]);
+  }, [canExecuteQueue, currentQueueSessionId, getLoading, inputQueueSessionId, inputQueueState, scheduleDrainQueue]);
 
 
   const handleApproval = useCallback(async ({ input }) => {
@@ -734,7 +747,7 @@ export default function useChatController() {
    */
   useEffect(() => {
     const command = inputQueueState.command;
-    const sessionId = resolveQueueSessionId(currentSessionId);
+    const sessionId = currentQueueSessionId;
     if (
       !sessionId ||
       !command ||
@@ -760,7 +773,10 @@ export default function useChatController() {
 
       drainingRef.current = true;
       handleCancel();
-      await Promise.resolve(submitNow(target.data, { sessionId })).catch(error => {
+      await Promise.resolve(submitNow(target.data, {
+        sessionId: getVisibleChatSessionId(),
+        queueSessionId: sessionId,
+      })).catch(error => {
         if (isQueueSessionSwitchedError(error)) {
           return updateQueueState(sessionId, current => ({
             ...current,
@@ -777,11 +793,11 @@ export default function useChatController() {
     });
   }, [
     canExecuteQueue,
-    currentSessionId,
+    currentQueueSessionId,
+    getVisibleChatSessionId,
     handleCancel,
     inputQueueState,
     readQueueState,
-    resolveQueueSessionId,
     submitNow,
     updateQueueState,
     withQueueSendLock,
@@ -871,16 +887,12 @@ export default function useChatController() {
   // sessions unable to send messages until a new chat was created.
   useEffect(() => {
     const prevSessionId = currentQARef.current.activeSessionId;
-    if (currentSessionId) {
-      setTransientSessionId(undefined);
-    }
     if (!prevSessionId || prevSessionId === currentSessionId) {
       // First mount, or no real switch: just sync the snapshot, do not bump.
       currentQARef.current.activeSessionId = currentSessionId;
       return;
     }
 
-    setTransientSessionId(undefined);
     currentQARef.current.abortController?.abort();
     currentQARef.current = {
       request: undefined,
@@ -913,7 +925,7 @@ export default function useChatController() {
     callback: (data) => {
       const sessionId = data.detail?.session_id;
       const queueSessionId = resolveQueueSessionId(sessionId);
-      if (queueSessionId !== resolveQueueSessionId(currentSessionIdRef.current)) return;
+      if (queueSessionId !== currentQueueSessionId) return;
 
       if (data.detail?.generating) return;
 
@@ -923,7 +935,7 @@ export default function useChatController() {
 
       scheduleDrainQueue();
     },
-  }, [resolveQueueSessionId, scheduleDrainQueue]);
+  }, [currentQueueSessionId, resolveQueueSessionId, scheduleDrainQueue]);
 
   // Listen for regenerate events
   useChatAnywhereEventEmitter({

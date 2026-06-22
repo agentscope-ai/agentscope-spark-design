@@ -27,6 +27,10 @@ export function ChatAnywhereSessionsContextProvider(props: {
   const [sessions, setSessions, getSessions] = useGetState<IAgentScopeRuntimeWebUISession[]>([]);
   const [currentSessionId, setCurrentSessionId, getCurrentSessionId] = useGetState<string | undefined>(undefined);
   const skipNextSessionLoadIdRef = React.useRef<string | undefined>(undefined);
+  // In controlled mode, createSession can resolve before the external route
+  // passes the new currentSessionId back in.
+  const pendingRouteSessionIdRef = React.useRef<string | undefined>(undefined);
+  const previousControlledSessionIdRef = React.useRef<string | undefined>(options.currentSessionId);
   const isCurrentSessionControlled = hasOwn.call(options, 'currentSessionId');
 
   useMount(async () => {
@@ -39,6 +43,12 @@ export function ChatAnywhereSessionsContextProvider(props: {
 
   React.useEffect(() => {
     if (!isCurrentSessionControlled) return;
+    if (previousControlledSessionIdRef.current === options.currentSessionId) return;
+
+    previousControlledSessionIdRef.current = options.currentSessionId;
+    if (pendingRouteSessionIdRef.current === options.currentSessionId || !options.currentSessionId) {
+      pendingRouteSessionIdRef.current = undefined;
+    }
     setCurrentSessionId(options.currentSessionId);
   }, [isCurrentSessionControlled, options.currentSessionId, setCurrentSessionId]);
 
@@ -51,6 +61,8 @@ export function ChatAnywhereSessionsContextProvider(props: {
     setCurrentSessionId,
     getCurrentSessionId,
     skipNextSessionLoadIdRef,
+    pendingRouteSessionIdRef,
+    isCurrentSessionControlled,
   }}>
     {props.children}
   </ChatAnywhereSessionsContext.Provider>;
@@ -122,15 +134,20 @@ export const useChatAnywhereSessions = () => {
     getSessions,
     getCurrentSessionId,
     setCurrentSessionId,
+    pendingRouteSessionIdRef,
+    isCurrentSessionControlled,
   } = useContextSelector(ChatAnywhereSessionsContext, v => v);
   const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
   const options = useChatAnywhereOptions(v => v.session);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
 
   const setActiveSessionId = React.useCallback((sessionId: string | undefined) => {
+    if (isCurrentSessionControlled) {
+      pendingRouteSessionIdRef.current = sessionId;
+    }
     setCurrentSessionId(sessionId);
     options.onCurrentSessionChange?.(sessionId);
-  }, [options, setCurrentSessionId]);
+  }, [isCurrentSessionControlled, options, pendingRouteSessionIdRef, setCurrentSessionId]);
 
 
   const removeSession = React.useCallback(async (session: Partial<IAgentScopeRuntimeWebUISession> & { id: string }) => {
