@@ -55,10 +55,22 @@ export const useChatAnywhereSessionLoader = () => {
   const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
   const options = useChatAnywhereOptions(v => v.session);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
+  const loadSeqRef = React.useRef(0);
 
   useAsyncEffect(async () => {
+    const loadSeq = ++loadSeqRef.current;
+    const isLatestLoad = () => loadSeq === loadSeqRef.current;
+
+    if (!currentSessionId) {
+      ReactDOM.flushSync(() => {
+        setMessages([])
+      })
+      return;
+    }
+
     if (skipNextSessionLoadIdRef?.current === currentSessionId) {
       skipNextSessionLoadIdRef.current = undefined;
+      emit({ type: 'handleSessionLoaded', data: { session_id: currentSessionId, generating: false } });
       return;
     }
 
@@ -67,6 +79,8 @@ export const useChatAnywhereSessionLoader = () => {
     })
 
     const session = await options.api.getSession(currentSessionId);
+    if (!isLatestLoad()) return;
+
     const messages = session?.messages || [];
     setMessages(messages.map(item => {
       return {
@@ -74,6 +88,11 @@ export const useChatAnywhereSessionLoader = () => {
         history: true,
       }
     }));
+
+    emit({
+      type: 'handleSessionLoaded',
+      data: { session_id: currentSessionId, generating: !!session?.generating },
+    });
 
     if (session?.generating) {
       emit({ type: 'handleReconnect', data: { session_id: currentSessionId } });

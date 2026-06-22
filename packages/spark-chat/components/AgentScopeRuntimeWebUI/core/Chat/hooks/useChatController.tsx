@@ -66,6 +66,15 @@ function patchMessageSnapshot(
   return [...messages.slice(0, index), nextMessage, ...messages.slice(index + 1)];
 }
 
+function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === 'assistant' && message.msgStatus === 'generating') {
+      return message;
+    }
+  }
+}
+
 /**
  * Chat controller hook — coordinates all chat-related operations.
  */
@@ -116,6 +125,7 @@ export default function useChatController() {
   const drainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const drainingRef = useRef(false);
   const drainQueueRef = useRef<(() => Promise<void>) | null>(null);
+  const queueDrainBlockedSessionRef = useRef<string | undefined>(undefined);
   const processedCommandIdRef = useRef<string | undefined>(undefined);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
@@ -147,6 +157,10 @@ export default function useChatController() {
     if (!resolved) return undefined;
     return resolved;
   }, [getQueueSessionId, queueEnabled]);
+
+  useEffect(() => {
+    queueDrainBlockedSessionRef.current = resolveQueueSessionId(currentSessionId);
+  }, [currentSessionId, resolveQueueSessionId]);
 
   /**
    * Persist the queue for one session and fan the change out to all tabs.
@@ -392,6 +406,7 @@ export default function useChatController() {
   const finishResponse = useCallback((status: 'finished' | 'interrupted' = 'finished') => {
     if (!currentQARef.current.response) return;
 
+    const activeSessionId = currentQARef.current.activeSessionId;
     currentQARef.current.response.msgStatus = status;
     setLoading(false);
     ReactDOM.flushSync(() => {
@@ -401,14 +416,18 @@ export default function useChatController() {
       messageHandler.getMessages(),
       currentQARef.current.response,
     );
-    syncMessagesToPeerTabs(currentQARef.current.activeSessionId, nextMessages);
+    syncMessagesToPeerTabs(activeSessionId, nextMessages);
 
     sessionHandler.syncSessionMessages(
       nextMessages,
-      currentQARef.current.activeSessionId,
+      activeSessionId,
     );
+    const queueSessionId = resolveQueueSessionId(activeSessionId);
+    if (queueDrainBlockedSessionRef.current === queueSessionId) {
+      queueDrainBlockedSessionRef.current = undefined;
+    }
     scheduleDrainQueue();
-  }, [setLoading, messageHandler, sessionHandler, scheduleDrainQueue, syncMessagesToPeerTabs]);
+  }, [setLoading, messageHandler, sessionHandler, resolveQueueSessionId, scheduleDrainQueue, syncMessagesToPeerTabs]);
 
   // API request handling
   const { request, reconnect } = useChatRequest({
@@ -513,7 +532,12 @@ export default function useChatController() {
     const sessionId = resolveQueueSessionId(
       sessionHandler.getCurrentSessionId() || currentSessionIdRef.current,
     );
-    if (!sessionId || drainingRef.current || getLoading()) return;
+    if (
+      !sessionId ||
+      drainingRef.current ||
+      getLoading() ||
+      queueDrainBlockedSessionRef.current === sessionId
+    ) return;
 
     await withQueueSendLock(sessionId, async () => {
       let nextItem: ReturnType<typeof dequeueNextQueuedInput>['item'];
@@ -587,13 +611,14 @@ export default function useChatController() {
   useEffect(() => {
     if (
       !getLoading() &&
+      queueDrainBlockedSessionRef.current !== resolveQueueSessionId(currentSessionId) &&
       inputQueueState.items.length > 0 &&
       !inputQueueState.paused &&
       canExecuteQueue(inputQueueState)
     ) {
       scheduleDrainQueue();
     }
-  }, [canExecuteQueue, getLoading, inputQueueState, scheduleDrainQueue]);
+  }, [canExecuteQueue, currentSessionId, getLoading, inputQueueState, resolveQueueSessionId, scheduleDrainQueue]);
 
 
   const handleApproval = useCallback(async ({ input }) => {
@@ -728,13 +753,25 @@ export default function useChatController() {
    * treat it as idle: remove the empty placeholder and reset loading.
    */
   const handleReconnect = useCallback(async (sessionId: string) => {
+    if (!sessionId || sessionId !== currentSessionIdRef.current) return;
+
     currentQARef.current.abortController?.abort();
     currentQARef.current.abortController = new AbortController();
     const myRequestId = ++currentQARef.current.activeRequestId;
     currentQARef.current.activeSessionId = sessionId;
     setLoading(true);
 
-    messageHandler.createResponseMessage();
+    const existingResponse = findGeneratingResponse(messageHandler.getMessages());
+    if (existingResponse) {
+      const activeResponse = {
+        ...existingResponse,
+        history: undefined,
+      } as IAgentScopeRuntimeWebUIMessage;
+      currentQARef.current.response = activeResponse;
+      messageHandler.updateMessage(activeResponse);
+    } else {
+      messageHandler.createResponseMessage();
+    }
 
     await reconnect(sessionId, myRequestId);
 
@@ -752,8 +789,13 @@ export default function useChatController() {
         messageHandler.removeMessageById(currentQARef.current.response.id);
       }
       currentQARef.current.response = undefined;
+      const queueSessionId = resolveQueueSessionId(sessionId);
+      if (queueDrainBlockedSessionRef.current === queueSessionId) {
+        queueDrainBlockedSessionRef.current = undefined;
+      }
+      scheduleDrainQueue();
     }
-  }, [messageHandler, reconnect, setLoading]);
+  }, [messageHandler, reconnect, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
 
   // On session switch: abort current SSE (without notifying backend cancel)
   // and reset state. Also increment activeRequestId so any residual SSE
@@ -799,6 +841,23 @@ export default function useChatController() {
       await handleReconnect(data.detail.session_id);
     }
   }, [handleReconnect]);
+
+  useChatAnywhereEventEmitter({
+    type: 'handleSessionLoaded',
+    callback: (data) => {
+      const sessionId = data.detail?.session_id;
+      const queueSessionId = resolveQueueSessionId(sessionId);
+      if (queueSessionId !== resolveQueueSessionId(currentSessionIdRef.current)) return;
+
+      if (data.detail?.generating) return;
+
+      if (queueDrainBlockedSessionRef.current === queueSessionId) {
+        queueDrainBlockedSessionRef.current = undefined;
+      }
+
+      scheduleDrainQueue();
+    },
+  }, [resolveQueueSessionId, scheduleDrainQueue]);
 
   // Listen for regenerate events
   useChatAnywhereEventEmitter({

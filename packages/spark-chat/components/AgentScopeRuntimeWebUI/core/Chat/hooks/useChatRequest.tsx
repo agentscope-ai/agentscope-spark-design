@@ -212,7 +212,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         },
         body: JSON.stringify({
           input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
-          session_id: getCurrentSessionId(),
+          session_id: sessionId,
           stream: true,
           biz_params,
         }),
@@ -248,4 +248,3 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
   return { request, reconnect, mockRequest };
 }
-
