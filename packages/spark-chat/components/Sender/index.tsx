@@ -53,6 +53,19 @@ export interface SenderComponents {
   input?: React.ComponentType<TextareaProps>;
 }
 
+export interface SenderActionInfo {
+  value: string;
+  count: number;
+  maxLength?: number;
+  loading?: boolean | string;
+  disabled?: boolean | string;
+  sendDisabled: boolean;
+}
+
+export type SenderActionAffix =
+  | React.ReactNode
+  | ((info: SenderActionInfo) => React.ReactNode);
+
 export type ActionsRender = (
   ori: React.ReactNode,
   info: {
@@ -219,6 +232,21 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   maxLength?: number;
   /**
+   * @description 是否显示字符数，默认在设置 maxLength 时显示
+   * @descriptionEn Whether to show character count, defaults to true when maxLength is set
+   */
+  showCharacterCount?: boolean;
+  /**
+   * @description 自定义字符数渲染
+   * @descriptionEn Custom character count renderer
+   */
+  characterCountRender?: (info: SenderActionInfo) => React.ReactNode;
+  /**
+   * @description 右侧操作区附加内容，展示在字符数右侧、发送按钮左侧
+   * @descriptionEn Extra content in the right action area, placed after character count and before send button
+   */
+  actionAffix?: SenderActionAffix;
+  /**
    * @description 是否支持语音输入
    * @descriptionEn Allow speech input
    */
@@ -317,9 +345,12 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     onBlur,
     // @ts-ignore
     actions,
+    actionAffix,
+    characterCountRender,
     onKeyPress,
     onKeyDown,
     suggestions,
+    showCharacterCount,
     disabled,
     header,
     // @ts-ignore
@@ -582,6 +613,21 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     const nodes = Array.isArray(props.prefix) ? [...props.prefix] : [props.prefix];
     return nodes.filter((node): node is React.ReactNode => node !== undefined && node !== null);
   }, [props.prefix])
+  const count = Math.min(innerValue.length, props.maxLength || Number.MAX_SAFE_INTEGER);
+  const actionInfo = React.useMemo<SenderActionInfo>(() => ({
+    value: innerValue,
+    count,
+    maxLength: props.maxLength,
+    loading,
+    disabled,
+    sendDisabled: isSendDisabled,
+  }), [count, disabled, innerValue, isSendDisabled, loading, props.maxLength]);
+  const characterCountNode = (showCharacterCount ?? !!props.maxLength) ? (
+    <div className={`${actionListCls}-length`}>
+      {characterCountRender ? characterCountRender(actionInfo) : props.maxLength ? `${count}/${props.maxLength}` : count}
+    </div>
+  ) : null;
+  const actionAffixNode = typeof actionAffix === 'function' ? actionAffix(actionInfo) : actionAffix;
 
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
@@ -749,11 +795,8 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
             )}
             style={styles.actions}
           >
-            {
-              props.maxLength ? <div className={`${actionListCls}-length`}>
-                {Math.min(innerValue.length, props.maxLength)}/{props.maxLength}
-              </div> : null
-            }
+            {characterCountNode}
+            {actionAffixNode}
             <ActionButtonContext.Provider
               value={contextValue}
             >

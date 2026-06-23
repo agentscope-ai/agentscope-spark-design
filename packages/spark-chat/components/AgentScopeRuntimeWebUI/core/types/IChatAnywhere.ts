@@ -221,6 +221,15 @@ export interface IAgentScopeRuntimeWebUIWelcomeOptions {
   ) => React.ReactElement;
 }
 
+export interface IAgentScopeRuntimeWebUISenderActionInfo {
+  value: string;
+  count: number;
+  maxLength?: number;
+  loading?: boolean | string;
+  disabled?: boolean | string;
+  sendDisabled: boolean;
+}
+
 /**
  * @description 输入框配置选项
  * @descriptionEn Sender configuration options
@@ -237,6 +246,25 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    */
   maxLength?: number;
   /**
+   * @description 是否显示字符数，默认在设置 maxLength 时显示
+   * @descriptionEn Whether to show character count, defaults to true when maxLength is set
+   */
+  showCharacterCount?: boolean;
+  /**
+   * @description 自定义字符数渲染
+   * @descriptionEn Custom character count renderer
+   */
+  characterCountRender?: (
+    info: IAgentScopeRuntimeWebUISenderActionInfo,
+  ) => React.ReactNode;
+  /**
+   * @description 右下角操作区附加内容，展示在字符数右侧、发送按钮左侧
+   * @descriptionEn Extra content in the bottom-right action area, placed after character count and before send button
+   */
+  actionAffix?:
+    | React.ReactNode
+    | ((info: IAgentScopeRuntimeWebUISenderActionInfo) => React.ReactNode);
+  /**
    * @description 输入框前置UI
    * @descriptionEn UI before input
    */
@@ -250,7 +278,7 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @description 提交前的钩子函数
    * @descriptionEn Hook function before submit
    */
-  beforeSubmit?: () => Promise<Boolean>;
+  beforeSubmit?: () => Promise<boolean>;
   /**
    * @description 提交回调函数
    * @descriptionEn Submit callback function
