@@ -34,6 +34,7 @@ export default function Input(props: InputProps) {
     getFileList,
     setFileList,
     handlePasteFile,
+    handleDropFile,
     uploadIconButton,
     uploadFileListHeader
   } = useAttachments(attachments, { disabled: !!inputContext.disabled });
@@ -46,7 +47,7 @@ export default function Input(props: InputProps) {
     const fileList = (getFileList?.() || []).filter(i => i.response?.url);
     props.onSubmit({ query: getContent(), fileList });
     setContent('');
-    setFileList && setFileList([]);
+    setFileList?.([]);
   }, []);
 
   const handleCancel = useCallback(() => {
@@ -72,6 +73,7 @@ export default function Input(props: InputProps) {
         onCancel={handleCancel}
         allowSpeech={allowSpeech}
         onPasteFile={handlePasteFile}
+        onDropFile={handleDropFile}
         suggestions={suggestions}
       />
       {afterUI}

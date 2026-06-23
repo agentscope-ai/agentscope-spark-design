@@ -1,4 +1,4 @@
-import { Button, Flex, Input } from 'antd';
+import { Flex, Input } from 'antd';
 import { Suggestion } from '@ant-design/x';
 import classnames from 'classnames';
 import { useMergedState } from 'rc-util';
@@ -15,11 +15,34 @@ import LoadingButton from './components/LoadingButton';
 import SendButton from './components/SendButton';
 import SpeechButton from './components/SpeechButton';
 import Style from './style';
-import useSpeech, { type AllowSpeech } from './useSpeech';
+import useSpeech from './useSpeech';
 import ModeSelect from './ModeSelect';
 import type { InputRef as AntdInputRef, ButtonProps, GetProp, GetProps } from 'antd';
 import BeforeUIContainer from './BeforeUIContainer';
 
+function hasFileTransfer(dataTransfer?: DataTransfer | null) {
+  if (!dataTransfer) {
+    return false;
+  }
+
+  return Array.from(dataTransfer.types || []).includes('Files');
+}
+
+function getFilesFromDataTransfer(dataTransfer?: DataTransfer | null) {
+  if (!dataTransfer) {
+    return [];
+  }
+
+  const files = Array.from(dataTransfer.files || []);
+  if (files.length > 0) {
+    return files;
+  }
+
+  return Array.from(dataTransfer.items || [])
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null);
+}
 
 export type SubmitType = 'enter' | 'shiftEnter' | false;
 
@@ -210,6 +233,11 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    * @descriptionEn Callback function when user pastes a file
    */
   onPasteFile?: (file: File) => void;
+  /**
+   * @description 拖拽文件到输入框释放时的回调函数
+   * @descriptionEn Callback function when user drops a file into the input
+   */
+  onDropFile?: (file: File) => void;
   // prefixCls?: string;
   // components?: SenderComponents;
 }
@@ -301,11 +329,14 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     // @ts-ignore
     onPasteFile,
     // @ts-ignore
+    onDropFile,
+    // @ts-ignore
     components,
     ...rest
   } = props;
 
   const [focus, setFocus] = useState(false);
+  const [draggingFile, setDraggingFile] = useState(false);
   const autoSize = React.useMemo(() => ({ maxRows: 5, minRows: 2 }), []);
 
   const { direction, getPrefixCls } = useProviderContext();
@@ -313,15 +344,16 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<AntdInputRef>(null);
+  const dragCounterRef = React.useRef(0);
 
   useProxyImperativeHandle(ref, () => ({
     nativeElement: containerRef.current!,
-    focus: inputRef.current?.focus!,
-    blur: inputRef.current?.blur!,
+    focus: () => inputRef.current?.focus(),
+    blur: () => inputRef.current?.blur(),
   }));
 
   useFocusWithin(containerRef, {
-    onFocus: (e) => {
+    onFocus: () => {
       setFocus(true);
       onFocus?.();
     },
@@ -333,7 +365,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     }
   });
 
-  useEventListener('click', (e) => {
+  useEventListener('click', () => {
     setFocus(true);
     onFocus?.();
   }, {
@@ -351,6 +383,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
       [`${prefixCls}-disabled`]: disabled,
       [`${prefixCls}-focus`]: focus && enableFocusExpand,
       [`${prefixCls}-blur`]: !focus && enableFocusExpand,
+      [`${prefixCls}-drag-over`]: draggingFile,
     },
   );
 
@@ -378,7 +411,6 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const filteredSuggestions = React.useMemo(() => {
     return filterSuggestionsByKeyword(suggestions, slashCommandKeyword);
   }, [suggestions, slashCommandKeyword]);
-  const hasFilteredSuggestions = Array.isArray(filteredSuggestions) && filteredSuggestions.length > 0;
 
   const findSuggestionValueByLabel = React.useCallback((items: SuggestionItems | undefined, label: string): string | undefined => {
     if (!items?.length) {
@@ -417,8 +449,10 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   };
 
   // ============================ Events ============================
+  const isSendDisabled = ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
+
   const triggerSend = () => {
-    if (!contextValue.onSendDisabled && onSubmit && !loading) {
+    if (!isSendDisabled && onSubmit && !loading) {
       onSubmit(innerValue);
     }
   };
@@ -488,6 +522,62 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     }
   };
 
+  const onInternalDragEnter: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current += 1;
+
+    if (!disabled && !readOnly) {
+      setDraggingFile(true);
+    }
+  };
+
+  const onInternalDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = disabled || readOnly ? 'none' : 'copy';
+  };
+
+  const onInternalDragLeave: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+
+    if (dragCounterRef.current === 0) {
+      setDraggingFile(false);
+    }
+  };
+
+  const onInternalDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setDraggingFile(false);
+
+    if (disabled || readOnly) {
+      return;
+    }
+
+    const files = getFilesFromDataTransfer(e.dataTransfer);
+    files.forEach((file) => onDropFile(file));
+  };
+
   const prefix = React.useMemo(() => {
     const nodes = Array.isArray(props.prefix) ? [...props.prefix] : [props.prefix];
     return nodes.filter((node): node is React.ReactNode => node !== undefined && node !== null);
@@ -514,7 +604,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const contextValue = {
     prefixCls: actionBtnCls,
     onSend: triggerSend,
-    onSendDisabled: ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled,
+    onSendDisabled: isSendDisabled,
     onClear: triggerClear,
     onClearDisabled: !innerValue,
     onCancel,
@@ -608,7 +698,15 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   return <>
     <Style />
 
-    <div ref={containerRef} className={mergedCls} style={style}>
+    <div
+      ref={containerRef}
+      className={mergedCls}
+      style={style}
+      onDragEnter={onInternalDragEnter}
+      onDragOver={onInternalDragOver}
+      onDragLeave={onInternalDragLeave}
+      onDrop={onInternalDrop}
+    >
       {header && (
         <SendHeaderContext.Provider value={{ prefixCls, focus, enableFocusExpand }}>{header}</SendHeaderContext.Provider>
       )}
