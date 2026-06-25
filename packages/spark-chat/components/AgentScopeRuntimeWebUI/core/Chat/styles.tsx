@@ -180,6 +180,7 @@ export default createGlobalStyle`
   gap: 8px;
   padding: 8px 12px;
   border-bottom: 1px solid ${(p) => p.theme.colorBorderSecondary};
+  background: ${(p) => p.theme.colorFillTertiary};
   color: ${(p) => p.theme.colorTextSecondary};
   font-size: 13px;
   font-weight: 600;
