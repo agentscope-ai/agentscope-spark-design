@@ -8,6 +8,7 @@ import {
   getActiveAnchorId,
   getAnchorTimeText,
   getMessageElementInScrollContainer,
+  getUserMessageAnchorBadgeText,
   getUserMessageAnchor,
   getUserMessageAnchorMinGap,
   getUserMessageAnchorMinCount,
@@ -224,6 +225,7 @@ function getAnchorGroups(
 
 export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const {
+    badgeMaxCount,
     enabled = true,
     items,
     minGap,
@@ -450,7 +452,9 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
             type="button"
           >
             <ListIcon size={18} />
-            <span className={`${prefixCls}-anchor-nav-count`}>{anchors.length}</span>
+            <span className={`${prefixCls}-anchor-nav-count`}>
+              {getUserMessageAnchorBadgeText(anchors.length, badgeMaxCount)}
+            </span>
           </button>
         </Popover>
         <button

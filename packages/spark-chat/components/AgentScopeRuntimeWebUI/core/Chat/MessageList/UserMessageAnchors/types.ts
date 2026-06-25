@@ -14,6 +14,7 @@ export type UserMessageAnchor = {
 };
 
 export type UserMessageAnchorsProps = {
+  badgeMaxCount?: number;
   enabled?: boolean;
   items: IAgentScopeRuntimeWebUIMessage[];
   minGap?: number;

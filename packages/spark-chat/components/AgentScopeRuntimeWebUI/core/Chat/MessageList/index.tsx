@@ -120,6 +120,7 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
       items={visibleMessages}
     />
     <UserMessageAnchors
+      badgeMaxCount={userMessageAnchorsOptions?.badgeMaxCount}
       enabled={userMessageAnchorsOptions?.enabled !== false}
       items={safeMessages}
       minGap={userMessageAnchorsOptions?.minGap}

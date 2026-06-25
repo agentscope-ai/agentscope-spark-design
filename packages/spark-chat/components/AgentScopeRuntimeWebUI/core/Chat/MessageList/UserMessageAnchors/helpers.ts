@@ -8,6 +8,7 @@ import type { AttachmentPreview, UserMessageAnchor } from "./types";
 
 const DEFAULT_USER_MESSAGE_ANCHOR_MIN_COUNT = 3;
 const DEFAULT_USER_MESSAGE_ANCHOR_MIN_GAP = 6;
+const DEFAULT_USER_MESSAGE_ANCHOR_BADGE_MAX_COUNT = 99;
 const SCROLL_BOUNDARY_OFFSET = 4;
 
 function normalizePreviewText(text: string) {
@@ -97,6 +98,18 @@ export function getUserMessageAnchorMinGap(minGap?: number) {
     return DEFAULT_USER_MESSAGE_ANCHOR_MIN_GAP;
   }
   return Math.max(0, minGap);
+}
+
+export function getUserMessageAnchorBadgeMaxCount(badgeMaxCount?: number) {
+  if (typeof badgeMaxCount !== 'number' || !Number.isFinite(badgeMaxCount)) {
+    return DEFAULT_USER_MESSAGE_ANCHOR_BADGE_MAX_COUNT;
+  }
+  return Math.max(1, Math.floor(badgeMaxCount));
+}
+
+export function getUserMessageAnchorBadgeText(count: number, badgeMaxCount?: number) {
+  const normalizedBadgeMaxCount = getUserMessageAnchorBadgeMaxCount(badgeMaxCount);
+  return count > normalizedBadgeMaxCount ? `${normalizedBadgeMaxCount}+` : String(count);
 }
 
 export function clamp(value: number, min: number, max: number) {

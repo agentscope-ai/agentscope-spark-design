@@ -175,6 +175,12 @@ export interface IAgentScopeRuntimeWebUIUserMessageAnchorsOptions {
    */
   minCount?: number;
   /**
+   * @description 导航数量徽标展示上限，超过后展示为 `${badgeMaxCount}+`
+   * @descriptionEn Maximum count shown in the navigator badge; larger counts render as `${badgeMaxCount}+`
+   * @default 99
+   */
+  badgeMaxCount?: number;
+  /**
    * @description 锚点之间的最小展示间距，单位 px；距离更近时会聚合展示
    * @descriptionEn Minimum visual gap between anchors in px; closer anchors are grouped
    * @default 6
