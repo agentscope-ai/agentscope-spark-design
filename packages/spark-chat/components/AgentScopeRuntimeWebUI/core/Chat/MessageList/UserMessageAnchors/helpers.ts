@@ -123,9 +123,22 @@ export function areAnchorPositionsEqual(prev: Record<string, number>, next: Reco
   return nextKeys.every((key) => Math.abs((prev[key] ?? -1) - next[key]) < 0.1);
 }
 
+export function getMessageElementMapInScrollContainer(scrollEl: HTMLElement) {
+  const candidates = scrollEl.querySelectorAll<HTMLElement>('[data-role][id]');
+  const result = new Map<string, HTMLElement>();
+  candidates.forEach((candidate) => {
+    result.set(candidate.id, candidate);
+  });
+  return result;
+}
+
 export function getMessageElementInScrollContainer(scrollEl: HTMLElement, messageId: string) {
-  const candidates = Array.from(scrollEl.querySelectorAll<HTMLElement>('[data-role][id]'));
-  return candidates.find((candidate) => candidate.id === messageId) || null;
+  const target = typeof document === 'undefined' ? null : document.getElementById(messageId);
+  if (target instanceof HTMLElement && scrollEl.contains(target) && target.hasAttribute('data-role')) {
+    return target;
+  }
+
+  return getMessageElementMapInScrollContainer(scrollEl).get(messageId) || null;
 }
 
 function getScrollBoundaryAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnchor[]) {
@@ -155,20 +168,20 @@ export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnc
 
   const scrollRect = scrollEl.getBoundingClientRect();
   const viewportCenter = scrollRect.top + scrollRect.height / 2;
+  const anchorIds = new Set(anchors.map((anchor) => anchor.id));
+  const targets = Array.from(scrollEl.querySelectorAll<HTMLElement>('[data-role][id]'))
+    .filter((target) => anchorIds.has(target.id));
   let activeAnchorId: string | undefined;
   let minDistance = Number.POSITIVE_INFINITY;
 
-  anchors.forEach((anchor) => {
-    const target = getMessageElementInScrollContainer(scrollEl, anchor.id);
-    if (!target) return;
-
+  targets.forEach((target) => {
     const targetRect = target.getBoundingClientRect();
     const targetCenter = targetRect.top + targetRect.height / 2;
     const distance = Math.abs(targetCenter - viewportCenter);
 
     if (distance < minDistance) {
       minDistance = distance;
-      activeAnchorId = anchor.id;
+      activeAnchorId = target.id;
     }
   });
 

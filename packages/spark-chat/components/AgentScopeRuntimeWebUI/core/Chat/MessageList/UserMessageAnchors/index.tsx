@@ -8,6 +8,7 @@ import {
   getActiveAnchorId,
   getAnchorTimeText,
   getMessageElementInScrollContainer,
+  getMessageElementMapInScrollContainer,
   getUserMessageAnchorBadgeText,
   getUserMessageAnchor,
   getUserMessageAnchorMinGap,
@@ -281,14 +282,24 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       setAnchorRight((prev) => prev === nextAnchorRight ? prev : nextAnchorRight);
     }
 
+    const nextActiveAnchorId = getActiveAnchorId(scrollEl, anchors);
+    setActiveAnchorId((prev) => prev === nextActiveAnchorId ? prev : nextActiveAnchorId);
+
+    if (variant === 'navigator') {
+      setAnchorPositions((prev) => Object.keys(prev).length ? {} : prev);
+      setTrackHeight((prev) => prev === 0 ? prev : 0);
+      return;
+    }
+
     const nextTrackHeight = anchorTrackRef.current?.clientHeight || 0;
     setTrackHeight((prev) => Math.abs(prev - nextTrackHeight) < 1 ? prev : nextTrackHeight);
 
+    const targetMap = getMessageElementMapInScrollContainer(scrollEl);
     const scrollHeight = Math.max(scrollEl.scrollHeight, 1);
     const maxScrollTop = Math.max(scrollEl.scrollHeight - scrollEl.clientHeight, 0);
     const visualScrollTop = maxScrollTop + scrollEl.scrollTop;
     const nextPositions = anchors.reduce<Record<string, number>>((result, anchor) => {
-      const target = getMessageElementInScrollContainer(scrollEl, anchor.id);
+      const target = targetMap.get(anchor.id);
       if (!target) {
         result[anchor.id] = anchor.orderPercent;
         return result;
@@ -305,9 +316,6 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       if (areAnchorPositionsEqual(prev, nextPositions)) return prev;
       return nextPositions;
     });
-
-    const nextActiveAnchorId = getActiveAnchorId(scrollEl, anchors);
-    setActiveAnchorId((prev) => prev === nextActiveAnchorId ? prev : nextActiveAnchorId);
   }, [anchors, prefixCls, scrollContainerClassName, variant]);
 
   const updateAnchors = useCallback(() => {
@@ -328,7 +336,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     }
   }, []);
 
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
     cancelPendingAnchorPositionUpdate();
     if (!visible) {
       setAnchorPositions((prev) => Object.keys(prev).length ? {} : prev);
@@ -340,18 +348,18 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
 
     const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
     const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
-    const targets = anchors
-      .map((anchor) => scrollEl ? getMessageElementInScrollContainer(scrollEl, anchor.id) : null)
-      .filter((target): target is HTMLElement => !!target);
-    const scrollChildren = Array.from(scrollEl?.children || [])
-      .filter((target): target is HTMLElement => target instanceof HTMLElement);
     const resizeObserver = typeof ResizeObserver !== 'undefined'
       ? new ResizeObserver(updateAnchors)
       : undefined;
 
     if (scrollEl) resizeObserver?.observe(scrollEl);
-    scrollChildren.forEach((target) => resizeObserver?.observe(target));
-    targets.forEach((target) => resizeObserver?.observe(target));
+    if (variant !== 'navigator') {
+      const targetMap = scrollEl ? getMessageElementMapInScrollContainer(scrollEl) : new Map<string, HTMLElement>();
+      const scrollChildren = Array.from(scrollEl?.children || [])
+        .filter((target): target is HTMLElement => target instanceof HTMLElement);
+      scrollChildren.forEach((target) => resizeObserver?.observe(target));
+      targetMap.forEach((target) => resizeObserver?.observe(target));
+    }
     scrollEl?.addEventListener('scroll', updateAnchors, { passive: true });
     window.addEventListener('resize', updateAnchors);
 
@@ -369,6 +377,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     renderedItemsKey,
     scrollContainerClassName,
     updateAnchors,
+    variant,
     visible,
   ]);
 

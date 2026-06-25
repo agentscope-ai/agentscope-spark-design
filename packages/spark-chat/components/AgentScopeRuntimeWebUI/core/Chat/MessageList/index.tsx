@@ -38,12 +38,6 @@ function useSimulatedMessagePagination(
     [allMessages],
   );
 
-  React.useLayoutEffect(() => {
-    if (historyMessages.length > PAGE_SIZE) {
-      setHistoryDisplayCount(historyMessages.length);
-    }
-  }, [historyMessages.length, sessionId]);
-
   const visibleHistory = historyMessages.slice(0, historyDisplayCount);
   const noMore = historyDisplayCount >= historyMessages.length;
 
