@@ -21,6 +21,9 @@ type UserMessageAnchorGroup = {
   top: number;
 };
 
+const ANCHOR_CONTENT_GAP = 24;
+const ANCHOR_TRACK_WIDTH = 32;
+
 function UserMessageAnchorTooltip(props: {
   anchors: UserMessageAnchor[];
   prefixCls: string;
@@ -145,6 +148,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const frameRef = React.useRef<number | undefined>();
   const [anchorPositions, setAnchorPositions] = useState<Record<string, number>>({});
   const [activeAnchorId, setActiveAnchorId] = useState<string | undefined>();
+  const [anchorRight, setAnchorRight] = useState<number | undefined>();
   const [trackHeight, setTrackHeight] = useState(0);
   const normalizedMinGap = useMemo(() => getUserMessageAnchorMinGap(minGap), [minGap]);
   const normalizedMinCount = useMemo(() => getUserMessageAnchorMinCount(minCount), [minCount]);
@@ -174,13 +178,22 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
     if (!scrollEl) return;
 
+    const rootRect = root?.getBoundingClientRect();
+    const scrollRect = scrollEl.getBoundingClientRect();
+    if (rootRect) {
+      const nextAnchorRight = Math.round(Math.max(
+        12,
+        rootRect.right - scrollRect.right - ANCHOR_CONTENT_GAP - ANCHOR_TRACK_WIDTH,
+      ));
+      setAnchorRight((prev) => prev === nextAnchorRight ? prev : nextAnchorRight);
+    }
+
     const nextTrackHeight = anchorTrackRef.current?.clientHeight || 0;
     setTrackHeight((prev) => Math.abs(prev - nextTrackHeight) < 1 ? prev : nextTrackHeight);
 
     const scrollHeight = Math.max(scrollEl.scrollHeight, 1);
     const maxScrollTop = Math.max(scrollEl.scrollHeight - scrollEl.clientHeight, 0);
     const visualScrollTop = maxScrollTop + scrollEl.scrollTop;
-    const scrollRect = scrollEl.getBoundingClientRect();
     const nextPositions = anchors.reduce<Record<string, number>>((result, anchor) => {
       const target = getMessageElementInScrollContainer(scrollEl, anchor.id);
       if (!target) {
@@ -300,7 +313,12 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const anchorGroups = getAnchorGroups(anchors, anchorPositions, activeAnchorId, normalizedMinGap, trackHeight);
 
   return (
-    <nav className={`${prefixCls}-anchors`} aria-label="User message anchors" ref={anchorTrackRef}>
+    <nav
+      aria-label="User message anchors"
+      className={`${prefixCls}-anchors`}
+      ref={anchorTrackRef}
+      style={anchorRight === undefined ? undefined : { right: anchorRight }}
+    >
       {anchorGroups.map((group) => {
         return (
           <Tooltip
