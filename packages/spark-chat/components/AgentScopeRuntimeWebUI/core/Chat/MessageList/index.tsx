@@ -3,10 +3,12 @@ import { IAgentScopeRuntimeWebUIMessage } from "../../types/IMessages";
 import { ChatAnywhereMessagesContext } from "../../Context/ChatAnywhereMessagesContext";
 import { useContextSelector } from "use-context-selector";
 import { ChatAnywhereSessionsContext } from "../../Context/ChatAnywhereSessionsContext";
+import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import cls from 'classnames';
 import Welcome from "../Welcome";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
+import UserMessageAnchors from "./UserMessageAnchors";
 
 const PAGE_SIZE = 10;
 
@@ -23,7 +25,7 @@ function useSimulatedMessagePagination(
 ) {
   const [historyDisplayCount, setHistoryDisplayCount] = useState(PAGE_SIZE);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     setHistoryDisplayCount(PAGE_SIZE);
   }, [sessionId]);
 
@@ -35,6 +37,12 @@ function useSimulatedMessagePagination(
     () => allMessages.filter((m) => !m.history),
     [allMessages],
   );
+
+  React.useLayoutEffect(() => {
+    if (historyMessages.length > PAGE_SIZE) {
+      setHistoryDisplayCount(historyMessages.length);
+    }
+  }, [historyMessages.length, sessionId]);
 
   const visibleHistory = historyMessages.slice(0, historyDisplayCount);
   const noMore = historyDisplayCount >= historyMessages.length;
@@ -56,18 +64,36 @@ function useSimulatedMessagePagination(
     });
   }, []);
 
-  return { visibleMessages, noMore, loadMore };
+  const ensureMessageVisible = useCallback((messageId: string) => {
+    return new Promise<void>((resolve) => {
+      const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
+      if (historyIndex >= historyDisplayCount) {
+        flushSync(() => {
+          setHistoryDisplayCount(historyIndex + 1);
+        });
+      }
+
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  }, [historyDisplayCount, historyMessages]);
+
+  return { visibleMessages, noMore, loadMore, ensureMessageVisible };
 }
 
 export default function MessageList(props: { onSubmit: (data: { query: string; fileList?: any[] }) => void }) {
   const messages = useContextSelector(ChatAnywhereMessagesContext, v => v.messages);
   const safeMessages = React.useMemo(() => [...(messages || [])].reverse(), [messages]);
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-message-list');
+  const scrollContainerClassName = `${prefixCls}-bubble-scroll`;
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
+  const userMessageAnchorsOptions = useChatAnywhereOptions(v => v.theme?.bubbleList?.userMessageAnchors);
   const listRef = React.useRef<{ scrollToBottom: () => void } | null>(null);
   const prevMessagesLengthRef = React.useRef(safeMessages.length);
 
-  const { visibleMessages, noMore, loadMore } = useSimulatedMessagePagination(safeMessages, currentSessionId);
+  const { visibleMessages, noMore, loadMore, ensureMessageVisible } = useSimulatedMessagePagination(safeMessages, currentSessionId);
+  const renderedItemsKey = useMemo(() => visibleMessages.map((message) => message.id).join('|'), [visibleMessages]);
 
   React.useEffect(() => {
     if (safeMessages.length > prevMessagesLengthRef.current) {
@@ -80,15 +106,28 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
     <Welcome onSubmit={props.onSubmit} />
   </div>;
 
-  return <Bubble.List
-    ref={listRef}
-    onLoadMore={noMore ? undefined : loadMore}
-    noMore={noMore}
-    order="desc"
-    key={currentSessionId}
-    classNames={{
-      wrapper: prefixCls,
-    }}
-    items={visibleMessages}
-  />
+  return <div className={prefixCls}>
+    <Bubble.List
+      ref={listRef}
+      onLoadMore={noMore ? undefined : loadMore}
+      noMore={noMore}
+      order="desc"
+      key={currentSessionId}
+      classNames={{
+        wrapper: `${prefixCls}-bubble-wrapper`,
+        list: scrollContainerClassName,
+      }}
+      items={visibleMessages}
+    />
+    <UserMessageAnchors
+      enabled={userMessageAnchorsOptions?.enabled !== false}
+      items={safeMessages}
+      minGap={userMessageAnchorsOptions?.minGap}
+      minCount={userMessageAnchorsOptions?.minCount}
+      onEnsureMessageVisible={ensureMessageVisible}
+      prefixCls={prefixCls}
+      renderedItemsKey={renderedItemsKey}
+      scrollContainerClassName={scrollContainerClassName}
+    />
+  </div>
 }

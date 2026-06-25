@@ -141,6 +141,11 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
      * @descriptionEn Whether to enable pagination
      */
     pagination?: boolean;
+    /**
+     * @description 用户消息锚点配置
+     * @descriptionEn User message anchor configuration
+     */
+    userMessageAnchors?: IAgentScopeRuntimeWebUIUserMessageAnchorsOptions;
   };
   /**
    * @description 语言
@@ -148,6 +153,27 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    * @default 'en'
    */
   locale?: 'en' | 'cn';
+}
+
+export interface IAgentScopeRuntimeWebUIUserMessageAnchorsOptions {
+  /**
+   * @description 是否展示用户消息锚点
+   * @descriptionEn Whether to show user message anchors
+   * @default true
+   */
+  enabled?: boolean;
+  /**
+   * @description 至少多少条用户消息时展示锚点
+   * @descriptionEn Minimum user message count before showing anchors
+   * @default 3
+   */
+  minCount?: number;
+  /**
+   * @description 锚点之间的最小展示间距，单位 px；距离更近时会聚合展示
+   * @descriptionEn Minimum visual gap between anchors in px; closer anchors are grouped
+   * @default 6
+   */
+  minGap?: number;
 }
 
 export interface IAgentScopeRuntimeWebUITypography {
