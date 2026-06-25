@@ -9,6 +9,7 @@ export type UserMessageAnchor = {
   id: string;
   preview: string;
   attachments: AttachmentPreview[];
+  createdAt?: number;
   orderPercent: number;
 };
 
@@ -20,5 +21,6 @@ export type UserMessageAnchorsProps = {
   prefixCls: string;
   renderedItemsKey: string;
   scrollContainerClassName: string;
+  variant?: 'minimap' | 'navigator';
   onEnsureMessageVisible: (messageId: string) => Promise<void>;
 };

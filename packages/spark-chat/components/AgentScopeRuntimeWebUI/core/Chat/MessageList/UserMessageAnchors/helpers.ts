@@ -63,11 +63,26 @@ export function getUserMessageAnchor(message: IAgentScopeRuntimeWebUIMessage): U
   const preview = normalizePreviewText(text || attachmentPreview || '');
 
   return {
+    createdAt: request?.created_at,
     id: message.id,
     attachments,
     orderPercent: 0,
     preview: preview || 'User message',
   };
+}
+
+export function getAnchorTimeText(createdAt?: number) {
+  if (!createdAt) return '';
+
+  const timestamp = createdAt < 10000000000 ? createdAt * 1000 : createdAt;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${month}月${day}日 ${hour}:${minute}`;
 }
 
 export function getUserMessageAnchorMinCount(minCount?: number) {

@@ -128,6 +128,7 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
       prefixCls={prefixCls}
       renderedItemsKey={renderedItemsKey}
       scrollContainerClassName={scrollContainerClassName}
+      variant={userMessageAnchorsOptions?.variant}
     />
   </div>
 }

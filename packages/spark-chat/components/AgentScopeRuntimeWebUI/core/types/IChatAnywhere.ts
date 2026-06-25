@@ -157,6 +157,12 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
 
 export interface IAgentScopeRuntimeWebUIUserMessageAnchorsOptions {
   /**
+   * @description 锚点导航样式：minimap 为右侧横杠缩略图，navigator 为上/目录/下三按钮导航
+   * @descriptionEn Anchor navigation style: minimap renders right-side bars, navigator renders up/directory/down buttons
+   * @default 'minimap'
+   */
+  variant?: 'minimap' | 'navigator';
+  /**
    * @description 是否展示用户消息锚点
    * @descriptionEn Whether to show user message anchors
    * @default true

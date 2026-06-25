@@ -1,17 +1,19 @@
-import { Tooltip } from "@agentscope-ai/design";
+import { Popover, Tooltip } from '@agentscope-ai/design';
 import cls from 'classnames';
-import React, { useCallback, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, List as ListIcon, LocateFixed } from 'lucide-react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   areAnchorPositionsEqual,
   clamp,
   getActiveAnchorId,
+  getAnchorTimeText,
   getMessageElementInScrollContainer,
   getUserMessageAnchor,
   getUserMessageAnchorMinGap,
   getUserMessageAnchorMinCount,
   scrollTargetIntoContainerCenter,
-} from "./helpers";
-import type { UserMessageAnchor, UserMessageAnchorsProps } from "./types";
+} from './helpers';
+import type { UserMessageAnchor, UserMessageAnchorsProps } from './types';
 
 type UserMessageAnchorGroup = {
   active: boolean;
@@ -23,6 +25,16 @@ type UserMessageAnchorGroup = {
 
 const ANCHOR_CONTENT_GAP = 24;
 const ANCHOR_TRACK_WIDTH = 32;
+const NAVIGATOR_TRACK_WIDTH = 44;
+
+function getAnchorAttachmentText(anchor: UserMessageAnchor) {
+  const countByType = anchor.attachments.reduce<Record<string, number>>((result, attachment) => {
+    result[attachment.type] = (result[attachment.type] || 0) + 1;
+    return result;
+  }, {});
+
+  return Object.entries(countByType).map(([type, count]) => `${type}：${count}`).join(' · ');
+}
 
 function UserMessageAnchorTooltip(props: {
   anchors: UserMessageAnchor[];
@@ -39,14 +51,17 @@ function UserMessageAnchorTooltip(props: {
       <div className={`${prefixCls}-anchor-tooltip`}>
         <div className={`${prefixCls}-anchor-tooltip-text`}>{anchors.length} user messages</div>
         <div className={`${prefixCls}-anchor-tooltip-attachments`}>
-          {previewAnchors.map((anchor) => (
-            <div className={`${prefixCls}-anchor-tooltip-attachment`} key={anchor.id}>
-              <span className={`${prefixCls}-anchor-tooltip-attachment-name`}>
-                {anchor.preview}
-                {anchor.attachments.length ? ` · ${anchor.attachments.length} attachment${anchor.attachments.length > 1 ? 's' : ''}` : ''}
-              </span>
-            </div>
-          ))}
+          {previewAnchors.map((anchor) => {
+            const attachmentText = getAnchorAttachmentText(anchor);
+
+            return (
+              <div className={`${prefixCls}-anchor-tooltip-attachment`} key={anchor.id}>
+                <span className={`${prefixCls}-anchor-tooltip-attachment-name`}>
+                  {[getAnchorTimeText(anchor.createdAt), anchor.preview, attachmentText].filter(Boolean).join(' · ')}
+                </span>
+              </div>
+            );
+          })}
           {anchors.length > previewAnchors.length ? (
             <div className={`${prefixCls}-anchor-tooltip-attachment`}>
               <span className={`${prefixCls}-anchor-tooltip-attachment-type`}>More</span>
@@ -62,17 +77,91 @@ function UserMessageAnchorTooltip(props: {
 
   return (
     <div className={`${prefixCls}-anchor-tooltip`}>
+      {firstAnchor.createdAt ? (
+        <div className={`${prefixCls}-anchor-tooltip-time`}>{getAnchorTimeText(firstAnchor.createdAt)}</div>
+      ) : null}
       <div className={`${prefixCls}-anchor-tooltip-text`}>{firstAnchor.preview}</div>
       {firstAnchor.attachments.length ? (
         <div className={`${prefixCls}-anchor-tooltip-attachments`}>
-          {firstAnchor.attachments.map((attachment, index) => (
-            <div className={`${prefixCls}-anchor-tooltip-attachment`} key={`${attachment.type}-${index}`}>
-              <span className={`${prefixCls}-anchor-tooltip-attachment-type`}>{attachment.type}</span>
-              <span className={`${prefixCls}-anchor-tooltip-attachment-name`}>{attachment.name}</span>
-            </div>
-          ))}
+          <div className={`${prefixCls}-anchor-tooltip-attachment`}>
+            <span className={`${prefixCls}-anchor-tooltip-attachment-name`}>
+              {getAnchorAttachmentText(firstAnchor)}
+            </span>
+          </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function UserMessageAnchorDirectory(props: {
+  anchors: UserMessageAnchor[];
+  activeAnchorId?: string;
+  prefixCls: string;
+  onAnchorClick: (messageId: string) => void;
+}) {
+  const { anchors, activeAnchorId, prefixCls, onAnchorClick } = props;
+  const activeItemRef = React.useRef<HTMLButtonElement | null>(null);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+
+  const scrollActiveItemIntoView = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
+    const activeItem = activeItemRef.current;
+    const list = listRef.current;
+    if (!activeItem || !list) return;
+
+    const itemOffsetTop = activeItem.offsetTop;
+    const nextScrollTop = itemOffsetTop - (list.clientHeight - activeItem.offsetHeight) / 2;
+    list.scrollTo({
+      top: Math.max(0, nextScrollTop),
+      behavior: 'smooth',
+    });
+  }, []);
+
+  return (
+    <div className={`${prefixCls}-anchor-directory`}>
+      <div className={`${prefixCls}-anchor-directory-title`}>
+        <span>导航 ({anchors.length})</span>
+        <button
+          aria-label="Scroll directory to active user message"
+          className={`${prefixCls}-anchor-directory-locate`}
+          disabled={!activeAnchorId}
+          onClick={scrollActiveItemIntoView}
+          type="button"
+        >
+          <LocateFixed size={14} />
+        </button>
+      </div>
+      <div className={`${prefixCls}-anchor-directory-list`} ref={listRef}>
+        {anchors.map((anchor) => {
+          const timeText = getAnchorTimeText(anchor.createdAt);
+          const attachmentText = getAnchorAttachmentText(anchor);
+          const active = anchor.id === activeAnchorId;
+
+          return (
+            <button
+              className={cls(`${prefixCls}-anchor-directory-item`, {
+                [`${prefixCls}-anchor-directory-item-active`]: active,
+              })}
+              key={anchor.id}
+              onClick={() => onAnchorClick(anchor.id)}
+              ref={active ? activeItemRef : undefined}
+              type="button"
+            >
+              <span className={`${prefixCls}-anchor-directory-main`}>
+                <span className={`${prefixCls}-anchor-directory-message`}>{anchor.preview}</span>
+                {timeText ? (
+                  <span className={`${prefixCls}-anchor-directory-time`}>{timeText}</span>
+                ) : null}
+              </span>
+              {attachmentText ? (
+                <span className={`${prefixCls}-anchor-directory-attachments`}>{attachmentText}</span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -142,6 +231,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     prefixCls,
     renderedItemsKey,
     scrollContainerClassName,
+    variant = 'minimap',
     onEnsureMessageVisible,
   } = props;
   const anchorTrackRef = React.useRef<HTMLElement | null>(null);
@@ -181,9 +271,10 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     const rootRect = root?.getBoundingClientRect();
     const scrollRect = scrollEl.getBoundingClientRect();
     if (rootRect) {
+      const trackWidth = variant === 'navigator' ? NAVIGATOR_TRACK_WIDTH : ANCHOR_TRACK_WIDTH;
       const nextAnchorRight = Math.round(Math.max(
         12,
-        rootRect.right - scrollRect.right - ANCHOR_CONTENT_GAP - ANCHOR_TRACK_WIDTH,
+        rootRect.right - scrollRect.right - ANCHOR_CONTENT_GAP - trackWidth,
       ));
       setAnchorRight((prev) => prev === nextAnchorRight ? prev : nextAnchorRight);
     }
@@ -215,7 +306,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
 
     const nextActiveAnchorId = getActiveAnchorId(scrollEl, anchors);
     setActiveAnchorId((prev) => prev === nextActiveAnchorId ? prev : nextActiveAnchorId);
-  }, [anchors, prefixCls, scrollContainerClassName]);
+  }, [anchors, prefixCls, scrollContainerClassName, variant]);
 
   const updateAnchors = useCallback(() => {
     if (frameRef.current) {
@@ -309,6 +400,71 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   ]);
 
   if (!visible) return null;
+
+  const activeAnchorIndex = activeAnchorId
+    ? anchors.findIndex((anchor) => anchor.id === activeAnchorId)
+    : anchors.length - 1;
+  const normalizedActiveAnchorIndex = activeAnchorIndex >= 0 ? activeAnchorIndex : anchors.length - 1;
+  const previousAnchor = normalizedActiveAnchorIndex > 0 ? anchors[normalizedActiveAnchorIndex - 1] : undefined;
+  const nextAnchor = normalizedActiveAnchorIndex < anchors.length - 1
+    ? anchors[normalizedActiveAnchorIndex + 1]
+    : undefined;
+
+  if (variant === 'navigator') {
+    return (
+      <nav
+        aria-label="User message navigation"
+        className={cls(`${prefixCls}-anchors`, `${prefixCls}-anchors-navigator`)}
+        ref={anchorTrackRef}
+        style={anchorRight === undefined ? undefined : { right: anchorRight }}
+      >
+        <button
+          aria-label="Scroll to previous user message"
+          className={`${prefixCls}-anchor-nav-button`}
+          disabled={!previousAnchor}
+          onClick={() => previousAnchor && handleAnchorClick(previousAnchor.id)}
+          type="button"
+        >
+          <ChevronUp size={18} />
+        </button>
+        <Popover
+          content={(
+            <UserMessageAnchorDirectory
+              activeAnchorId={activeAnchorId}
+              anchors={anchors}
+              onAnchorClick={handleAnchorClick}
+              prefixCls={prefixCls}
+            />
+          )}
+          overlayClassName={`${prefixCls}-anchor-directory-popover`}
+          placement="left"
+          styles={{ body: { padding: 0 } }}
+          trigger="hover"
+        >
+          <button
+            aria-current={activeAnchorId ? 'location' : undefined}
+            aria-label="Open user message directory"
+            className={cls(`${prefixCls}-anchor-nav-button`, `${prefixCls}-anchor-nav-button-menu`, {
+              [`${prefixCls}-anchor-nav-button-active`]: !!activeAnchorId,
+            })}
+            type="button"
+          >
+            <ListIcon size={18} />
+            <span className={`${prefixCls}-anchor-nav-count`}>{anchors.length}</span>
+          </button>
+        </Popover>
+        <button
+          aria-label="Scroll to next user message"
+          className={`${prefixCls}-anchor-nav-button`}
+          disabled={!nextAnchor}
+          onClick={() => nextAnchor && handleAnchorClick(nextAnchor.id)}
+          type="button"
+        >
+          <ChevronDown size={18} />
+        </button>
+      </nav>
+    );
+  }
 
   const anchorGroups = getAnchorGroups(anchors, anchorPositions, activeAnchorId, normalizedMinGap, trackHeight);
 
