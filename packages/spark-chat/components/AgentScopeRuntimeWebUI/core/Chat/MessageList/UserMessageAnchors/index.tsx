@@ -29,6 +29,12 @@ const ANCHOR_CONTENT_GAP = 24;
 const ANCHOR_TRACK_WIDTH = 32;
 const NAVIGATOR_TRACK_WIDTH = 44;
 
+function waitForNextFrame() {
+  return new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+}
+
 function getAnchorAttachmentText(anchor: UserMessageAnchor) {
   const countByType = anchor.attachments.reduce<Record<string, number>>((result, attachment) => {
     result[attachment.type] = (result[attachment.type] || 0) + 1;
@@ -99,16 +105,15 @@ function UserMessageAnchorTooltip(props: {
 function UserMessageAnchorDirectory(props: {
   anchors: UserMessageAnchor[];
   activeAnchorId?: string;
+  openVersion: number;
   prefixCls: string;
   onAnchorClick: (messageId: string) => void;
 }) {
-  const { anchors, activeAnchorId, prefixCls, onAnchorClick } = props;
+  const { anchors, activeAnchorId, openVersion, prefixCls, onAnchorClick } = props;
   const activeItemRef = React.useRef<HTMLButtonElement | null>(null);
   const listRef = React.useRef<HTMLDivElement | null>(null);
 
-  const scrollActiveItemIntoView = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-
+  const scrollActiveItemIntoView = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const activeItem = activeItemRef.current;
     const list = listRef.current;
     if (!activeItem || !list) return;
@@ -117,9 +122,18 @@ function UserMessageAnchorDirectory(props: {
     const nextScrollTop = itemOffsetTop - (list.clientHeight - activeItem.offsetHeight) / 2;
     list.scrollTo({
       top: Math.max(0, nextScrollTop),
-      behavior: 'smooth',
+      behavior,
     });
   }, []);
+
+  React.useEffect(() => {
+    if (!activeAnchorId || !openVersion) return;
+    const frame = window.requestAnimationFrame(() => {
+      scrollActiveItemIntoView('auto');
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeAnchorId, openVersion, scrollActiveItemIntoView]);
 
   return (
     <div className={`${prefixCls}-anchor-directory`}>
@@ -129,7 +143,10 @@ function UserMessageAnchorDirectory(props: {
           aria-label="Scroll directory to active user message"
           className={`${prefixCls}-anchor-directory-locate`}
           disabled={!activeAnchorId}
-          onClick={scrollActiveItemIntoView}
+          onClick={(event) => {
+            event.stopPropagation();
+            scrollActiveItemIntoView('smooth');
+          }}
           type="button"
         >
           <LocateFixed size={14} />
@@ -242,6 +259,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const [anchorPositions, setAnchorPositions] = useState<Record<string, number>>({});
   const [activeAnchorId, setActiveAnchorId] = useState<string | undefined>();
   const [anchorRight, setAnchorRight] = useState<number | undefined>();
+  const [directoryOpenVersion, setDirectoryOpenVersion] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
   const normalizedMinGap = useMemo(() => getUserMessageAnchorMinGap(minGap), [minGap]);
   const normalizedMinCount = useMemo(() => getUserMessageAnchorMinCount(minCount), [minCount]);
@@ -384,16 +402,20 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const handleAnchorClick = useCallback(async (messageId: string) => {
     await onEnsureMessageVisible(messageId);
     cancelPendingAnchorPositionUpdate();
-    measureAnchors();
     setActiveAnchorId(messageId);
 
     const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
     const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
     if (!scrollEl) return;
 
-    const target = getMessageElementInScrollContainer(scrollEl, messageId);
+    let target = getMessageElementInScrollContainer(scrollEl, messageId);
+    for (let index = 0; index < 3 && !target; index += 1) {
+      await waitForNextFrame();
+      target = getMessageElementInScrollContainer(scrollEl, messageId);
+    }
     if (!target) return;
 
+    await waitForNextFrame();
     scrollTargetIntoContainerCenter(scrollEl, target);
     target.classList.remove(`${prefixCls}-anchor-target-active`);
     window.requestAnimationFrame(() => {
@@ -401,6 +423,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       window.setTimeout(() => {
         target.classList.remove(`${prefixCls}-anchor-target-active`);
       }, 1200);
+      measureAnchors();
     });
   }, [
     cancelPendingAnchorPositionUpdate,
@@ -444,9 +467,13 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
               activeAnchorId={activeAnchorId}
               anchors={anchors}
               onAnchorClick={handleAnchorClick}
+              openVersion={directoryOpenVersion}
               prefixCls={prefixCls}
             />
           )}
+          onOpenChange={(open) => {
+            if (open) setDirectoryOpenVersion((prev) => prev + 1);
+          }}
           overlayClassName={`${prefixCls}-anchor-directory-popover`}
           placement="left"
           styles={{ body: { padding: 0 } }}

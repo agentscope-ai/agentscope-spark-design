@@ -163,25 +163,27 @@ function getScrollBoundaryAnchorId(scrollEl: HTMLElement, anchors: UserMessageAn
 }
 
 export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnchor[]) {
-  const boundaryAnchorId = getScrollBoundaryAnchorId(scrollEl, anchors);
+  const targetMap = getMessageElementMapInScrollContainer(scrollEl);
+  const renderedAnchors = anchors.filter((anchor) => targetMap.has(anchor.id));
+  const boundaryAnchorId = getScrollBoundaryAnchorId(scrollEl, renderedAnchors);
   if (boundaryAnchorId) return boundaryAnchorId;
 
   const scrollRect = scrollEl.getBoundingClientRect();
   const viewportCenter = scrollRect.top + scrollRect.height / 2;
-  const anchorIds = new Set(anchors.map((anchor) => anchor.id));
-  const targets = Array.from(scrollEl.querySelectorAll<HTMLElement>('[data-role][id]'))
-    .filter((target) => anchorIds.has(target.id));
   let activeAnchorId: string | undefined;
   let minDistance = Number.POSITIVE_INFINITY;
 
-  targets.forEach((target) => {
+  renderedAnchors.forEach((anchor) => {
+    const target = targetMap.get(anchor.id);
+    if (!target) return;
+
     const targetRect = target.getBoundingClientRect();
     const targetCenter = targetRect.top + targetRect.height / 2;
     const distance = Math.abs(targetCenter - viewportCenter);
 
     if (distance < minDistance) {
       minDistance = distance;
-      activeAnchorId = target.id;
+      activeAnchorId = anchor.id;
     }
   });
 

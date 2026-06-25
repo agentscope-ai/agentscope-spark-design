@@ -63,7 +63,7 @@ function useSimulatedMessagePagination(
       const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
       if (historyIndex >= historyDisplayCount) {
         flushSync(() => {
-          setHistoryDisplayCount(historyIndex + 1);
+          setHistoryDisplayCount(Math.min(historyMessages.length, historyIndex + PAGE_SIZE));
         });
       }
 
