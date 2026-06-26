@@ -190,14 +190,25 @@ export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnc
   return activeAnchorId;
 }
 
-export function scrollTargetIntoContainerCenter(scrollEl: HTMLElement, target: HTMLElement) {
+export function getTargetCenterOffset(scrollEl: HTMLElement, target: HTMLElement) {
   const scrollRect = scrollEl.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
   const targetCenter = targetRect.top + targetRect.height / 2;
   const containerCenter = scrollRect.top + scrollRect.height / 2;
 
+  return targetCenter - containerCenter;
+}
+
+export function scrollTargetIntoContainerCenter(
+  scrollEl: HTMLElement,
+  target: HTMLElement,
+  behavior: ScrollBehavior = 'smooth',
+) {
+  const offset = getTargetCenterOffset(scrollEl, target);
+  if (Math.abs(offset) < 1) return;
+
   scrollEl.scrollBy({
-    top: targetCenter - containerCenter,
-    behavior: 'smooth',
+    top: offset,
+    behavior,
   });
 }

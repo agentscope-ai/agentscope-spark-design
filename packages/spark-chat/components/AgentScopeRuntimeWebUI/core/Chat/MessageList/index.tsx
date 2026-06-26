@@ -61,9 +61,12 @@ function useSimulatedMessagePagination(
   const ensureMessageVisible = useCallback((messageId: string) => {
     return new Promise<void>((resolve) => {
       const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
-      if (historyIndex >= historyDisplayCount) {
+      const nextHistoryDisplayCount = historyIndex >= 0
+        ? Math.min(historyMessages.length, historyIndex + PAGE_SIZE * 2)
+        : historyDisplayCount;
+      if (nextHistoryDisplayCount > historyDisplayCount) {
         flushSync(() => {
-          setHistoryDisplayCount(Math.min(historyMessages.length, historyIndex + PAGE_SIZE));
+          setHistoryDisplayCount(nextHistoryDisplayCount);
         });
       }
 

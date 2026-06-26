@@ -7,6 +7,7 @@ import {
   clamp,
   getActiveAnchorId,
   getAnchorTimeText,
+  getTargetCenterOffset,
   getMessageElementInScrollContainer,
   getMessageElementMapInScrollContainer,
   getUserMessageAnchorBadgeText,
@@ -28,11 +29,62 @@ type UserMessageAnchorGroup = {
 const ANCHOR_CONTENT_GAP = 24;
 const ANCHOR_TRACK_WIDTH = 32;
 const NAVIGATOR_TRACK_WIDTH = 44;
+const TARGET_CENTER_TOLERANCE = 2;
+const TARGET_CENTER_STABLE_FRAMES = 4;
+const TARGET_CENTER_SETTLE_TIMEOUT = 1600;
+const TARGET_CENTER_CORRECTION_DELAY = 360;
 
 function waitForNextFrame() {
   return new Promise<void>((resolve) => {
     window.requestAnimationFrame(() => resolve());
   });
+}
+
+async function waitForMessageElement(scrollEl: HTMLElement, messageId: string) {
+  let target = getMessageElementInScrollContainer(scrollEl, messageId);
+  for (let index = 0; index < 3 && !target; index += 1) {
+    await waitForNextFrame();
+    target = getMessageElementInScrollContainer(scrollEl, messageId);
+  }
+  return target;
+}
+
+async function scrollTargetIntoContainerCenterAndSettle(
+  scrollEl: HTMLElement,
+  messageId: string,
+  initialTarget: HTMLElement,
+) {
+  let target = initialTarget;
+  let previousOffset: number | undefined;
+  let stableFrames = 0;
+  const startTime = window.performance.now();
+
+  scrollTargetIntoContainerCenter(scrollEl, target);
+
+  while (window.performance.now() - startTime < TARGET_CENTER_SETTLE_TIMEOUT) {
+    await waitForNextFrame();
+
+    target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
+    const offset = getTargetCenterOffset(scrollEl, target);
+    if (Math.abs(offset) <= TARGET_CENTER_TOLERANCE) {
+      stableFrames += 1;
+      if (stableFrames >= TARGET_CENTER_STABLE_FRAMES) return target;
+      continue;
+    }
+
+    stableFrames = 0;
+    const elapsed = window.performance.now() - startTime;
+    const offsetSettled = previousOffset !== undefined && Math.abs(offset - previousOffset) < 0.5;
+    if (elapsed > TARGET_CENTER_CORRECTION_DELAY && offsetSettled) {
+      scrollTargetIntoContainerCenter(scrollEl, target, 'auto');
+    }
+    previousOffset = offset;
+  }
+
+  target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
+  scrollTargetIntoContainerCenter(scrollEl, target, 'auto');
+  await waitForNextFrame();
+  return target;
 }
 
 function getAnchorAttachmentText(anchor: UserMessageAnchor) {
@@ -255,7 +307,9 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     onEnsureMessageVisible,
   } = props;
   const anchorTrackRef = React.useRef<HTMLElement | null>(null);
+  const activeAnchorLockRef = React.useRef<string | undefined>();
   const frameRef = React.useRef<number | undefined>();
+  const scrollSequenceRef = React.useRef(0);
   const [anchorPositions, setAnchorPositions] = useState<Record<string, number>>({});
   const [activeAnchorId, setActiveAnchorId] = useState<string | undefined>();
   const [anchorRight, setAnchorRight] = useState<number | undefined>();
@@ -300,7 +354,15 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       setAnchorRight((prev) => prev === nextAnchorRight ? prev : nextAnchorRight);
     }
 
-    const nextActiveAnchorId = getActiveAnchorId(scrollEl, anchors);
+    const lockedAnchorId = activeAnchorLockRef.current;
+    const lockedAnchorExists = !!lockedAnchorId && anchors.some((anchor) => anchor.id === lockedAnchorId);
+    if (lockedAnchorId && !lockedAnchorExists) {
+      activeAnchorLockRef.current = undefined;
+    }
+
+    const nextActiveAnchorId = lockedAnchorExists
+      ? lockedAnchorId
+      : getActiveAnchorId(scrollEl, anchors);
     setActiveAnchorId((prev) => prev === nextActiveAnchorId ? prev : nextActiveAnchorId);
 
     if (variant === 'navigator') {
@@ -357,6 +419,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   React.useEffect(() => {
     cancelPendingAnchorPositionUpdate();
     if (!visible) {
+      activeAnchorLockRef.current = undefined;
       setAnchorPositions((prev) => Object.keys(prev).length ? {} : prev);
       setActiveAnchorId((prev) => prev === undefined ? prev : undefined);
       return;
@@ -400,28 +463,52 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   ]);
 
   const handleAnchorClick = useCallback(async (messageId: string) => {
-    await onEnsureMessageVisible(messageId);
-    cancelPendingAnchorPositionUpdate();
+    const scrollSequence = scrollSequenceRef.current + 1;
+    scrollSequenceRef.current = scrollSequence;
+    activeAnchorLockRef.current = messageId;
     setActiveAnchorId(messageId);
+
+    try {
+      await onEnsureMessageVisible(messageId);
+    } catch {
+      if (scrollSequenceRef.current === scrollSequence) {
+        activeAnchorLockRef.current = undefined;
+        measureAnchors();
+      }
+      return;
+    }
+    cancelPendingAnchorPositionUpdate();
 
     const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
     const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
-    if (!scrollEl) return;
-
-    let target = getMessageElementInScrollContainer(scrollEl, messageId);
-    for (let index = 0; index < 3 && !target; index += 1) {
-      await waitForNextFrame();
-      target = getMessageElementInScrollContainer(scrollEl, messageId);
+    if (!scrollEl) {
+      if (scrollSequenceRef.current === scrollSequence) {
+        activeAnchorLockRef.current = undefined;
+      }
+      return;
     }
-    if (!target) return;
+
+    const target = await waitForMessageElement(scrollEl, messageId);
+    if (!target) {
+      if (scrollSequenceRef.current === scrollSequence) {
+        activeAnchorLockRef.current = undefined;
+        measureAnchors();
+      }
+      return;
+    }
 
     await waitForNextFrame();
-    scrollTargetIntoContainerCenter(scrollEl, target);
-    target.classList.remove(`${prefixCls}-anchor-target-active`);
+    const centeredTarget = await scrollTargetIntoContainerCenterAndSettle(scrollEl, messageId, target);
+    if (scrollSequenceRef.current !== scrollSequence) return;
+
+    activeAnchorLockRef.current = undefined;
+    setActiveAnchorId(messageId);
+    cancelPendingAnchorPositionUpdate();
+    centeredTarget.classList.remove(`${prefixCls}-anchor-target-active`);
     window.requestAnimationFrame(() => {
-      target.classList.add(`${prefixCls}-anchor-target-active`);
+      centeredTarget.classList.add(`${prefixCls}-anchor-target-active`);
       window.setTimeout(() => {
-        target.classList.remove(`${prefixCls}-anchor-target-active`);
+        centeredTarget.classList.remove(`${prefixCls}-anchor-target-active`);
       }, 1200);
       measureAnchors();
     });
