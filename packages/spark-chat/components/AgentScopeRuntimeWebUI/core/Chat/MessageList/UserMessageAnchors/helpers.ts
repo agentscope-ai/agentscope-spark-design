@@ -190,19 +190,20 @@ export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnc
   return activeAnchorId;
 }
 
-export function getTargetTopOffset(scrollEl: HTMLElement, target: HTMLElement) {
+export function getTargetTopOffset(scrollEl: HTMLElement, target: HTMLElement, topOffset = 0) {
   const scrollRect = scrollEl.getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
 
-  return targetRect.top - scrollRect.top;
+  return targetRect.top - scrollRect.top - topOffset;
 }
 
 export function scrollTargetIntoContainerTop(
   scrollEl: HTMLElement,
   target: HTMLElement,
   behavior: ScrollBehavior = 'smooth',
+  topOffset = 0,
 ) {
-  const offset = getTargetTopOffset(scrollEl, target);
+  const offset = getTargetTopOffset(scrollEl, target, topOffset);
   if (Math.abs(offset) < 1) return;
 
   scrollEl.scrollBy({

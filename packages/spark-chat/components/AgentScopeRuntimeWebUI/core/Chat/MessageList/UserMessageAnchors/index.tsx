@@ -34,6 +34,7 @@ const TARGET_TOP_TOLERANCE = 2;
 const TARGET_TOP_STABLE_FRAMES = 4;
 const TARGET_TOP_SETTLE_TIMEOUT = 1600;
 const TARGET_TOP_CORRECTION_DELAY = 360;
+const TARGET_TOP_SAFE_OFFSET = 96;
 const SCROLL_EDGE_TOLERANCE = 2;
 
 function waitForNextFrame() {
@@ -79,13 +80,13 @@ async function scrollTargetIntoContainerTopAndSettle(
   let stableFrames = 0;
   const startTime = window.performance.now();
 
-  scrollTargetIntoContainerTop(scrollEl, target);
+  scrollTargetIntoContainerTop(scrollEl, target, 'smooth', TARGET_TOP_SAFE_OFFSET);
 
   while (window.performance.now() - startTime < TARGET_TOP_SETTLE_TIMEOUT) {
     await waitForNextFrame();
 
     target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-    const offset = getTargetTopOffset(scrollEl, target);
+    const offset = getTargetTopOffset(scrollEl, target, TARGET_TOP_SAFE_OFFSET);
     if (Math.abs(offset) <= TARGET_TOP_TOLERANCE) {
       stableFrames += 1;
       if (stableFrames >= TARGET_TOP_STABLE_FRAMES) return target;
@@ -100,13 +101,13 @@ async function scrollTargetIntoContainerTopAndSettle(
     const elapsed = window.performance.now() - startTime;
     const offsetSettled = previousOffset !== undefined && Math.abs(offset - previousOffset) < 0.5;
     if (elapsed > TARGET_TOP_CORRECTION_DELAY && offsetSettled) {
-      scrollTargetIntoContainerTop(scrollEl, target, 'auto');
+      scrollTargetIntoContainerTop(scrollEl, target, 'auto', TARGET_TOP_SAFE_OFFSET);
     }
     previousOffset = offset;
   }
 
   target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-  scrollTargetIntoContainerTop(scrollEl, target, 'auto');
+  scrollTargetIntoContainerTop(scrollEl, target, 'auto', TARGET_TOP_SAFE_OFFSET);
   await waitForNextFrame();
   return target;
 }
