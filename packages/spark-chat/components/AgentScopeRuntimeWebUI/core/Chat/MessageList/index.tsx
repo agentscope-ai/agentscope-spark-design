@@ -11,14 +11,23 @@ import { flushSync } from "react-dom";
 import UserMessageAnchors from "./UserMessageAnchors";
 
 const PAGE_SIZE = 10;
-const ANCHOR_JUMP_RENDER_CHUNK_SIZE = 40;
+const ANCHOR_JUMP_WINDOW_BEFORE = 24;
+const ANCHOR_JUMP_WINDOW_AFTER = 36;
 
 type MessageWithHistory = IAgentScopeRuntimeWebUIMessage & { history?: boolean };
+type HistoryRange = { start: number; end: number };
 
 function waitForNextFrame() {
   return new Promise<void>((resolve) => {
     requestAnimationFrame(() => resolve());
   });
+}
+
+function getAnchorJumpHistoryRange(historyIndex: number, historyLength: number): HistoryRange {
+  return {
+    start: Math.max(0, historyIndex - ANCHOR_JUMP_WINDOW_BEFORE),
+    end: Math.min(historyLength, historyIndex + ANCHOR_JUMP_WINDOW_AFTER),
+  };
 }
 
 /**
@@ -30,12 +39,12 @@ function useSimulatedMessagePagination(
   allMessages: MessageWithHistory[],
   sessionId: string | undefined,
 ) {
-  const [historyDisplayCount, setHistoryDisplayCount] = useState(PAGE_SIZE);
+  const [historyRange, setHistoryRange] = useState<HistoryRange>({ start: 0, end: PAGE_SIZE });
   const ensureMessageSequenceRef = React.useRef(0);
 
   React.useLayoutEffect(() => {
     ensureMessageSequenceRef.current += 1;
-    setHistoryDisplayCount(PAGE_SIZE);
+    setHistoryRange({ start: 0, end: PAGE_SIZE });
   }, [sessionId]);
 
   const historyMessages = useMemo(
@@ -47,8 +56,8 @@ function useSimulatedMessagePagination(
     [allMessages],
   );
 
-  const visibleHistory = historyMessages.slice(0, historyDisplayCount);
-  const noMore = historyDisplayCount >= historyMessages.length;
+  const visibleHistory = historyMessages.slice(historyRange.start, historyRange.end);
+  const noMore = historyRange.end >= historyMessages.length;
 
   // 新消息在前（最新），历史分页消息在后（较旧）
   const visibleMessages = useMemo(
@@ -60,49 +69,35 @@ function useSimulatedMessagePagination(
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         flushSync(() => {
-          setHistoryDisplayCount((prev) => prev + PAGE_SIZE);
+          setHistoryRange((prev) => ({
+            start: prev.start,
+            end: Math.min(historyMessages.length, prev.end + PAGE_SIZE),
+          }));
         });
         resolve();
       }, 300);
     });
-  }, []);
+  }, [historyMessages.length]);
 
   const ensureMessageVisible = useCallback(async (messageId: string) => {
     const sequence = ensureMessageSequenceRef.current + 1;
     ensureMessageSequenceRef.current = sequence;
 
     const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
-    const nextHistoryDisplayCount = historyIndex >= 0
-      ? Math.min(historyMessages.length, historyIndex + PAGE_SIZE * 2)
-      : historyDisplayCount;
-
     await waitForNextFrame();
 
-    let renderedCount = historyDisplayCount;
-    while (renderedCount < nextHistoryDisplayCount) {
-      if (ensureMessageSequenceRef.current !== sequence) {
-        throw new Error('Message visibility request was superseded');
-      }
-
-      const chunkDisplayCount = Math.min(
-        nextHistoryDisplayCount,
-        renderedCount + ANCHOR_JUMP_RENDER_CHUNK_SIZE,
-      );
-
+    if (historyIndex >= 0) {
+      const nextRange = getAnchorJumpHistoryRange(historyIndex, historyMessages.length);
       flushSync(() => {
-        setHistoryDisplayCount((prev) => {
-          renderedCount = Math.max(prev, chunkDisplayCount);
-          return renderedCount;
-        });
+        setHistoryRange(nextRange);
       });
-
-      if (renderedCount < nextHistoryDisplayCount) {
-        await waitForNextFrame();
-      }
     }
 
+    if (ensureMessageSequenceRef.current !== sequence) {
+      throw new Error('Message visibility request was superseded');
+    }
     await waitForNextFrame();
-  }, [historyDisplayCount, historyMessages]);
+  }, [historyMessages]);
 
   return { visibleMessages, noMore, loadMore, ensureMessageVisible };
 }
