@@ -273,15 +273,16 @@ export default function useChatController() {
     sessionId: string | undefined,
     messages: IAgentScopeRuntimeWebUIMessage[],
   ) => {
-    if (!queueEnabled || !sessionId) return;
+    const queueSessionId = resolveQueueSessionId(sessionId);
+    if (!queueSessionId) return;
 
     broadcastRef.current?.postMessage({
       type: 'input-queue-messages-change',
-      sessionId,
+      sessionId: queueSessionId,
       messages,
       sourceTabId: tabIdRef.current,
     });
-  }, [queueEnabled]);
+  }, [resolveQueueSessionId]);
 
   const canExecuteQueue = useCallback((state = inputQueueStateRef.current) => {
     return isInputQueueOwnedByTab(state, tabIdRef.current);
@@ -354,7 +355,7 @@ export default function useChatController() {
 
         if (event.data?.type === 'input-queue-messages-change') {
           if (event.data.sourceTabId === tabIdRef.current) return;
-          if (event.data.sessionId !== getVisibleChatSessionId()) return;
+          if (event.data.sessionId !== getVisibleQueueSessionId()) return;
           setMessages(event.data.messages || []);
         }
       };
