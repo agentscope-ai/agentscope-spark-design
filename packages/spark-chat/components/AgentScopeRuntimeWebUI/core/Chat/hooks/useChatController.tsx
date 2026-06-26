@@ -151,6 +151,7 @@ export default function useChatController() {
   // input loading flag, because switching conversations changes which session
   // the input state represents while the previous session may still stream.
   const activeQueueSessionIdsRef = useRef<Set<string>>(new Set());
+  const pendingPeerReconnectSessionRef = useRef<string | undefined>(undefined);
   const processedCommandIdRef = useRef<string | undefined>(undefined);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
@@ -378,7 +379,33 @@ export default function useChatController() {
         if (event.data?.type === 'input-queue-messages-change') {
           if (event.data.sourceTabId === tabIdRef.current) return;
           if (event.data.sessionId !== getVisibleQueueSessionId()) return;
-          setMessages(event.data.messages || []);
+
+          // The queue owner is the single writer for streaming messages. Ignore
+          // snapshots from peer tabs so a reconnecting peer cannot replace the
+          // owner's response id and later create a duplicate assistant message.
+          if (canExecuteQueue(inputQueueStateRef.current)) return;
+
+          const messages = event.data.messages || [];
+          currentQARef.current.abortController?.abort();
+          currentQARef.current.response = undefined;
+          currentQARef.current.activeRequestId += 1;
+          setMessages(messages);
+
+          const queueSessionId = event.data.sessionId;
+          if (findGeneratingResponse(messages)) {
+            markQueueSessionActive(queueSessionId);
+            setLoading(true);
+          } else {
+            markQueueSessionIdle(queueSessionId);
+            setLoading(false);
+            pendingPeerReconnectSessionRef.current = undefined;
+            if (queueDrainBlockedSessionRef.current === queueSessionId) {
+              queueDrainBlockedSessionRef.current = undefined;
+            }
+            setTimeout(() => {
+              void drainQueueRef.current?.();
+            }, 0);
+          }
         }
       };
     }
@@ -388,7 +415,14 @@ export default function useChatController() {
       broadcastRef.current?.close();
       broadcastRef.current = null;
     };
-  }, [getVisibleQueueSessionId, setMessages]);
+  }, [
+    canExecuteQueue,
+    getVisibleQueueSessionId,
+    markQueueSessionActive,
+    markQueueSessionIdle,
+    setLoading,
+    setMessages,
+  ]);
 
   /**
    * The first tab that starts the queue owns real sending. This heartbeat keeps
@@ -937,11 +971,26 @@ export default function useChatController() {
   const handleReconnect = useCallback(async (sessionId: string) => {
     if (!sessionId || sessionId !== currentSessionIdRef.current) return;
 
+    const queueSessionId = resolveQueueSessionId(sessionId);
+    const queueState = readQueueState(queueSessionId);
+    if (
+      queueSessionId &&
+      !isInputQueueStateEmpty(queueState) &&
+      !canExecuteQueue(queueState)
+    ) {
+      pendingPeerReconnectSessionRef.current = queueSessionId;
+      markQueueSessionActive(queueSessionId);
+      setLoading(true);
+      return;
+    }
+    if (pendingPeerReconnectSessionRef.current === queueSessionId) {
+      pendingPeerReconnectSessionRef.current = undefined;
+    }
+
     currentQARef.current.abortController?.abort();
     currentQARef.current.abortController = new AbortController();
     const myRequestId = ++currentQARef.current.activeRequestId;
     currentQARef.current.activeSessionId = sessionId;
-    const queueSessionId = resolveQueueSessionId(sessionId);
     markQueueSessionActive(queueSessionId);
     setLoading(true);
 
@@ -979,7 +1028,32 @@ export default function useChatController() {
       }
       scheduleDrainQueue();
     }
-  }, [markQueueSessionActive, markQueueSessionIdle, messageHandler, reconnect, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
+  }, [canExecuteQueue, markQueueSessionActive, markQueueSessionIdle, messageHandler, readQueueState, reconnect, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
+
+  useEffect(() => {
+    const queueSessionId = currentQueueSessionId;
+    if (
+      !queueSessionId ||
+      pendingPeerReconnectSessionRef.current !== queueSessionId ||
+      !canExecuteQueue(inputQueueState)
+    ) {
+      return;
+    }
+
+    const chatSessionId = getVisibleChatSessionId();
+    if (!chatSessionId) return;
+
+    pendingPeerReconnectSessionRef.current = undefined;
+    markQueueSessionIdle(queueSessionId);
+    void handleReconnect(chatSessionId);
+  }, [
+    canExecuteQueue,
+    currentQueueSessionId,
+    getVisibleChatSessionId,
+    handleReconnect,
+    inputQueueState,
+    markQueueSessionIdle,
+  ]);
 
   // On session switch: abort current SSE (without notifying backend cancel)
   // and reset state. Also increment activeRequestId so any residual SSE
