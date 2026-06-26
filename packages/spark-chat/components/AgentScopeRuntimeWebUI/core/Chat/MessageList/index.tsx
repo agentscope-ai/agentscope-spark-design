@@ -11,8 +11,15 @@ import { flushSync } from "react-dom";
 import UserMessageAnchors from "./UserMessageAnchors";
 
 const PAGE_SIZE = 10;
+const ANCHOR_JUMP_RENDER_CHUNK_SIZE = 40;
 
 type MessageWithHistory = IAgentScopeRuntimeWebUIMessage & { history?: boolean };
+
+function waitForNextFrame() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+}
 
 /**
  * 模拟后端分页 Hook：
@@ -24,8 +31,10 @@ function useSimulatedMessagePagination(
   sessionId: string | undefined,
 ) {
   const [historyDisplayCount, setHistoryDisplayCount] = useState(PAGE_SIZE);
+  const ensureMessageSequenceRef = React.useRef(0);
 
   React.useLayoutEffect(() => {
+    ensureMessageSequenceRef.current += 1;
     setHistoryDisplayCount(PAGE_SIZE);
   }, [sessionId]);
 
@@ -58,22 +67,41 @@ function useSimulatedMessagePagination(
     });
   }, []);
 
-  const ensureMessageVisible = useCallback((messageId: string) => {
-    return new Promise<void>((resolve) => {
-      const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
-      const nextHistoryDisplayCount = historyIndex >= 0
-        ? Math.min(historyMessages.length, historyIndex + PAGE_SIZE * 2)
-        : historyDisplayCount;
-      if (nextHistoryDisplayCount > historyDisplayCount) {
-        flushSync(() => {
-          setHistoryDisplayCount(nextHistoryDisplayCount);
-        });
+  const ensureMessageVisible = useCallback(async (messageId: string) => {
+    const sequence = ensureMessageSequenceRef.current + 1;
+    ensureMessageSequenceRef.current = sequence;
+
+    const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
+    const nextHistoryDisplayCount = historyIndex >= 0
+      ? Math.min(historyMessages.length, historyIndex + PAGE_SIZE * 2)
+      : historyDisplayCount;
+
+    await waitForNextFrame();
+
+    let renderedCount = historyDisplayCount;
+    while (renderedCount < nextHistoryDisplayCount) {
+      if (ensureMessageSequenceRef.current !== sequence) {
+        throw new Error('Message visibility request was superseded');
       }
 
-      requestAnimationFrame(() => {
-        resolve();
+      const chunkDisplayCount = Math.min(
+        nextHistoryDisplayCount,
+        renderedCount + ANCHOR_JUMP_RENDER_CHUNK_SIZE,
+      );
+
+      flushSync(() => {
+        setHistoryDisplayCount((prev) => {
+          renderedCount = Math.max(prev, chunkDisplayCount);
+          return renderedCount;
+        });
       });
-    });
+
+      if (renderedCount < nextHistoryDisplayCount) {
+        await waitForNextFrame();
+      }
+    }
+
+    await waitForNextFrame();
   }, [historyDisplayCount, historyMessages]);
 
   return { visibleMessages, noMore, loadMore, ensureMessageVisible };
