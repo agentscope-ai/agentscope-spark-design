@@ -127,13 +127,13 @@ function UserMessageAnchorDirectory(props: {
   }, []);
 
   React.useEffect(() => {
-    if (!activeAnchorId || !openVersion) return;
+    if (!openVersion) return;
     const frame = window.requestAnimationFrame(() => {
       scrollActiveItemIntoView('auto');
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [activeAnchorId, openVersion, scrollActiveItemIntoView]);
+  }, [openVersion, scrollActiveItemIntoView]);
 
   return (
     <div className={`${prefixCls}-anchor-directory`}>
