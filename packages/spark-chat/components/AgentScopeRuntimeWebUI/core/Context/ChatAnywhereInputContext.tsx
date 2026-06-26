@@ -23,8 +23,6 @@ export function ChatAnywhereInputContextProvider(props: {
   const [disabled, _setDisabled, getDisabled] = useGetState<boolean | string>(false);
 
   const stateMapRef = useRef<Record<string, { loading: boolean | string; disabled: boolean | string }>>({});
-  const prevSessionIdRef = useRef<string | undefined>(undefined);
-
   const setLoading = useCallback((value: boolean | string) => {
     const sessionId = getCurrentSessionId();
     if (sessionId) {
@@ -48,18 +46,13 @@ export function ChatAnywhereInputContextProvider(props: {
   }, [getCurrentSessionId, _setDisabled]);
 
   useEffect(() => {
-    if (prevSessionIdRef.current && prevSessionIdRef.current !== currentSessionId) {
-      if (stateMapRef.current[prevSessionIdRef.current]) {
-        stateMapRef.current[prevSessionIdRef.current].loading = false;
-        stateMapRef.current[prevSessionIdRef.current].disabled = false;
-      }
-    }
-
+    // Preserve the previous session state on switch. The frontend SSE is aborted
+    // during navigation, but the backend may still be generating; clearing
+    // loading here would make that session's queue drain before reconnect/load
+    // confirms the run has actually finished.
     const state = currentSessionId ? stateMapRef.current[currentSessionId] : undefined;
     _setLoading(state?.loading ?? false);
     _setDisabled(state?.disabled ?? false);
-
-    prevSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
   return <ChatAnywhereInputContext.Provider value={{ loading, setLoading, getLoading, disabled, setDisabled, getDisabled }}>

@@ -89,6 +89,10 @@ function isQueueSessionSwitchedError(error: unknown) {
   return error instanceof Error && error.message === 'input queue session switched';
 }
 
+function isChatRequestAbortedError(error: unknown) {
+  return error instanceof Error && error.message === 'chat request aborted';
+}
+
 /**
  * Chat controller hook — coordinates all chat-related operations.
  */
@@ -143,6 +147,10 @@ export default function useChatController() {
   const drainingRef = useRef(false);
   const drainQueueRef = useRef<(() => Promise<void>) | null>(null);
   const queueDrainBlockedSessionRef = useRef<string | undefined>(undefined);
+  // Queue execution is session-scoped and must not rely only on the visible
+  // input loading flag, because switching conversations changes which session
+  // the input state represents while the previous session may still stream.
+  const activeQueueSessionIdsRef = useRef<Set<string>>(new Set());
   const processedCommandIdRef = useRef<string | undefined>(undefined);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
 
@@ -205,6 +213,18 @@ export default function useChatController() {
   useEffect(() => {
     queueDrainBlockedSessionRef.current = currentQueueSessionId;
   }, [currentQueueSessionId]);
+
+  const markQueueSessionActive = useCallback((sessionId: string | undefined) => {
+    if (sessionId) activeQueueSessionIdsRef.current.add(sessionId);
+  }, []);
+
+  const markQueueSessionIdle = useCallback((sessionId: string | undefined) => {
+    if (sessionId) activeQueueSessionIdsRef.current.delete(sessionId);
+  }, []);
+
+  const isQueueSessionActive = useCallback((sessionId: string | undefined) => {
+    return !!sessionId && activeQueueSessionIdsRef.current.has(sessionId);
+  }, []);
 
   /**
    * Persist the queue for one session and fan the change out to all tabs.
@@ -368,7 +388,7 @@ export default function useChatController() {
       broadcastRef.current?.close();
       broadcastRef.current = null;
     };
-  }, [getVisibleChatSessionId, getVisibleQueueSessionId, setMessages]);
+  }, [getVisibleQueueSessionId, setMessages]);
 
   /**
    * The first tab that starts the queue owns real sending. This heartbeat keeps
@@ -483,7 +503,7 @@ export default function useChatController() {
         return assignInputQueueOwner(state, tabIdRef.current);
       });
 
-      if (!snapshot.paused) {
+      if (!snapshot.paused && !isQueueSessionActive(queueSessionId)) {
         scheduleDrainQueue();
       }
     };
@@ -496,7 +516,7 @@ export default function useChatController() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [currentQueueSessionId, readQueueState, scheduleDrainQueue, updateQueueState]);
+  }, [currentQueueSessionId, isQueueSessionActive, readQueueState, scheduleDrainQueue, updateQueueState]);
 
   const finishResponse = useCallback((status: 'finished' | 'interrupted' = 'finished') => {
     if (!currentQARef.current.response) return;
@@ -518,11 +538,12 @@ export default function useChatController() {
       activeSessionId,
     );
     const queueSessionId = resolveQueueSessionId(activeSessionId);
+    markQueueSessionIdle(queueSessionId);
     if (queueDrainBlockedSessionRef.current === queueSessionId) {
       queueDrainBlockedSessionRef.current = undefined;
     }
     scheduleDrainQueue();
-  }, [setLoading, messageHandler, sessionHandler, resolveQueueSessionId, scheduleDrainQueue, syncMessagesToPeerTabs]);
+  }, [setLoading, messageHandler, sessionHandler, resolveQueueSessionId, markQueueSessionIdle, scheduleDrainQueue, syncMessagesToPeerTabs]);
 
   // API request handling
   const { request, reconnect } = useChatRequest({
@@ -575,6 +596,7 @@ export default function useChatController() {
         assignInputQueueOwner(state, tabIdRef.current),
       );
     }
+    markQueueSessionActive(submitQueueSessionId);
 
     const myRequestId = ++currentQARef.current.activeRequestId;
     // activeSessionId was captured before queue ownership so session-less
@@ -592,8 +614,15 @@ export default function useChatController() {
     setLoading(true);
     await sleep(100);
 
-    // If requestId changed during the sleep (session switch / cancel / new submit), bail out
-    if (myRequestId !== currentQARef.current.activeRequestId) return;
+    // If requestId changed during the sleep (session switch / cancel / new submit),
+    // queued sends must be restored instead of silently dropping the dequeued item.
+    if (myRequestId !== currentQARef.current.activeRequestId) {
+      markQueueSessionIdle(submitQueueSessionId);
+      if (options?.queueSessionId) {
+        throw new Error('chat request aborted');
+      }
+      return;
+    }
 
     // 4. Create assistant response placeholder
     const responseMessage = messageHandler.createResponseMessage();
@@ -609,9 +638,21 @@ export default function useChatController() {
       submitSessionId,
     );
 
-    await request(historyMessages, data.biz_params, myRequestId);
+    try {
+      const accepted = await request(historyMessages, data.biz_params, myRequestId);
+      if (!accepted) {
+        throw new Error('chat request aborted');
+      }
+    } catch (error) {
+      markQueueSessionIdle(submitQueueSessionId);
+      if (options?.queueSessionId) {
+        throw error;
+      }
+      setLoading(false);
+      console.error(error);
+    }
     // mockRequest(mockdata);
-  }, [getVisibleQueueSessionId, messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
+  }, [getVisibleQueueSessionId, markQueueSessionActive, markQueueSessionIdle, messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
 
   const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
     const sessionId = getActiveQueueSessionId();
@@ -653,6 +694,7 @@ export default function useChatController() {
       !sessionId ||
       drainingRef.current ||
       getLoading() ||
+      isQueueSessionActive(sessionId) ||
       queueDrainBlockedSessionRef.current === sessionId
     ) return;
 
@@ -681,13 +723,13 @@ export default function useChatController() {
           queueSessionId: sessionId,
         });
       } catch (error) {
-        const sessionSwitched = isQueueSessionSwitchedError(error);
-        if (!sessionSwitched) {
+        const interrupted = isQueueSessionSwitchedError(error) || isChatRequestAbortedError(error);
+        if (!interrupted) {
           setLoading(false);
         }
         await updateQueueState(sessionId, current => ({
           ...current,
-          items: sessionSwitched
+          items: interrupted
             ? [nextItem, ...current.items]
             : restoreFailedQueuedInput(current.items, nextItem, error),
           updatedAt: Date.now(),
@@ -702,6 +744,7 @@ export default function useChatController() {
     getLoading,
     getActiveQueueSessionId,
     getVisibleChatSessionId,
+    isQueueSessionActive,
     readQueueState,
     setLoading,
     submitNow,
@@ -734,6 +777,7 @@ export default function useChatController() {
   useEffect(() => {
     if (
       !getLoading() &&
+      !isQueueSessionActive(currentQueueSessionId) &&
       queueDrainBlockedSessionRef.current !== currentQueueSessionId &&
       inputQueueSessionId === currentQueueSessionId &&
       inputQueueState.items.length > 0 &&
@@ -742,7 +786,7 @@ export default function useChatController() {
     ) {
       scheduleDrainQueue();
     }
-  }, [canExecuteQueue, currentQueueSessionId, getLoading, inputQueueSessionId, inputQueueState, scheduleDrainQueue]);
+  }, [canExecuteQueue, currentQueueSessionId, getLoading, inputQueueSessionId, inputQueueState, isQueueSessionActive, scheduleDrainQueue]);
 
 
   const handleApproval = useCallback(async ({ input }) => {
@@ -897,6 +941,8 @@ export default function useChatController() {
     currentQARef.current.abortController = new AbortController();
     const myRequestId = ++currentQARef.current.activeRequestId;
     currentQARef.current.activeSessionId = sessionId;
+    const queueSessionId = resolveQueueSessionId(sessionId);
+    markQueueSessionActive(queueSessionId);
     setLoading(true);
 
     const existingResponse = findGeneratingResponse(messageHandler.getMessages());
@@ -927,13 +973,13 @@ export default function useChatController() {
         messageHandler.removeMessageById(currentQARef.current.response.id);
       }
       currentQARef.current.response = undefined;
-      const queueSessionId = resolveQueueSessionId(sessionId);
+      markQueueSessionIdle(queueSessionId);
       if (queueDrainBlockedSessionRef.current === queueSessionId) {
         queueDrainBlockedSessionRef.current = undefined;
       }
       scheduleDrainQueue();
     }
-  }, [messageHandler, reconnect, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
+  }, [markQueueSessionActive, markQueueSessionIdle, messageHandler, reconnect, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
 
   // On session switch: abort current SSE (without notifying backend cancel)
   // and reset state. Also increment activeRequestId so any residual SSE
@@ -987,7 +1033,12 @@ export default function useChatController() {
       const queueSessionId = resolveQueueSessionId(sessionId);
       if (queueSessionId !== currentQueueSessionId) return;
 
-      if (data.detail?.generating) return;
+      if (data.detail?.generating) {
+        markQueueSessionActive(queueSessionId);
+        return;
+      }
+      markQueueSessionIdle(queueSessionId);
+      setLoading(false);
 
       if (queueDrainBlockedSessionRef.current === queueSessionId) {
         queueDrainBlockedSessionRef.current = undefined;
@@ -995,7 +1046,7 @@ export default function useChatController() {
 
       scheduleDrainQueue();
     },
-  }, [currentQueueSessionId, resolveQueueSessionId, scheduleDrainQueue]);
+  }, [currentQueueSessionId, markQueueSessionActive, markQueueSessionIdle, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
 
   // Listen for regenerate events
   useChatAnywhereEventEmitter({

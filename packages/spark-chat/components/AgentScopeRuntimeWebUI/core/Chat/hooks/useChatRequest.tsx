@@ -198,7 +198,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     const abortSignal = currentQARef.current.abortController?.signal;
     const requestId = myRequestId ?? currentQARef.current.activeRequestId;
     const sessionId = currentQARef.current.activeSessionId ?? getCurrentSessionId();
-    let response
+    let response: Response | undefined;
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
         input: historyMessages,
@@ -219,11 +219,16 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         signal: abortSignal,
       });
     } catch (error) {
+      if (abortSignal?.aborted) return false;
+      throw error;
     }
 
     if (response && response.body) {
       await processSSEResponse(response, requestId, sessionId);
+      return true;
     }
+
+    return false;
   }, [getCurrentSessionId, currentQARef, processSSEResponse]);
 
   const reconnect = useCallback(async (sessionId: string, myRequestId?: number) => {
