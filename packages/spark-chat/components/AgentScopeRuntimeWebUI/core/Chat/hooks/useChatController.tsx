@@ -14,6 +14,8 @@ import {
   createSendNowCommand,
   dequeueNextQueuedInput,
   enqueueInputQueueState,
+  INPUT_QUEUE_OWNER_CLAIM_INTERVAL,
+  INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
   getInputQueueStorageKey,
   getInputQueueTabId,
   isInputQueueStateEmpty,
@@ -387,7 +389,10 @@ export default function useChatController() {
     };
 
     refreshOwner();
-    const timer = window.setInterval(refreshOwner, 5000);
+    const timer = window.setInterval(
+      refreshOwner,
+      INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
+    );
     return () => {
       window.clearInterval(timer);
     };
@@ -462,7 +467,8 @@ export default function useChatController() {
 
   /**
    * TTL expiry does not trigger a React render by itself. Poll lightly so an
-   * open peer tab can reclaim a queue after the original owner tab disappears.
+   * open peer tab can reclaim a queue soon after the original owner tab
+   * disappears or refreshes.
    */
   useEffect(() => {
     const queueSessionId = currentQueueSessionId;
@@ -483,7 +489,10 @@ export default function useChatController() {
     };
 
     claimAvailableOwner();
-    const timer = window.setInterval(claimAvailableOwner, 5000);
+    const timer = window.setInterval(
+      claimAvailableOwner,
+      INPUT_QUEUE_OWNER_CLAIM_INTERVAL,
+    );
     return () => {
       window.clearInterval(timer);
     };

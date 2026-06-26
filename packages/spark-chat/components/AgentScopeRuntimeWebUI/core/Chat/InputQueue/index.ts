@@ -43,7 +43,9 @@ export interface QueueEnqueueResult {
 }
 
 export const MAX_INPUT_QUEUE_SIZE = 50;
-export const INPUT_QUEUE_OWNER_TTL = 60_000;
+export const INPUT_QUEUE_OWNER_TTL = 10_000;
+export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
+export const INPUT_QUEUE_OWNER_CLAIM_INTERVAL = 1_000;
 export const INPUT_QUEUE_STORAGE_PREFIX = 'agentscope-runtime-webui-input-queue';
 
 let queueId = 0;
