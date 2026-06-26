@@ -7,14 +7,14 @@ import {
   clamp,
   getActiveAnchorId,
   getAnchorTimeText,
-  getTargetCenterOffset,
   getMessageElementInScrollContainer,
   getMessageElementMapInScrollContainer,
+  getTargetTopOffset,
   getUserMessageAnchorBadgeText,
   getUserMessageAnchor,
   getUserMessageAnchorMinGap,
   getUserMessageAnchorMinCount,
-  scrollTargetIntoContainerCenter,
+  scrollTargetIntoContainerTop,
 } from './helpers';
 import type { UserMessageAnchor, UserMessageAnchorsProps } from './types';
 
@@ -29,10 +29,12 @@ type UserMessageAnchorGroup = {
 const ANCHOR_CONTENT_GAP = 24;
 const ANCHOR_TRACK_WIDTH = 32;
 const NAVIGATOR_TRACK_WIDTH = 44;
-const TARGET_CENTER_TOLERANCE = 2;
-const TARGET_CENTER_STABLE_FRAMES = 4;
-const TARGET_CENTER_SETTLE_TIMEOUT = 1600;
-const TARGET_CENTER_CORRECTION_DELAY = 360;
+const TARGET_ACTIVE_DURATION = 1200;
+const TARGET_TOP_TOLERANCE = 2;
+const TARGET_TOP_STABLE_FRAMES = 4;
+const TARGET_TOP_SETTLE_TIMEOUT = 1600;
+const TARGET_TOP_CORRECTION_DELAY = 360;
+const SCROLL_EDGE_TOLERANCE = 2;
 
 function waitForNextFrame() {
   return new Promise<void>((resolve) => {
@@ -49,7 +51,25 @@ async function waitForMessageElement(scrollEl: HTMLElement, messageId: string) {
   return target;
 }
 
-async function scrollTargetIntoContainerCenterAndSettle(
+function isScrollAtBoundaryForOffset(scrollEl: HTMLElement, offset: number) {
+  if (Math.abs(offset) <= TARGET_TOP_TOLERANCE) return false;
+
+  const maxScrollDistance = Math.max(scrollEl.scrollHeight - scrollEl.clientHeight, 0);
+  const isDescOrder = scrollEl.className.includes('bubble-list-order-desc');
+
+  if (isDescOrder) {
+    const scrollDistance = Math.abs(scrollEl.scrollTop);
+    if (offset > 0) return scrollDistance <= SCROLL_EDGE_TOLERANCE;
+    return maxScrollDistance - scrollDistance <= SCROLL_EDGE_TOLERANCE;
+  }
+
+  if (offset > 0) {
+    return maxScrollDistance - scrollEl.scrollTop <= SCROLL_EDGE_TOLERANCE;
+  }
+  return scrollEl.scrollTop <= SCROLL_EDGE_TOLERANCE;
+}
+
+async function scrollTargetIntoContainerTopAndSettle(
   scrollEl: HTMLElement,
   messageId: string,
   initialTarget: HTMLElement,
@@ -59,30 +79,34 @@ async function scrollTargetIntoContainerCenterAndSettle(
   let stableFrames = 0;
   const startTime = window.performance.now();
 
-  scrollTargetIntoContainerCenter(scrollEl, target);
+  scrollTargetIntoContainerTop(scrollEl, target);
 
-  while (window.performance.now() - startTime < TARGET_CENTER_SETTLE_TIMEOUT) {
+  while (window.performance.now() - startTime < TARGET_TOP_SETTLE_TIMEOUT) {
     await waitForNextFrame();
 
     target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-    const offset = getTargetCenterOffset(scrollEl, target);
-    if (Math.abs(offset) <= TARGET_CENTER_TOLERANCE) {
+    const offset = getTargetTopOffset(scrollEl, target);
+    if (Math.abs(offset) <= TARGET_TOP_TOLERANCE) {
       stableFrames += 1;
-      if (stableFrames >= TARGET_CENTER_STABLE_FRAMES) return target;
+      if (stableFrames >= TARGET_TOP_STABLE_FRAMES) return target;
       continue;
+    }
+
+    if (isScrollAtBoundaryForOffset(scrollEl, offset)) {
+      return target;
     }
 
     stableFrames = 0;
     const elapsed = window.performance.now() - startTime;
     const offsetSettled = previousOffset !== undefined && Math.abs(offset - previousOffset) < 0.5;
-    if (elapsed > TARGET_CENTER_CORRECTION_DELAY && offsetSettled) {
-      scrollTargetIntoContainerCenter(scrollEl, target, 'auto');
+    if (elapsed > TARGET_TOP_CORRECTION_DELAY && offsetSettled) {
+      scrollTargetIntoContainerTop(scrollEl, target, 'auto');
     }
     previousOffset = offset;
   }
 
   target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-  scrollTargetIntoContainerCenter(scrollEl, target, 'auto');
+  scrollTargetIntoContainerTop(scrollEl, target, 'auto');
   await waitForNextFrame();
   return target;
 }
@@ -498,19 +522,21 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     }
 
     await waitForNextFrame();
-    const centeredTarget = await scrollTargetIntoContainerCenterAndSettle(scrollEl, messageId, target);
+    const targetAtTop = await scrollTargetIntoContainerTopAndSettle(scrollEl, messageId, target);
     if (scrollSequenceRef.current !== scrollSequence) return;
 
-    activeAnchorLockRef.current = undefined;
     setActiveAnchorId(messageId);
     cancelPendingAnchorPositionUpdate();
-    centeredTarget.classList.remove(`${prefixCls}-anchor-target-active`);
+    targetAtTop.classList.remove(`${prefixCls}-anchor-target-active`);
     window.requestAnimationFrame(() => {
-      centeredTarget.classList.add(`${prefixCls}-anchor-target-active`);
+      targetAtTop.classList.add(`${prefixCls}-anchor-target-active`);
       window.setTimeout(() => {
-        centeredTarget.classList.remove(`${prefixCls}-anchor-target-active`);
-      }, 1200);
-      measureAnchors();
+        targetAtTop.classList.remove(`${prefixCls}-anchor-target-active`);
+        if (scrollSequenceRef.current === scrollSequence) {
+          activeAnchorLockRef.current = undefined;
+          measureAnchors();
+        }
+      }, TARGET_ACTIVE_DURATION);
     });
   }, [
     cancelPendingAnchorPositionUpdate,

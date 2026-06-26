@@ -332,19 +332,22 @@ export default createGlobalStyle`
   overflow-wrap: anywhere;
 }
 
-.${(p) => p.theme.prefixCls}-chat-anywhere-message-list-anchor-target-active {
-  animation: user-message-anchor-pulse 1.2s ease;
+.${(p) => p.theme.prefixCls}-chat-anywhere-message-list-anchor-target-active .${(p) =>
+  p.theme.prefixCls}-bubble-content-wrapper-card {
+  animation: user-message-anchor-shadow-box 1.2s ease;
 }
 
-@keyframes user-message-anchor-pulse {
+@keyframes user-message-anchor-shadow-box {
   0% {
-    filter: drop-shadow(0 0 0 ${(p) => p.theme.colorPrimaryBorder});
+    box-shadow: 0 0 0 0 ${(p) => p.theme.colorPrimaryBorder};
   }
   40% {
-    filter: drop-shadow(0 0 12px ${(p) => p.theme.colorPrimaryBorder});
+    box-shadow:
+      0 0 0 2px ${(p) => p.theme.colorPrimaryBorder},
+      0 10px 30px -12px ${(p) => p.theme.colorPrimary};
   }
   100% {
-    filter: drop-shadow(0 0 0 ${(p) => p.theme.colorPrimaryBorder});
+    box-shadow: 0 0 0 0 ${(p) => p.theme.colorPrimaryBorder};
   }
 }
 
