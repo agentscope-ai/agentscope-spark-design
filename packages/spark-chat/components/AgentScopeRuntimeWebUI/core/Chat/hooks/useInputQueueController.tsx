@@ -109,6 +109,7 @@ export default function useInputQueueController(
     handleReconnectRef,
   } = options;
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
+  const getMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.getMessages);
   const apiOptions = useChatAnywhereOptions(v => v.api);
   const sessionApiOptions = useChatAnywhereOptions(v => v.session?.api);
   const queueOptions = useChatAnywhereOptions(v => v.sender?.queue);
@@ -587,6 +588,52 @@ export default function useInputQueueController(
     }
   }, []);
 
+  const releasePeerTakeoverBlock = useCallback((
+    queueSessionId: string,
+    queueState: InputQueueState,
+  ) => {
+    if (!isInputQueueOwnedByTab(queueState, tabIdRef.current)) return;
+
+    const messages = getMessages();
+    const mirroredGenerating = !!findGeneratingResponse(messages);
+    const blockedByPeer =
+      pendingPeerReconnectSessionRef.current === queueSessionId ||
+      isQueueSessionActive(queueSessionId) ||
+      mirroredGenerating;
+
+    if (blockedByPeer) {
+      pendingPeerReconnectSessionRef.current = undefined;
+      markQueueSessionIdle(queueSessionId);
+      if (queueDrainBlockedSessionRef.current === queueSessionId) {
+        queueDrainBlockedSessionRef.current = undefined;
+      }
+      currentQARef.current.abortController?.abort();
+      currentQARef.current.response = undefined;
+      currentQARef.current.activeRequestId += 1;
+      setLoading(false);
+
+      if (mirroredGenerating) {
+        setMessages(messages.map(item =>
+          item.role === 'assistant' && item.msgStatus === 'generating'
+            ? { ...item, msgStatus: 'interrupted' }
+            : item,
+        ));
+      }
+    }
+
+    if (!queueState.paused) {
+      scheduleDrainQueue(queueSessionId);
+    }
+  }, [
+    currentQARef,
+    getMessages,
+    isQueueSessionActive,
+    markQueueSessionIdle,
+    scheduleDrainQueue,
+    setLoading,
+    setMessages,
+  ]);
+
   const rotateTabIdentity = useCallback(() => {
     tabIdRef.current = resetInputQueueTabId();
     const next = readQueueState(currentQueueSessionId);
@@ -815,14 +862,12 @@ export default function useInputQueueController(
       const snapshot = readQueueState(queueSessionId);
       if (!shouldClaimInputQueueOwner(snapshot, tabIdRef.current)) return;
 
-      void updateQueueState(queueSessionId, state => {
+      void Promise.resolve(updateQueueState(queueSessionId, state => {
         if (!shouldClaimInputQueueOwner(state, tabIdRef.current)) return state;
         return assignInputQueueOwner(state, tabIdRef.current);
+      })).then(nextState => {
+        releasePeerTakeoverBlock(queueSessionId, nextState);
       });
-
-      if (!snapshot.paused && !isQueueSessionActive(queueSessionId)) {
-        scheduleDrainQueue(queueSessionId);
-      }
     };
 
     claimAvailableOwner();
@@ -833,7 +878,7 @@ export default function useInputQueueController(
     return () => {
       window.clearInterval(timer);
     };
-  }, [currentQueueSessionId, isQueueSessionActive, readQueueState, scheduleDrainQueue, updateQueueState]);
+  }, [currentQueueSessionId, readQueueState, releasePeerTakeoverBlock, updateQueueState]);
 
   useEffect(() => {
     if (
