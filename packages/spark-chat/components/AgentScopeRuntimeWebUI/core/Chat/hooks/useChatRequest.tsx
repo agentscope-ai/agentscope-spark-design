@@ -21,6 +21,27 @@ interface UseChatRequestOptions {
   onFinish: () => void;
 }
 
+const FINISHED_RUNTIME_STATUSES = [
+  AgentScopeRuntimeRunStatus.Completed,
+  AgentScopeRuntimeRunStatus.Canceled,
+  AgentScopeRuntimeRunStatus.Failed,
+];
+
+function isRuntimeStatusFinished(status?: AgentScopeRuntimeRunStatus | string) {
+  return FINISHED_RUNTIME_STATUSES.includes(status as AgentScopeRuntimeRunStatus);
+}
+
+function isRuntimeResponseFinished(response: ReturnType<AgentScopeRuntimeResponseBuilder['handle']>) {
+  if (isRuntimeStatusFinished(response.status)) return true;
+
+  const output = response.output || [];
+  return output.length > 0 && output.every(message => {
+    if (!isRuntimeStatusFinished(message.status)) return false;
+    const content = message.content || [];
+    return content.every(item => isRuntimeStatusFinished(item.status));
+  });
+}
+
 /**
  * Hook for handling API requests and streaming SSE responses.
  */
@@ -66,7 +87,6 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     myRequestId: number,
     mySessionId?: string,
   ) => {
-    const currentApiOptions = apiOptionsRef.current;
     const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
       id: '',
       status: AgentScopeRuntimeRunStatus.Created,
@@ -144,9 +164,11 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
         const responseParser = apiOptionsRef.current.responseParser || JSON.parse;
         const chunkData = responseParser(chunk.data);
+        if (chunkData === null || chunkData === undefined) continue;
         const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
+        const finished = isRuntimeResponseFinished(res);
 
-        if (res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.some(msg => msg.content?.length)) continue;
+        if (!finished && res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.some(msg => msg.content?.length)) continue;
 
         if (!isStillActive()) break;
 
@@ -158,7 +180,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
             }
           ];
 
-          if (res.status === AgentScopeRuntimeRunStatus.Completed || res.status === AgentScopeRuntimeRunStatus.Failed) {
+          if (finished) {
             onFinish();
           } else {
             updateMessage(currentQARef.current.response);
