@@ -33,6 +33,10 @@ import {
   getInputQueueVisibleSessionId,
   resolveInputQueueSessionId,
 } from '../session';
+import {
+  persistInputQueueState,
+  readInputQueueState,
+} from '../storage';
 
 const input = (query: string) => ({ query });
 
@@ -63,6 +67,37 @@ function installSessionStorageMock() {
       delete (globalThis as typeof globalThis & {
         sessionStorage?: Storage;
       }).sessionStorage;
+    }
+  };
+}
+
+function installLocalStorageMock() {
+  const previousDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'localStorage',
+  );
+  const storage = new Map<string, string>();
+
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value);
+      },
+      removeItem: (key: string) => {
+        storage.delete(key);
+      },
+    },
+  });
+
+  return () => {
+    if (previousDescriptor) {
+      Object.defineProperty(globalThis, 'localStorage', previousDescriptor);
+    } else {
+      delete (globalThis as typeof globalThis & {
+        localStorage?: Storage;
+      }).localStorage;
     }
   };
 }
@@ -677,6 +712,35 @@ test('switching sessions keeps each session queue isolated by storage key', () =
     getInputQueueStorageKey('session-a'),
     getInputQueueStorageKey('session-b'),
   );
+});
+
+test('persisted queue state round trips and removes empty ownerless state', () => {
+  const restoreLocalStorage = installLocalStorageMock();
+  try {
+    const queued = enqueueInputQueueState(
+      createEmptyInputQueueState(1),
+      input('stored'),
+      { id: 'q1', now: 2 },
+    ).state;
+
+    persistInputQueueState('session-a', queued);
+    assert.deepEqual(
+      readInputQueueState('session-a').items.map((item) => item.data.query),
+      ['stored'],
+    );
+    assert.notEqual(
+      localStorage.getItem(getInputQueueStorageKey('session-a')),
+      null,
+    );
+
+    persistInputQueueState('session-a', createEmptyInputQueueState(3));
+    assert.equal(
+      localStorage.getItem(getInputQueueStorageKey('session-a')),
+      null,
+    );
+  } finally {
+    restoreLocalStorage();
+  }
 });
 
 test('two tabs opened on the same session share a queue key but keep one send owner', () => {
