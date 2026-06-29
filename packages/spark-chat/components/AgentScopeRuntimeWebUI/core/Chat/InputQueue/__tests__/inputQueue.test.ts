@@ -21,6 +21,7 @@ import {
   updateQueuedInputQuery,
 } from '../index';
 import {
+  areInputQueueSessionsEquivalent,
   getInputQueueRouteQueueSessionId,
   getInputQueueVisibleChatSessionId,
   getInputQueueVisibleSessionId,
@@ -415,6 +416,39 @@ test('custom queue session resolver can keep CoPaw temp id and real id on one st
       getSessionId: getStableBackendSessionId,
     }),
     'temp-1700000000000',
+  );
+});
+
+test('queue session equivalence follows the custom stable queue key', () => {
+  const backendSessionById = new Map([
+    ['temp-1700000000000', 'temp-1700000000000'],
+    ['real-chat-uuid', 'temp-1700000000000'],
+  ]);
+  const getStableBackendSessionId = (sessionId?: string) =>
+    backendSessionById.get(sessionId || '') || sessionId;
+
+  assert.equal(
+    areInputQueueSessionsEquivalent(
+      'temp-1700000000000',
+      'real-chat-uuid',
+      {
+        queueEnabled: true,
+        getSessionId: getStableBackendSessionId,
+      },
+    ),
+    true,
+  );
+  assert.equal(
+    areInputQueueSessionsEquivalent('session-a', 'session-b', {
+      queueEnabled: true,
+    }),
+    false,
+  );
+  assert.equal(
+    areInputQueueSessionsEquivalent('session-a', 'session-a', {
+      queueEnabled: false,
+    }),
+    true,
   );
 });
 

@@ -19,6 +19,19 @@ export function resolveInputQueueSessionId(
   return resolved;
 }
 
+export function areInputQueueSessionsEquivalent(
+  left: string | undefined,
+  right: string | undefined,
+  options: InputQueueSessionResolverOptions,
+) {
+  if (left === right) return true;
+  if (!left || !right) return false;
+
+  const leftQueueSessionId = resolveInputQueueSessionId(left, options);
+  const rightQueueSessionId = resolveInputQueueSessionId(right, options);
+  return !!leftQueueSessionId && leftQueueSessionId === rightQueueSessionId;
+}
+
 export function getInputQueueVisibleChatSessionId(
   snapshot: InputQueueSessionSnapshot,
 ) {

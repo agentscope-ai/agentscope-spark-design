@@ -37,6 +37,7 @@
 | IQ-M02 | 初始化会话生成中再次输入   | 首条消息已发送，后端/路由尚未产生稳定 sessionId | 再次尝试入队               | 不发起入队，出现“当前会话生成中”提示，输入不被清空  |
 | IQ-M03 | 初始化会话 pending id 可用 | createSession 已返回 id，但外部 route 还未回填  | 再次输入                   | 队列绑定 pending id，不落到空 key                   |
 | IQ-M04 | realId 回填后队列不丢      | 新会话已有队列，随后 URL 更新到真实 id          | 查看队列                   | 队列仍展示在同一会话，不丢失、不串到其他会话        |
+| IQ-M04b | realId 回填不打断 drain    | 新会话首条消息 SSE 中已有队列，随后 URL 更新到真实 id | 等待首条 SSE 完成          | SSE 不被误判为切会话而中断；finish 后自动 drain 下一条 |
 | IQ-M05 | 切换 session 隔离          | session A 有队列，session B 无队列              | 从 A 切到 B，再切回 A      | B 不显示 A 队列；切回 A 队列仍在                    |
 | IQ-M06 | 切换时队列任务不写入新会话 | A 正在 drain 队列，用户切到 B                   | 等待队列发送               | A 的任务不渲染到 B；若检测到切换，任务恢复到 A 队列 |
 | IQ-M07 | 多 tab 同 session 同步     | 两个标签页打开同一 session                      | tab-a 入队，tab-b 观察     | tab-b 同步显示队列                                  |

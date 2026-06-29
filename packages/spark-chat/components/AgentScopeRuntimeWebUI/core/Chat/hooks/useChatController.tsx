@@ -19,7 +19,6 @@ import {
   getInputQueueStorageKey,
   getInputQueueTabId,
   isInputQueueStateEmpty,
-  isInputQueueOwner,
   isInputQueueOwnedByTab,
   MAX_INPUT_QUEUE_SIZE,
   normalizeInputQueueState,
@@ -33,6 +32,7 @@ import {
   type QueueEnqueueResult,
 } from "../InputQueue";
 import {
+  areInputQueueSessionsEquivalent,
   getInputQueueRouteQueueSessionId,
   getInputQueueVisibleChatSessionId,
   getInputQueueVisibleSessionId,
@@ -1067,9 +1067,25 @@ export default function useChatController() {
   // sessions unable to send messages until a new chat was created.
   useEffect(() => {
     const prevSessionId = currentQARef.current.activeSessionId;
-    if (!prevSessionId || prevSessionId === currentSessionId) {
-      // First mount, or no real switch: just sync the snapshot, do not bump.
-      currentQARef.current.activeSessionId = currentSessionId;
+    const sameQueueSession = areInputQueueSessionsEquivalent(
+      prevSessionId,
+      currentSessionId,
+      {
+        queueEnabled,
+        getSessionId: getQueueSessionId,
+      },
+    );
+    if (
+      !prevSessionId ||
+      prevSessionId === currentSessionId ||
+      sameQueueSession
+    ) {
+      // First mount, no real switch, or the external route replaced a local
+      // session id with an equivalent backend id. Keep an in-flight response
+      // bound to its original id so the SSE active-session guard can finish.
+      if (!currentQARef.current.response) {
+        currentQARef.current.activeSessionId = currentSessionId;
+      }
       return;
     }
 
@@ -1090,7 +1106,7 @@ export default function useChatController() {
       currentQARef.current.abortController?.abort();
       currentQARef.current.activeRequestId += 1;
     };
-  }, [currentSessionId]);
+  }, [currentSessionId, getQueueSessionId, queueEnabled]);
 
   // Listen for reconnect events
   useChatAnywhereEventEmitter({
