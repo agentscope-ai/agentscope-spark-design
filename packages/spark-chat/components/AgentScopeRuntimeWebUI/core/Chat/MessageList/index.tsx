@@ -16,6 +16,7 @@ const ANCHOR_JUMP_WINDOW_AFTER = 36;
 
 type MessageWithHistory = IAgentScopeRuntimeWebUIMessage & { history?: boolean };
 type HistoryRange = { start: number; end: number };
+const INITIAL_HISTORY_RANGE: HistoryRange = { start: 0, end: PAGE_SIZE };
 
 function waitForNextFrame() {
   return new Promise<void>((resolve) => {
@@ -30,6 +31,10 @@ function getAnchorJumpHistoryRange(historyIndex: number, historyLength: number):
   };
 }
 
+function areHistoryRangesEqual(prev: HistoryRange, next: HistoryRange) {
+  return prev.start === next.start && prev.end === next.end;
+}
+
 /**
  * 模拟后端分页 Hook：
  * - history 消息（会话加载时的历史记录）按页展示，滚动触底时加载更多
@@ -39,13 +44,25 @@ function useSimulatedMessagePagination(
   allMessages: MessageWithHistory[],
   sessionId: string | undefined,
 ) {
-  const [historyRange, setHistoryRange] = useState<HistoryRange>({ start: 0, end: PAGE_SIZE });
+  const [historyRange, setHistoryRangeState] = useState<HistoryRange>(INITIAL_HISTORY_RANGE);
+  const historyRangeRef = React.useRef<HistoryRange>(INITIAL_HISTORY_RANGE);
   const ensureMessageSequenceRef = React.useRef(0);
+
+  const setHistoryRange = useCallback((nextRange: HistoryRange) => {
+    historyRangeRef.current = nextRange;
+    setHistoryRangeState((prev) => areHistoryRangesEqual(prev, nextRange) ? prev : nextRange);
+  }, []);
+
+  const updateHistoryRange = useCallback((updater: (prev: HistoryRange) => HistoryRange) => {
+    const nextRange = updater(historyRangeRef.current);
+    historyRangeRef.current = nextRange;
+    setHistoryRangeState((prev) => areHistoryRangesEqual(prev, nextRange) ? prev : nextRange);
+  }, []);
 
   React.useLayoutEffect(() => {
     ensureMessageSequenceRef.current += 1;
-    setHistoryRange({ start: 0, end: PAGE_SIZE });
-  }, [sessionId]);
+    setHistoryRange(INITIAL_HISTORY_RANGE);
+  }, [sessionId, setHistoryRange]);
 
   const historyMessages = useMemo(
     () => allMessages.filter((m) => m.history),
@@ -69,7 +86,7 @@ function useSimulatedMessagePagination(
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         flushSync(() => {
-          setHistoryRange((prev) => ({
+          updateHistoryRange((prev) => ({
             start: prev.start,
             end: Math.min(historyMessages.length, prev.end + PAGE_SIZE),
           }));
@@ -77,7 +94,7 @@ function useSimulatedMessagePagination(
         resolve();
       }, 300);
     });
-  }, [historyMessages.length]);
+  }, [historyMessages.length, updateHistoryRange]);
 
   const ensureMessageVisible = useCallback(async (messageId: string) => {
     const sequence = ensureMessageSequenceRef.current + 1;
@@ -86,18 +103,28 @@ function useSimulatedMessagePagination(
     const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
     await waitForNextFrame();
 
+    if (ensureMessageSequenceRef.current !== sequence) {
+      throw new Error('Message visibility request was superseded');
+    }
+
     if (historyIndex >= 0) {
-      const nextRange = getAnchorJumpHistoryRange(historyIndex, historyMessages.length);
-      flushSync(() => {
-        setHistoryRange(nextRange);
-      });
+      const currentRange = historyRangeRef.current;
+      const targetVisible = historyIndex >= currentRange.start && historyIndex < currentRange.end;
+      if (!targetVisible) {
+        const nextRange = getAnchorJumpHistoryRange(historyIndex, historyMessages.length);
+        if (!areHistoryRangesEqual(currentRange, nextRange)) {
+          flushSync(() => {
+            setHistoryRange(nextRange);
+          });
+        }
+      }
     }
 
     if (ensureMessageSequenceRef.current !== sequence) {
       throw new Error('Message visibility request was superseded');
     }
     await waitForNextFrame();
-  }, [historyMessages]);
+  }, [historyMessages, setHistoryRange]);
 
   return { visibleMessages, noMore, loadMore, ensureMessageVisible };
 }

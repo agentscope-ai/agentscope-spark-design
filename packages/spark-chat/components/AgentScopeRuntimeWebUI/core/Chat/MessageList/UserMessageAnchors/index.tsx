@@ -74,6 +74,7 @@ async function scrollTargetIntoContainerTopAndSettle(
   scrollEl: HTMLElement,
   messageId: string,
   initialTarget: HTMLElement,
+  isCurrent: () => boolean,
 ) {
   let target = initialTarget;
   let previousOffset: number | undefined;
@@ -81,10 +82,12 @@ async function scrollTargetIntoContainerTopAndSettle(
   const startTime = window.performance.now();
   let topOffset = getScrollVisibleTopOffset(scrollEl);
 
+  if (!isCurrent()) return target;
   scrollTargetIntoContainerTop(scrollEl, target, 'smooth', topOffset);
 
   while (window.performance.now() - startTime < TARGET_TOP_SETTLE_TIMEOUT) {
     await waitForNextFrame();
+    if (!isCurrent()) return target;
 
     target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
     topOffset = getScrollVisibleTopOffset(scrollEl);
@@ -108,6 +111,7 @@ async function scrollTargetIntoContainerTopAndSettle(
     previousOffset = offset;
   }
 
+  if (!isCurrent()) return target;
   target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
   scrollTargetIntoContainerTop(scrollEl, target, 'auto', getScrollVisibleTopOffset(scrollEl));
   await waitForNextFrame();
@@ -526,7 +530,14 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     }
 
     await waitForNextFrame();
-    const targetAtTop = await scrollTargetIntoContainerTopAndSettle(scrollEl, messageId, target);
+    if (scrollSequenceRef.current !== scrollSequence) return;
+
+    const targetAtTop = await scrollTargetIntoContainerTopAndSettle(
+      scrollEl,
+      messageId,
+      target,
+      () => scrollSequenceRef.current === scrollSequence,
+    );
     if (scrollSequenceRef.current !== scrollSequence) return;
 
     setActiveAnchorId(messageId);
