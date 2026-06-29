@@ -16,8 +16,11 @@ import {
   enqueueInputQueueState,
   INPUT_QUEUE_OWNER_CLAIM_INTERVAL,
   INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
+  createInputQueueTabId,
   getInputQueueStorageKey,
   getInputQueueTabId,
+  hasInputQueueWork,
+  isInputQueueOwner,
   isInputQueueStateEmpty,
   isInputQueueOwnedByTab,
   MAX_INPUT_QUEUE_SIZE,
@@ -26,6 +29,7 @@ import {
   removeQueuedInput,
   restoreFailedQueuedInput,
   retryQueuedInput,
+  resetInputQueueTabId,
   shouldClaimInputQueueOwner,
   updateQueuedInputQuery,
   type InputQueueState,
@@ -33,6 +37,7 @@ import {
 } from "../InputQueue";
 import {
   areInputQueueSessionsEquivalent,
+  getInputQueueChatSessionIdForQueue,
   getInputQueueCompletionSessionIds,
   getInputQueueRouteQueueSessionId,
   getInputQueueVisibleChatSessionId,
@@ -136,8 +141,16 @@ export default function useChatController() {
      * Used to detect stale requests after a session switch.
      */
     activeSessionId?: string;
+    /**
+     * Queue storage key associated with the active request. Host apps may
+     * replace a local route id with a backend id while the request is still
+     * streaming, so queue ownership must follow both aliases.
+     */
+    activeQueueSessionId?: string;
   }>({ activeRequestId: 0 });
   const tabIdRef = useRef(getInputQueueTabId());
+  const runtimeIdRef = useRef(createInputQueueTabId());
+  const runtimeStartedAtRef = useRef(Date.now());
   const currentSessionIdRef = useRef(currentSessionId);
   const [inputQueueState, setInputQueueState] = useState<InputQueueState>(() =>
     createEmptyInputQueueState(),
@@ -145,8 +158,9 @@ export default function useChatController() {
   const [inputQueueSessionId, setInputQueueSessionId] = useState<string | undefined>(undefined);
   const inputQueueStateRef = useRef<InputQueueState>(inputQueueState);
   const drainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduledDrainSessionIdRef = useRef<string | undefined>(undefined);
   const drainingRef = useRef(false);
-  const drainQueueRef = useRef<(() => Promise<void>) | null>(null);
+  const drainQueueRef = useRef<((sessionId?: string) => Promise<void>) | null>(null);
   const queueDrainBlockedSessionRef = useRef<string | undefined>(undefined);
   // Queue execution is session-scoped and must not rely only on the visible
   // input loading flag, because switching conversations changes which session
@@ -230,8 +244,8 @@ export default function useChatController() {
 
   /**
    * Persist the queue for one session and fan the change out to all tabs.
-   * Empty queues are removed from localStorage so stale session keys do not
-   * accumulate after the queue has been drained or cleared.
+   * Owner-only queues are kept while a request is active so peer tabs do not
+   * steal execution. They are removed after the owner is released.
    */
   const commitQueueState = useCallback((sessionId: string | undefined, state: InputQueueState) => {
     if (!sessionId) return state;
@@ -327,6 +341,20 @@ export default function useChatController() {
     );
   }, []);
 
+  const rotateTabIdentity = useCallback(() => {
+    tabIdRef.current = resetInputQueueTabId();
+    const next = readQueueState(currentQueueSessionId);
+    setInputQueueSessionId(currentQueueSessionId);
+    inputQueueStateRef.current = next;
+    setInputQueueState(next);
+    broadcastRef.current?.postMessage({
+      type: 'input-queue-tab-presence',
+      tabId: tabIdRef.current,
+      runtimeId: runtimeIdRef.current,
+      runtimeStartedAt: runtimeStartedAtRef.current,
+    });
+  }, [currentQueueSessionId, readQueueState]);
+
   // Session queues are isolated by storage key, so switching sessions reloads
   // only that session's queue.
   useEffect(() => {
@@ -335,6 +363,59 @@ export default function useChatController() {
     inputQueueStateRef.current = next;
     setInputQueueState(next);
   }, [currentQueueSessionId, readQueueState]);
+
+  useEffect(() => {
+    let activeQueueSessionId = currentQARef.current.activeQueueSessionId;
+    if (
+      !activeQueueSessionId &&
+      currentQARef.current.response?.msgStatus === 'generating'
+    ) {
+      activeQueueSessionId =
+        currentQueueSessionId ||
+        currentSessionIdRef.current ||
+        pendingRouteSessionIdRef?.current ||
+        resolveQueueSessionId(currentQARef.current.activeSessionId) ||
+        currentQARef.current.activeSessionId;
+
+      currentQARef.current.activeQueueSessionId = activeQueueSessionId;
+      markQueueSessionActive(activeQueueSessionId);
+    }
+
+    if (
+      !activeQueueSessionId ||
+      !isQueueSessionActive(activeQueueSessionId)
+    ) {
+      return;
+    }
+
+    const activeState = readQueueState(activeQueueSessionId);
+    if (activeState.ownerTabId !== tabIdRef.current) return;
+
+    [
+      currentQueueSessionId,
+      currentSessionIdRef.current,
+      pendingRouteSessionIdRef?.current,
+      currentQARef.current.activeSessionId,
+    ].filter((sessionId, index, list): sessionId is string =>
+      !!sessionId &&
+      sessionId !== activeQueueSessionId &&
+      list.indexOf(sessionId) === index,
+    ).forEach(sessionId => {
+      void updateQueueState(sessionId, state =>
+        assignInputQueueOwner(state, tabIdRef.current, Date.now(), {
+          force: true,
+        }),
+      );
+    });
+  }, [
+    currentQueueSessionId,
+    isQueueSessionActive,
+    markQueueSessionActive,
+    pendingRouteSessionIdRef,
+    readQueueState,
+    resolveQueueSessionId,
+    updateQueueState,
+  ]);
 
   /**
    * Keep multiple tabs for the same session in sync. The storage event covers
@@ -372,6 +453,34 @@ export default function useChatController() {
       const channel = new BroadcastChannel('agentscope-runtime-webui-input-queue');
       broadcastRef.current = channel;
       channel.onmessage = (event) => {
+        if (event.data?.type === 'input-queue-tab-presence') {
+          if (
+            event.data.tabId === tabIdRef.current &&
+            event.data.runtimeId !== runtimeIdRef.current
+          ) {
+            if (event.data.runtimeStartedAt <= runtimeStartedAtRef.current) {
+              rotateTabIdentity();
+            } else {
+              channel.postMessage({
+                type: 'input-queue-tab-conflict',
+                tabId: event.data.tabId,
+                runtimeId: event.data.runtimeId,
+              });
+            }
+          }
+          return;
+        }
+
+        if (event.data?.type === 'input-queue-tab-conflict') {
+          if (
+            event.data.tabId === tabIdRef.current &&
+            event.data.runtimeId === runtimeIdRef.current
+          ) {
+            rotateTabIdentity();
+          }
+          return;
+        }
+
         if (event.data?.type === 'input-queue-change') {
           applyRemoteState(event.data.sessionId, event.data.state);
           return;
@@ -404,11 +513,17 @@ export default function useChatController() {
               queueDrainBlockedSessionRef.current = undefined;
             }
             setTimeout(() => {
-              void drainQueueRef.current?.();
+              void drainQueueRef.current?.(queueSessionId);
             }, 0);
           }
         }
       };
+      channel.postMessage({
+        type: 'input-queue-tab-presence',
+        tabId: tabIdRef.current,
+        runtimeId: runtimeIdRef.current,
+        runtimeStartedAt: runtimeStartedAtRef.current,
+      });
     }
 
     return () => {
@@ -421,6 +536,7 @@ export default function useChatController() {
     getVisibleQueueSessionId,
     markQueueSessionActive,
     markQueueSessionIdle,
+    rotateTabIdentity,
     setLoading,
     setMessages,
   ]);
@@ -453,31 +569,10 @@ export default function useChatController() {
     };
   }, [canExecuteQueue, currentQueueSessionId, updateQueueState]);
 
-  // Release ownership when the tab is actually leaving, not merely hidden.
-  useEffect(() => {
-    const queueSessionId = currentQueueSessionId;
-    if (!queueSessionId) return;
-
-    const releaseOwner = () => {
-      void updateQueueState(queueSessionId, state => {
-        if (state.ownerTabId !== tabIdRef.current) return state;
-
-        return {
-          ...state,
-          ownerTabId: undefined,
-          ownerUpdatedAt: undefined,
-          updatedAt: Date.now(),
-        };
-      });
-    };
-
-    window.addEventListener('pagehide', releaseOwner);
-    window.addEventListener('beforeunload', releaseOwner);
-    return () => {
-      window.removeEventListener('pagehide', releaseOwner);
-      window.removeEventListener('beforeunload', releaseOwner);
-    };
-  }, [currentQueueSessionId, updateQueueState]);
+  // Do not release ownership during unload. A refresh destroys the JS runtime
+  // just like a close, so immediate release would let a peer tab steal the
+  // queue while the original tab is simply reloading. The heartbeat lease
+  // handles real closes: peers can claim after the owner TTL expires.
 
   // Message handler
   const messageHandler = useChatMessageHandler({ currentQARef });
@@ -497,6 +592,37 @@ export default function useChatController() {
     return resolveQueueSessionId(getActiveChatSessionId());
   }, [getActiveChatSessionId, resolveQueueSessionId]);
 
+  const getChatSessionIdForQueue = useCallback((
+    queueSessionId: string | undefined,
+    preferredSessionId?: string,
+  ) => {
+    const activeSessionId = currentQARef.current.activeSessionId;
+    const currentChatSessionId = sessionHandler.getCurrentSessionId();
+    const rawMatch = [
+      preferredSessionId,
+      activeSessionId,
+      currentChatSessionId,
+      pendingRouteSessionIdRef?.current,
+    ].find(sessionId => !!sessionId && sessionId === queueSessionId);
+    if (rawMatch) return rawMatch;
+
+    if (
+      queueSessionId &&
+      currentQARef.current.activeQueueSessionId === queueSessionId
+    ) {
+      return activeSessionId;
+    }
+
+    return getInputQueueChatSessionIdForQueue({
+      currentSessionId: currentChatSessionId,
+      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+      activeSessionId,
+    }, {
+      queueEnabled,
+      getSessionId: getQueueSessionId,
+    }, queueSessionId, preferredSessionId);
+  }, [getQueueSessionId, pendingRouteSessionIdRef, queueEnabled, sessionHandler]);
+
   const updateMessageAndSync = useCallback((message: IAgentScopeRuntimeWebUIMessage) => {
     messageHandler.updateMessage(message);
     const sessionId = currentQARef.current.activeSessionId || sessionHandler.getCurrentSessionId();
@@ -509,16 +635,36 @@ export default function useChatController() {
   /**
    * Finalize the current response and reset UI loading state.
    */
-  const scheduleDrainQueue = useCallback(() => {
+  const scheduleDrainQueue = useCallback((sessionId?: string) => {
+    scheduledDrainSessionIdRef.current = sessionId;
     if (drainTimerRef.current) {
       clearTimeout(drainTimerRef.current);
     }
 
     drainTimerRef.current = setTimeout(() => {
+      const nextSessionId = scheduledDrainSessionIdRef.current;
+      scheduledDrainSessionIdRef.current = undefined;
       drainTimerRef.current = null;
-      void drainQueueRef.current?.();
+      void drainQueueRef.current?.(nextSessionId);
     }, 0);
   }, []);
+
+  const releaseQueueOwnerIfIdle = useCallback((sessionId: string | undefined) => {
+    if (!sessionId) return;
+
+    void updateQueueState(sessionId, state => {
+      if (state.ownerTabId !== tabIdRef.current || hasInputQueueWork(state)) {
+        return state;
+      }
+
+      return {
+        ...state,
+        ownerTabId: undefined,
+        ownerUpdatedAt: undefined,
+        updatedAt: Date.now(),
+      };
+    });
+  }, [updateQueueState]);
 
   /**
    * TTL expiry does not trigger a React render by itself. Poll lightly so an
@@ -539,7 +685,7 @@ export default function useChatController() {
       });
 
       if (!snapshot.paused && !isQueueSessionActive(queueSessionId)) {
-        scheduleDrainQueue();
+        scheduleDrainQueue(queueSessionId);
       }
     };
 
@@ -572,20 +718,32 @@ export default function useChatController() {
       nextMessages,
       activeSessionId,
     );
-    const completedQueueSessionIds = getInputQueueCompletionSessionIds({
-      currentSessionId: currentSessionIdRef.current,
-      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+    const completedQueueSessionIds = [
+      currentQARef.current.activeQueueSessionId,
       activeSessionId,
-    }, {
-      queueEnabled,
-      getSessionId: getQueueSessionId,
-    });
+      currentSessionIdRef.current,
+      pendingRouteSessionIdRef?.current,
+      ...getInputQueueCompletionSessionIds({
+        currentSessionId: currentSessionIdRef.current,
+        pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+        activeSessionId,
+      }, {
+        queueEnabled,
+        getSessionId: getQueueSessionId,
+      }),
+    ].filter((sessionId, index, list): sessionId is string =>
+      !!sessionId && list.indexOf(sessionId) === index,
+    );
     completedQueueSessionIds.forEach(markQueueSessionIdle);
     if (completedQueueSessionIds.some(sessionId => sessionId === queueDrainBlockedSessionRef.current)) {
       queueDrainBlockedSessionRef.current = undefined;
     }
-    scheduleDrainQueue();
-  }, [setLoading, messageHandler, sessionHandler, pendingRouteSessionIdRef, queueEnabled, getQueueSessionId, markQueueSessionIdle, scheduleDrainQueue, syncMessagesToPeerTabs]);
+    const nextDrainSessionId = completedQueueSessionIds.find(sessionId =>
+      hasInputQueueWork(readQueueState(sessionId)),
+    ) || completedQueueSessionIds[0];
+    completedQueueSessionIds.forEach(releaseQueueOwnerIfIdle);
+    scheduleDrainQueue(nextDrainSessionId);
+  }, [setLoading, messageHandler, sessionHandler, pendingRouteSessionIdRef, queueEnabled, getQueueSessionId, markQueueSessionIdle, readQueueState, releaseQueueOwnerIfIdle, scheduleDrainQueue, syncMessagesToPeerTabs]);
 
   // API request handling
   const { request, reconnect } = useChatRequest({
@@ -602,10 +760,10 @@ export default function useChatController() {
     data: Parameters<InputProps['onSubmit']>[0],
     options?: { sessionId?: string; queueSessionId?: string },
   ) => {
-    // Queue sends are session-bound. If the user has already switched away,
-    // do not abort or render into the newly visible conversation.
-    const visibleQueueSessionId = getVisibleQueueSessionId();
-    if (options?.queueSessionId && visibleQueueSessionId !== options.queueSessionId) {
+    const queuedSubmitSessionId = options?.queueSessionId
+      ? getChatSessionIdForQueue(options.queueSessionId, options.sessionId)
+      : undefined;
+    if (options?.queueSessionId && !queuedSubmitSessionId) {
       throw new Error('input queue session switched');
     }
 
@@ -621,15 +779,20 @@ export default function useChatController() {
     //    out and the request is silently dropped. Establishing the session
     //    first guarantees the effect (if any) has flushed before we snapshot
     //    myRequestId.
-    const submitSessionId = options?.sessionId || await sessionHandler.ensureSession(data.query);
+    const submitSessionId = queuedSubmitSessionId || options?.sessionId || await sessionHandler.ensureSession(data.query);
     currentQARef.current.activeSessionId = submitSessionId;
 
     // A queued task belongs to the session it was dequeued from. If the user
     // switches conversations before the task starts rendering, restore it
     // instead of writing the request into the newly visible conversation.
-    const submitQueueSessionId = options?.queueSessionId || resolveQueueSessionId(submitSessionId);
-    const nextVisibleQueueSessionId = getVisibleQueueSessionId();
-    if (options?.queueSessionId && nextVisibleQueueSessionId !== options.queueSessionId) {
+    const resolvedSubmitQueueSessionId = resolveQueueSessionId(submitSessionId);
+    const submitQueueSessionId = options?.queueSessionId || resolvedSubmitQueueSessionId;
+    currentQARef.current.activeQueueSessionId = submitQueueSessionId;
+    if (
+      options?.queueSessionId &&
+      resolvedSubmitQueueSessionId !== options.queueSessionId &&
+      submitSessionId !== options.queueSessionId
+    ) {
       throw new Error('input queue session switched');
     }
 
@@ -694,7 +857,7 @@ export default function useChatController() {
       console.error(error);
     }
     // mockRequest(mockdata);
-  }, [getVisibleQueueSessionId, markQueueSessionActive, markQueueSessionIdle, messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
+  }, [getChatSessionIdForQueue, markQueueSessionActive, markQueueSessionIdle, messageHandler, request, resolveQueueSessionId, sessionHandler, setLoading, syncMessagesToPeerTabs, updateQueueState]);
 
   const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
     const sessionId = getActiveQueueSessionId();
@@ -730,10 +893,12 @@ export default function useChatController() {
     return { ok: true, item: queuedItem };
   }, [getActiveQueueSessionId, onQueueFull, onQueueSessionNotReady, queueMaxSize, updateQueueState]);
 
-  const drainQueue = useCallback(async () => {
-    const sessionId = getActiveQueueSessionId();
+  const drainQueue = useCallback(async (targetQueueSessionId?: string) => {
+    const sessionId = targetQueueSessionId || getActiveQueueSessionId();
+    const chatSessionId = getChatSessionIdForQueue(sessionId);
     if (
       !sessionId ||
+      !chatSessionId ||
       drainingRef.current ||
       getLoading() ||
       isQueueSessionActive(sessionId) ||
@@ -761,7 +926,7 @@ export default function useChatController() {
       drainingRef.current = true;
       try {
         await submitNow(nextItem.data, {
-          sessionId: getVisibleChatSessionId(),
+          sessionId: chatSessionId,
           queueSessionId: sessionId,
         });
       } catch (error) {
@@ -783,9 +948,9 @@ export default function useChatController() {
   }, [
     canExecuteQueue,
     commitQueueState,
+    getChatSessionIdForQueue,
     getLoading,
     getActiveQueueSessionId,
-    getVisibleChatSessionId,
     isQueueSessionActive,
     readQueueState,
     setLoading,
@@ -826,7 +991,7 @@ export default function useChatController() {
       !inputQueueState.paused &&
       canExecuteQueue(inputQueueState)
     ) {
-      scheduleDrainQueue();
+      scheduleDrainQueue(currentQueueSessionId);
     }
   }, [canExecuteQueue, currentQueueSessionId, getLoading, inputQueueSessionId, inputQueueState, isQueueSessionActive, scheduleDrainQueue]);
 
@@ -917,10 +1082,25 @@ export default function useChatController() {
 
       if (!target) return;
 
+      const chatSessionId = getChatSessionIdForQueue(
+        sessionId,
+        getVisibleChatSessionId(),
+      );
+      if (!chatSessionId) {
+        await updateQueueState(sessionId, current => ({
+          ...current,
+          items: current.items.some(item => item.id === target.id)
+            ? current.items
+            : [target, ...current.items],
+          updatedAt: Date.now(),
+        }));
+        return;
+      }
+
       drainingRef.current = true;
       handleCancel();
       await Promise.resolve(submitNow(target.data, {
-        sessionId: getVisibleChatSessionId(),
+        sessionId: chatSessionId,
         queueSessionId: sessionId,
       })).catch(error => {
         if (isQueueSessionSwitchedError(error)) {
@@ -940,6 +1120,7 @@ export default function useChatController() {
   }, [
     canExecuteQueue,
     currentQueueSessionId,
+    getChatSessionIdForQueue,
     getVisibleChatSessionId,
     handleCancel,
     inputQueueState,
@@ -983,7 +1164,8 @@ export default function useChatController() {
     const queueState = readQueueState(queueSessionId);
     if (
       queueSessionId &&
-      !isInputQueueStateEmpty(queueState) &&
+      (hasInputQueueWork(queueState) ||
+        (!!queueState.ownerTabId && !isInputQueueOwner(queueState, tabIdRef.current))) &&
       !canExecuteQueue(queueState)
     ) {
       pendingPeerReconnectSessionRef.current = queueSessionId;
@@ -1034,7 +1216,7 @@ export default function useChatController() {
       if (queueDrainBlockedSessionRef.current === queueSessionId) {
         queueDrainBlockedSessionRef.current = undefined;
       }
-      scheduleDrainQueue();
+      scheduleDrainQueue(queueSessionId);
     }
   }, [canExecuteQueue, markQueueSessionActive, markQueueSessionIdle, messageHandler, readQueueState, reconnect, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
 
@@ -1093,6 +1275,7 @@ export default function useChatController() {
       // bound to its original id so the SSE active-session guard can finish.
       if (!currentQARef.current.response) {
         currentQARef.current.activeSessionId = currentSessionId;
+        currentQARef.current.activeQueueSessionId = resolveQueueSessionId(currentSessionId);
       }
       return;
     }
@@ -1104,6 +1287,7 @@ export default function useChatController() {
       abortController: undefined,
       activeRequestId: currentQARef.current.activeRequestId + 1,
       activeSessionId: currentSessionId,
+      activeQueueSessionId: resolveQueueSessionId(currentSessionId),
     };
 
     return () => {
@@ -1114,7 +1298,7 @@ export default function useChatController() {
       currentQARef.current.abortController?.abort();
       currentQARef.current.activeRequestId += 1;
     };
-  }, [currentSessionId, getQueueSessionId, queueEnabled]);
+  }, [currentSessionId, getQueueSessionId, queueEnabled, resolveQueueSessionId]);
 
   // Listen for reconnect events
   useChatAnywhereEventEmitter({
@@ -1142,7 +1326,7 @@ export default function useChatController() {
         queueDrainBlockedSessionRef.current = undefined;
       }
 
-      scheduleDrainQueue();
+      scheduleDrainQueue(queueSessionId);
     },
   }, [currentQueueSessionId, markQueueSessionActive, markQueueSessionIdle, resolveQueueSessionId, scheduleDrainQueue, setLoading]);
 
@@ -1204,7 +1388,7 @@ export default function useChatController() {
         items: retryQueuedInput(state.items, id),
         updatedAt: Date.now(),
       }));
-      scheduleDrainQueue();
+      scheduleDrainQueue(sessionId);
     },
     toggleQueuePaused: () => {
       const sessionId = getActiveQueueSessionId();
@@ -1213,7 +1397,7 @@ export default function useChatController() {
         paused: canExecuteQueue(state) ? !state.paused : state.paused,
         updatedAt: Date.now(),
       }));
-      scheduleDrainQueue();
+      scheduleDrainQueue(sessionId);
     },
     reorderQueuedInput: (sourceId: string, targetId: string) => {
       const sessionId = getActiveQueueSessionId();

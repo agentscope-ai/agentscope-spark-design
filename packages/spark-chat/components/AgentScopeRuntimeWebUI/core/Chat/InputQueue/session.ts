@@ -58,6 +58,25 @@ export function getInputQueueVisibleSessionId(
   );
 }
 
+export function getInputQueueChatSessionIdForQueue(
+  snapshot: InputQueueSessionSnapshot,
+  options: InputQueueSessionResolverOptions,
+  queueSessionId: string | undefined,
+  preferredSessionId?: string,
+) {
+  if (!queueSessionId) return undefined;
+
+  const candidates = [
+    preferredSessionId,
+    snapshot.activeSessionId,
+    getInputQueueVisibleChatSessionId(snapshot),
+  ];
+
+  return candidates.find(candidate =>
+    resolveInputQueueSessionId(candidate, options) === queueSessionId,
+  );
+}
+
 export function getInputQueueCompletionSessionIds(
   snapshot: InputQueueSessionSnapshot,
   options: InputQueueSessionResolverOptions,

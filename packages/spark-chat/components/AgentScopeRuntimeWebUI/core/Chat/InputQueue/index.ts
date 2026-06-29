@@ -47,6 +47,7 @@ export const INPUT_QUEUE_OWNER_TTL = 10_000;
 export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
 export const INPUT_QUEUE_OWNER_CLAIM_INTERVAL = 1_000;
 export const INPUT_QUEUE_STORAGE_PREFIX = 'agentscope-runtime-webui-input-queue';
+export const INPUT_QUEUE_TAB_ID_STORAGE_KEY = 'agentscope-runtime-webui-input-queue-tab-id';
 
 let queueId = 0;
 let commandId = 0;
@@ -81,10 +82,38 @@ export function createInputQueueTabId(now = Date.now()) {
   return `input-queue-tab-${now.toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
-// Generate one executor id per page runtime; do not persist it because duplicated
-// tabs can clone sessionStorage and accidentally share the same owner id.
+function persistInputQueueTabId(tabId: string) {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(INPUT_QUEUE_TAB_ID_STORAGE_KEY, tabId);
+    }
+  } catch {
+    // Storage can be disabled in private or embedded browsing contexts.
+  }
+}
+
+// Keep one executor id for the lifetime of a physical tab so refreshes can
+// continue ownership. Duplicated tabs may clone sessionStorage; the controller
+// detects that with BroadcastChannel and rotates the newer copy.
 export function getInputQueueTabId() {
-  return createInputQueueTabId();
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      const persisted = sessionStorage.getItem(INPUT_QUEUE_TAB_ID_STORAGE_KEY);
+      if (persisted) return persisted;
+    }
+  } catch {
+    // Fall through to a runtime-only id when storage is unavailable.
+  }
+
+  const tabId = createInputQueueTabId();
+  persistInputQueueTabId(tabId);
+  return tabId;
+}
+
+export function resetInputQueueTabId() {
+  const tabId = createInputQueueTabId();
+  persistInputQueueTabId(tabId);
+  return tabId;
 }
 
 export function createQueuedInputItem(
@@ -250,9 +279,15 @@ export function createSendNowCommand(itemId: string, sourceTabId: string, now = 
   };
 }
 
-// Empty states are removed from storage instead of being persisted as [].
+export function hasInputQueueWork(state: InputQueueState) {
+  return state.items.length > 0 || !!state.command;
+}
+
+// Owner-only states are kept while a request is active so peer tabs cannot
+// steal execution before they enqueue. They are removed after the owner is
+// released and no queued work remains.
 export function isInputQueueStateEmpty(state: InputQueueState) {
-  return state.items.length === 0 && !state.command;
+  return !hasInputQueueWork(state) && !state.ownerTabId;
 }
 
 // Missing or stale ownership is treated as claimable by the current tab.
@@ -301,7 +336,7 @@ export function shouldClaimInputQueueOwner(
   now = Date.now(),
 ) {
   return (
-    !isInputQueueStateEmpty(state) &&
+    hasInputQueueWork(state) &&
     state.ownerTabId !== tabId &&
     isInputQueueOwner(state, tabId, now)
   );

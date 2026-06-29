@@ -9,7 +9,10 @@ import {
   enqueueInputQueueState,
   enqueueQueuedInput,
   getInputQueueStorageKey,
+  getInputQueueTabId,
+  hasInputQueueWork,
   INPUT_QUEUE_OWNER_TTL,
+  INPUT_QUEUE_TAB_ID_STORAGE_KEY,
   isInputQueueOwner,
   isInputQueueOwnedByTab,
   isInputQueueStateEmpty,
@@ -17,11 +20,13 @@ import {
   reorderQueuedInput,
   restoreFailedQueuedInput,
   retryQueuedInput,
+  resetInputQueueTabId,
   shouldClaimInputQueueOwner,
   updateQueuedInputQuery,
 } from '../index';
 import {
   areInputQueueSessionsEquivalent,
+  getInputQueueChatSessionIdForQueue,
   getInputQueueCompletionSessionIds,
   getInputQueueRouteQueueSessionId,
   getInputQueueVisibleChatSessionId,
@@ -30,6 +35,37 @@ import {
 } from '../session';
 
 const input = (query: string) => ({ query });
+
+function installSessionStorageMock() {
+  const previousDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'sessionStorage',
+  );
+  const storage = new Map<string, string>();
+
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        storage.set(key, value);
+      },
+      removeItem: (key: string) => {
+        storage.delete(key);
+      },
+    },
+  });
+
+  return () => {
+    if (previousDescriptor) {
+      Object.defineProperty(globalThis, 'sessionStorage', previousDescriptor);
+    } else {
+      delete (globalThis as typeof globalThis & {
+        sessionStorage?: Storage;
+      }).sessionStorage;
+    }
+  };
+}
 
 function test(name: string, fn: () => void) {
   try {
@@ -207,6 +243,43 @@ test('queue state keeps owner and paused metadata separate from items', () => {
   );
 });
 
+test('tab identity survives refresh storage and can be rotated for duplicated tabs', () => {
+  const restoreSessionStorage = installSessionStorageMock();
+  try {
+    const first = getInputQueueTabId();
+    const second = getInputQueueTabId();
+    assert.equal(second, first);
+    assert.equal(
+      sessionStorage.getItem(INPUT_QUEUE_TAB_ID_STORAGE_KEY),
+      first,
+    );
+
+    const rotated = resetInputQueueTabId();
+    assert.notEqual(rotated, first);
+    assert.equal(getInputQueueTabId(), rotated);
+  } finally {
+    restoreSessionStorage();
+  }
+});
+
+test('active owner metadata is preserved before peer tabs enqueue', () => {
+  const ownedByA = assignInputQueueOwner(
+    createEmptyInputQueueState(1),
+    'tab-a',
+    2,
+  );
+  const queuedByB = enqueueInputQueueState(ownedByA, input('from tab b'), {
+    id: 'q1',
+    now: 3,
+    ownerTabId: 'tab-b',
+  }).state;
+
+  assert.equal(hasInputQueueWork(ownedByA), false);
+  assert.equal(isInputQueueStateEmpty(ownedByA), false);
+  assert.equal(queuedByB.ownerTabId, 'tab-a');
+  assert.equal(queuedByB.ownerUpdatedAt, 2);
+});
+
 test('queue owner is isolated by tab and can be reclaimed when stale', () => {
   const owned = assignInputQueueOwner(
     createEmptyInputQueueState(1),
@@ -253,6 +326,20 @@ test('peer tab claims ownership only when a non-empty queue is ownerless or stal
     shouldClaimInputQueueOwner(createEmptyInputQueueState(20), 'tab-b', 21),
     false,
   );
+
+  const ownerOnly = assignInputQueueOwner(
+    createEmptyInputQueueState(30),
+    'tab-a',
+    31,
+  );
+  assert.equal(
+    shouldClaimInputQueueOwner(
+      ownerOnly,
+      'tab-b',
+      31 + INPUT_QUEUE_OWNER_TTL + 1,
+    ),
+    false,
+  );
 });
 
 test('drag reorder moves a queued input before the drop target', () => {
@@ -282,7 +369,7 @@ test('queued input query can be edited before sending', () => {
   assert.equal(edited[0].errorMessage, undefined);
 });
 
-test('empty queue state is removable from storage', () => {
+test('queue state is removable only after queued work and owner metadata are gone', () => {
   assert.equal(isInputQueueStateEmpty(createEmptyInputQueueState()), true);
 
   const queued = enqueueInputQueueState(
@@ -293,6 +380,14 @@ test('empty queue state is removable from storage', () => {
     },
   ).state;
   assert.equal(isInputQueueStateEmpty(queued), false);
+
+  const ownerOnly = assignInputQueueOwner(
+    createEmptyInputQueueState(10),
+    'tab-a',
+    11,
+  );
+  assert.equal(isInputQueueStateEmpty(ownerOnly), false);
+  assert.equal(hasInputQueueWork(ownerOnly), false);
 });
 
 test('send-now command carries selected task and source tab', () => {
@@ -382,6 +477,33 @@ test('active session can back the queue while controlled queue session is still 
   );
 });
 
+test('queued sends can resolve the active chat session after leaving the visible route', () => {
+  assert.equal(
+    getInputQueueChatSessionIdForQueue(
+      {
+        currentSessionId: undefined,
+        pendingRouteSessionId: undefined,
+        activeSessionId: 'active-session',
+      },
+      { queueEnabled: true },
+      'active-session',
+    ),
+    'active-session',
+  );
+  assert.equal(
+    getInputQueueChatSessionIdForQueue(
+      {
+        currentSessionId: 'other-session',
+        pendingRouteSessionId: undefined,
+        activeSessionId: undefined,
+      },
+      { queueEnabled: true },
+      'active-session',
+    ),
+    undefined,
+  );
+});
+
 test('current session takes precedence over pending controlled and active request ids', () => {
   const snapshot = {
     currentSessionId: 'current-session',
@@ -416,6 +538,21 @@ test('custom queue session resolver can keep temp id and real id on one stable k
       queueEnabled: true,
       getSessionId: getStableBackendSessionId,
     }),
+    'temp-1700000000000',
+  );
+  assert.equal(
+    getInputQueueChatSessionIdForQueue(
+      {
+        currentSessionId: 'real-chat-uuid',
+        pendingRouteSessionId: undefined,
+        activeSessionId: 'temp-1700000000000',
+      },
+      {
+        queueEnabled: true,
+        getSessionId: getStableBackendSessionId,
+      },
+      'temp-1700000000000',
+    ),
     'temp-1700000000000',
   );
 });
