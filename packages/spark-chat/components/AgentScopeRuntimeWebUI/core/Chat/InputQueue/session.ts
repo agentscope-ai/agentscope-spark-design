@@ -58,6 +58,20 @@ export function getInputQueueVisibleSessionId(
   );
 }
 
+export function getInputQueueCompletionSessionIds(
+  snapshot: InputQueueSessionSnapshot,
+  options: InputQueueSessionResolverOptions,
+) {
+  const sessionIds = [
+    resolveInputQueueSessionId(snapshot.activeSessionId, options),
+    getInputQueueVisibleSessionId(snapshot, options),
+  ];
+
+  return sessionIds.filter((sessionId, index, list): sessionId is string =>
+    !!sessionId && list.indexOf(sessionId) === index,
+  );
+}
+
 export function getInputQueueRouteQueueSessionId(
   snapshot: InputQueueSessionSnapshot,
   options: InputQueueSessionResolverOptions,

@@ -22,6 +22,7 @@ import {
 } from '../index';
 import {
   areInputQueueSessionsEquivalent,
+  getInputQueueCompletionSessionIds,
   getInputQueueRouteQueueSessionId,
   getInputQueueVisibleChatSessionId,
   getInputQueueVisibleSessionId,
@@ -335,7 +336,7 @@ test('queue session resolver requires an enabled queue and a resolvable session 
   );
 });
 
-test('initial conversation uses pending route session for queue before external route catches up', () => {
+test('initial conversation uses pending controlled session for queue before external session catches up', () => {
   const snapshot = {
     currentSessionId: undefined,
     pendingRouteSessionId: 'temp-session',
@@ -363,7 +364,7 @@ test('queue does not start when no current, pending or active session id exists'
   );
 });
 
-test('active session can back the queue while route-backed queue is still absent', () => {
+test('active session can back the queue while controlled queue session is still absent', () => {
   const snapshot = {
     currentSessionId: undefined,
     pendingRouteSessionId: undefined,
@@ -381,7 +382,7 @@ test('active session can back the queue while route-backed queue is still absent
   );
 });
 
-test('current session takes precedence over pending route and active request ids', () => {
+test('current session takes precedence over pending controlled and active request ids', () => {
   const snapshot = {
     currentSessionId: 'current-session',
     pendingRouteSessionId: 'pending-session',
@@ -395,7 +396,7 @@ test('current session takes precedence over pending route and active request ids
   );
 });
 
-test('custom queue session resolver can keep CoPaw temp id and real id on one stable key', () => {
+test('custom queue session resolver can keep temp id and real id on one stable key', () => {
   const backendSessionById = new Map([
     ['temp-1700000000000', 'temp-1700000000000'],
     ['real-chat-uuid', 'temp-1700000000000'],
@@ -449,6 +450,52 @@ test('queue session equivalence follows the custom stable queue key', () => {
       queueEnabled: false,
     }),
     true,
+  );
+});
+
+test('completion releases both active and visible queue session aliases', () => {
+  const backendSessionById = new Map([
+    ['temp-1700000000000', 'temp-1700000000000'],
+    ['real-chat-uuid', 'real-chat-uuid'],
+  ]);
+  const getBackendSessionId = (sessionId?: string) =>
+    backendSessionById.get(sessionId || '') || sessionId;
+
+  assert.deepEqual(
+    getInputQueueCompletionSessionIds(
+      {
+        activeSessionId: 'temp-1700000000000',
+        currentSessionId: 'real-chat-uuid',
+      },
+      {
+        queueEnabled: true,
+        getSessionId: getBackendSessionId,
+      },
+    ),
+    ['temp-1700000000000', 'real-chat-uuid'],
+  );
+});
+
+test('completion queue session aliases are deduplicated after normalization', () => {
+  const backendSessionById = new Map([
+    ['temp-1700000000000', 'backend-session-id'],
+    ['real-chat-uuid', 'backend-session-id'],
+  ]);
+  const getBackendSessionId = (sessionId?: string) =>
+    backendSessionById.get(sessionId || '') || sessionId;
+
+  assert.deepEqual(
+    getInputQueueCompletionSessionIds(
+      {
+        activeSessionId: 'temp-1700000000000',
+        currentSessionId: 'real-chat-uuid',
+      },
+      {
+        queueEnabled: true,
+        getSessionId: getBackendSessionId,
+      },
+    ),
+    ['backend-session-id'],
   );
 });
 

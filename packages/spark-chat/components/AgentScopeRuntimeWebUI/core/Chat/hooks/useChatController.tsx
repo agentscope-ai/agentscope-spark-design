@@ -33,6 +33,7 @@ import {
 } from "../InputQueue";
 import {
   areInputQueueSessionsEquivalent,
+  getInputQueueCompletionSessionIds,
   getInputQueueRouteQueueSessionId,
   getInputQueueVisibleChatSessionId,
   getInputQueueVisibleSessionId,
@@ -571,13 +572,20 @@ export default function useChatController() {
       nextMessages,
       activeSessionId,
     );
-    const queueSessionId = resolveQueueSessionId(activeSessionId);
-    markQueueSessionIdle(queueSessionId);
-    if (queueDrainBlockedSessionRef.current === queueSessionId) {
+    const completedQueueSessionIds = getInputQueueCompletionSessionIds({
+      currentSessionId: currentSessionIdRef.current,
+      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+      activeSessionId,
+    }, {
+      queueEnabled,
+      getSessionId: getQueueSessionId,
+    });
+    completedQueueSessionIds.forEach(markQueueSessionIdle);
+    if (completedQueueSessionIds.some(sessionId => sessionId === queueDrainBlockedSessionRef.current)) {
       queueDrainBlockedSessionRef.current = undefined;
     }
     scheduleDrainQueue();
-  }, [setLoading, messageHandler, sessionHandler, resolveQueueSessionId, markQueueSessionIdle, scheduleDrainQueue, syncMessagesToPeerTabs]);
+  }, [setLoading, messageHandler, sessionHandler, pendingRouteSessionIdRef, queueEnabled, getQueueSessionId, markQueueSessionIdle, scheduleDrainQueue, syncMessagesToPeerTabs]);
 
   // API request handling
   const { request, reconnect } = useChatRequest({
