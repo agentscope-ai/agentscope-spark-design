@@ -9,6 +9,7 @@ import {
   getAnchorTimeText,
   getMessageElementInScrollContainer,
   getMessageElementMapInScrollContainer,
+  getScrollVisibleTopOffset,
   getTargetTopOffset,
   getUserMessageAnchorBadgeText,
   getUserMessageAnchor,
@@ -34,7 +35,6 @@ const TARGET_TOP_TOLERANCE = 2;
 const TARGET_TOP_STABLE_FRAMES = 4;
 const TARGET_TOP_SETTLE_TIMEOUT = 1600;
 const TARGET_TOP_CORRECTION_DELAY = 360;
-const TARGET_TOP_SAFE_OFFSET = 96;
 const SCROLL_EDGE_TOLERANCE = 2;
 
 function waitForNextFrame() {
@@ -79,14 +79,16 @@ async function scrollTargetIntoContainerTopAndSettle(
   let previousOffset: number | undefined;
   let stableFrames = 0;
   const startTime = window.performance.now();
+  let topOffset = getScrollVisibleTopOffset(scrollEl);
 
-  scrollTargetIntoContainerTop(scrollEl, target, 'smooth', TARGET_TOP_SAFE_OFFSET);
+  scrollTargetIntoContainerTop(scrollEl, target, 'smooth', topOffset);
 
   while (window.performance.now() - startTime < TARGET_TOP_SETTLE_TIMEOUT) {
     await waitForNextFrame();
 
     target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-    const offset = getTargetTopOffset(scrollEl, target, TARGET_TOP_SAFE_OFFSET);
+    topOffset = getScrollVisibleTopOffset(scrollEl);
+    const offset = getTargetTopOffset(scrollEl, target, topOffset);
     if (Math.abs(offset) <= TARGET_TOP_TOLERANCE) {
       stableFrames += 1;
       if (stableFrames >= TARGET_TOP_STABLE_FRAMES) return target;
@@ -101,13 +103,13 @@ async function scrollTargetIntoContainerTopAndSettle(
     const elapsed = window.performance.now() - startTime;
     const offsetSettled = previousOffset !== undefined && Math.abs(offset - previousOffset) < 0.5;
     if (elapsed > TARGET_TOP_CORRECTION_DELAY && offsetSettled) {
-      scrollTargetIntoContainerTop(scrollEl, target, 'auto', TARGET_TOP_SAFE_OFFSET);
+      scrollTargetIntoContainerTop(scrollEl, target, 'auto', topOffset);
     }
     previousOffset = offset;
   }
 
   target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-  scrollTargetIntoContainerTop(scrollEl, target, 'auto', TARGET_TOP_SAFE_OFFSET);
+  scrollTargetIntoContainerTop(scrollEl, target, 'auto', getScrollVisibleTopOffset(scrollEl));
   await waitForNextFrame();
   return target;
 }
@@ -385,9 +387,10 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       activeAnchorLockRef.current = undefined;
     }
 
+    const visibleTopOffset = getScrollVisibleTopOffset(scrollEl);
     const nextActiveAnchorId = lockedAnchorExists
       ? lockedAnchorId
-      : getActiveAnchorId(scrollEl, anchors);
+      : getActiveAnchorId(scrollEl, anchors, visibleTopOffset);
     setActiveAnchorId((prev) => prev === nextActiveAnchorId ? prev : nextActiveAnchorId);
 
     if (variant === 'navigator') {

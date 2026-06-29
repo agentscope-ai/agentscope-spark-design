@@ -10,6 +10,7 @@ const DEFAULT_USER_MESSAGE_ANCHOR_MIN_COUNT = 3;
 const DEFAULT_USER_MESSAGE_ANCHOR_MIN_GAP = 6;
 const DEFAULT_USER_MESSAGE_ANCHOR_BADGE_MAX_COUNT = 99;
 const SCROLL_BOUNDARY_OFFSET = 4;
+const SCROLL_VISIBLE_TOP_GAP = 16;
 
 function normalizePreviewText(text: string) {
   return text.replace(/\s+/g, ' ').trim();
@@ -162,14 +163,25 @@ function getScrollBoundaryAnchorId(scrollEl: HTMLElement, anchors: UserMessageAn
   return undefined;
 }
 
-export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnchor[]) {
+export function getScrollVisibleTopOffset(scrollEl: HTMLElement) {
+  const scrollRect = scrollEl.getBoundingClientRect();
+  const layoutRight = scrollEl.closest('[class*="chat-anywhere-layout-right"]') as HTMLElement | null;
+  const header = layoutRight?.querySelector('[class*="chat-anywhere-layout-right-header"]') as HTMLElement | null;
+  const headerRect = header?.getBoundingClientRect();
+  const headerOverlap = headerRect ? Math.max(0, headerRect.bottom - scrollRect.top) : 0;
+  const scrollPaddingTop = Number.parseFloat(window.getComputedStyle(scrollEl).scrollPaddingTop) || 0;
+
+  return Math.max(scrollPaddingTop, headerOverlap + (headerOverlap > 0 ? SCROLL_VISIBLE_TOP_GAP : 0));
+}
+
+export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnchor[], topOffset = 0) {
   const targetMap = getMessageElementMapInScrollContainer(scrollEl);
   const renderedAnchors = anchors.filter((anchor) => targetMap.has(anchor.id));
   const boundaryAnchorId = getScrollBoundaryAnchorId(scrollEl, renderedAnchors);
   if (boundaryAnchorId) return boundaryAnchorId;
 
   const scrollRect = scrollEl.getBoundingClientRect();
-  const viewportCenter = scrollRect.top + scrollRect.height / 2;
+  const activeLineTop = scrollRect.top + topOffset;
   let activeAnchorId: string | undefined;
   let minDistance = Number.POSITIVE_INFINITY;
 
@@ -178,8 +190,7 @@ export function getActiveAnchorId(scrollEl: HTMLElement, anchors: UserMessageAnc
     if (!target) return;
 
     const targetRect = target.getBoundingClientRect();
-    const targetCenter = targetRect.top + targetRect.height / 2;
-    const distance = Math.abs(targetCenter - viewportCenter);
+    const distance = Math.abs(targetRect.top - activeLineTop);
 
     if (distance < minDistance) {
       minDistance = distance;
