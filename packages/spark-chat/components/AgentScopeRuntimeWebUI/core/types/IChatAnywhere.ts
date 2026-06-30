@@ -141,6 +141,11 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
      * @descriptionEn Whether to enable pagination
      */
     pagination?: boolean;
+    /**
+     * @description 用户消息锚点配置
+     * @descriptionEn User message anchor configuration
+     */
+    userMessageAnchors?: IAgentScopeRuntimeWebUIUserMessageAnchorsOptions;
   };
   /**
    * @description 语言
@@ -148,6 +153,39 @@ export interface IAgentScopeRuntimeWebUIThemeOptions {
    * @default 'en'
    */
   locale?: 'en' | 'cn';
+}
+
+export interface IAgentScopeRuntimeWebUIUserMessageAnchorsOptions {
+  /**
+   * @description 锚点导航样式：minimap 为右侧横杠缩略图，navigator 为上/目录/下三按钮导航
+   * @descriptionEn Anchor navigation style: minimap renders right-side bars, navigator renders up/directory/down buttons
+   * @default 'minimap'
+   */
+  variant?: 'minimap' | 'navigator';
+  /**
+   * @description 是否展示用户消息锚点
+   * @descriptionEn Whether to show user message anchors
+   * @default true
+   */
+  enabled?: boolean;
+  /**
+   * @description 至少多少条用户消息时展示锚点
+   * @descriptionEn Minimum user message count before showing anchors
+   * @default 3
+   */
+  minCount?: number;
+  /**
+   * @description 导航数量徽标展示上限，超过后展示为 `${badgeMaxCount}+`
+   * @descriptionEn Maximum count shown in the navigator badge; larger counts render as `${badgeMaxCount}+`
+   * @default 99
+   */
+  badgeMaxCount?: number;
+  /**
+   * @description 锚点之间的最小展示间距，单位 px；距离更近时会聚合展示
+   * @descriptionEn Minimum visual gap between anchors in px; closer anchors are grouped
+   * @default 6
+   */
+  minGap?: number;
 }
 
 export interface IAgentScopeRuntimeWebUITypography {
@@ -221,6 +259,15 @@ export interface IAgentScopeRuntimeWebUIWelcomeOptions {
   ) => React.ReactElement;
 }
 
+export interface IAgentScopeRuntimeWebUISenderActionInfo {
+  value: string;
+  count: number;
+  maxLength?: number;
+  loading?: boolean | string;
+  disabled?: boolean | string;
+  sendDisabled: boolean;
+}
+
 /**
  * @description 输入框配置选项
  * @descriptionEn Sender configuration options
@@ -237,6 +284,25 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    */
   maxLength?: number;
   /**
+   * @description 是否显示字符数，默认在设置 maxLength 时显示
+   * @descriptionEn Whether to show character count, defaults to true when maxLength is set
+   */
+  showCharacterCount?: boolean;
+  /**
+   * @description 自定义字符数渲染
+   * @descriptionEn Custom character count renderer
+   */
+  characterCountRender?: (
+    info: IAgentScopeRuntimeWebUISenderActionInfo,
+  ) => React.ReactNode;
+  /**
+   * @description 右下角操作区附加内容，展示在字符数右侧、发送按钮左侧
+   * @descriptionEn Extra content in the bottom-right action area, placed after character count and before send button
+   */
+  actionAffix?:
+    | React.ReactNode
+    | ((info: IAgentScopeRuntimeWebUISenderActionInfo) => React.ReactNode);
+  /**
    * @description 输入框前置UI
    * @descriptionEn UI before input
    */
@@ -250,7 +316,7 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @description 提交前的钩子函数
    * @descriptionEn Hook function before submit
    */
-  beforeSubmit?: () => Promise<Boolean>;
+  beforeSubmit?: () => Promise<boolean>;
   /**
    * @description 提交回调函数
    * @descriptionEn Submit callback function

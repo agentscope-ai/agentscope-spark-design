@@ -21,6 +21,9 @@ export default function Input(props: InputProps) {
     placeholder = '',
     disclaimer = '',
     maxLength,
+    showCharacterCount,
+    characterCountRender,
+    actionAffix,
     beforeSubmit = () => Promise.resolve(true),
     beforeUI,
     afterUI,
@@ -34,6 +37,7 @@ export default function Input(props: InputProps) {
     getFileList,
     setFileList,
     handlePasteFile,
+    handleDropFile,
     uploadIconButton,
     uploadFileListHeader
   } = useAttachments(attachments, { disabled: !!inputContext.disabled });
@@ -46,7 +50,7 @@ export default function Input(props: InputProps) {
     const fileList = (getFileList?.() || []).filter(i => i.response?.url);
     props.onSubmit({ query: getContent(), fileList });
     setContent('');
-    setFileList && setFileList([]);
+    setFileList?.([]);
   }, []);
 
   const handleCancel = useCallback(() => {
@@ -68,10 +72,14 @@ export default function Input(props: InputProps) {
         header={uploadFileListHeader}
         onChange={setContent}
         maxLength={maxLength}
+        showCharacterCount={showCharacterCount}
+        characterCountRender={characterCountRender}
+        actionAffix={actionAffix}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         allowSpeech={allowSpeech}
         onPasteFile={handlePasteFile}
+        onDropFile={handleDropFile}
         suggestions={suggestions}
       />
       {afterUI}
