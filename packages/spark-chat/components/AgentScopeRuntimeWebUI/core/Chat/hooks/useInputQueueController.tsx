@@ -148,8 +148,14 @@ export default function useInputQueueController(
   const queueDrainBlockedSessionRef = useRef<string | undefined>(undefined);
   const activeQueueSessionIdsRef = useRef<Set<string>>(new Set());
   const pendingPeerReconnectSessionRef = useRef<string | undefined>(undefined);
+  const activeSubmitQueueSessionRef = useRef<string | undefined>(undefined);
   const processedCommandIdRef = useRef<string | undefined>(undefined);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
+  const pageUnloadingRef = useRef(false);
+  const releasePeerTakeoverBlockRef = useRef<(
+    queueSessionId: string,
+    queueState: InputQueueState,
+  ) => void>();
   const backgroundRunnerSnapshotRef = useRef<{
     queueEnabled: boolean;
     currentQueueSessionId?: string;
@@ -162,6 +168,18 @@ export default function useInputQueueController(
   }>({
     queueEnabled,
   });
+
+  useEffect(() => {
+    const markPageUnloading = () => {
+      pageUnloadingRef.current = true;
+    };
+    window.addEventListener('pagehide', markPageUnloading);
+    window.addEventListener('beforeunload', markPageUnloading);
+    return () => {
+      window.removeEventListener('pagehide', markPageUnloading);
+      window.removeEventListener('beforeunload', markPageUnloading);
+    };
+  }, []);
 
   useEffect(() => {
     inputQueueStateRef.current = inputQueueState;
@@ -346,6 +364,7 @@ export default function useInputQueueController(
 
   const assignOwnerForSubmit = useCallback(async (sessionId: string | undefined) => {
     if (!sessionId) return;
+    activeSubmitQueueSessionRef.current = sessionId;
     await updateQueueState(sessionId, state =>
       assignInputQueueOwner(state, tabIdRef.current),
     );
@@ -370,6 +389,12 @@ export default function useInputQueueController(
     );
 
     completedQueueSessionIds.forEach(markQueueSessionIdle);
+    if (
+      activeSubmitQueueSessionRef.current &&
+      completedQueueSessionIds.includes(activeSubmitQueueSessionRef.current)
+    ) {
+      activeSubmitQueueSessionRef.current = undefined;
+    }
     if (completedQueueSessionIds.some(sessionId => sessionId === queueDrainBlockedSessionRef.current)) {
       queueDrainBlockedSessionRef.current = undefined;
     }
@@ -403,6 +428,7 @@ export default function useInputQueueController(
 
     let full = false;
     let queuedItem: QueueEnqueueResult['item'];
+    let nextQueueState: InputQueueState | undefined;
     await updateQueueState(sessionId, state => {
       const result = enqueueInputQueueState(state, data, {
         maxSize: queueMaxSize,
@@ -410,6 +436,7 @@ export default function useInputQueueController(
       });
       full = result.reason === 'full';
       queuedItem = result.item;
+      nextQueueState = result.state;
       return result.state;
     });
     if (full) {
@@ -421,6 +448,15 @@ export default function useInputQueueController(
       return { ok: false, reason: 'full' };
     }
 
+    if (
+      queuedItem &&
+      nextQueueState &&
+      isInputQueueOwnedByTab(nextQueueState, tabIdRef.current) &&
+      activeSubmitQueueSessionRef.current !== sessionId
+    ) {
+      releasePeerTakeoverBlockRef.current?.(sessionId, nextQueueState);
+    }
+
     return { ok: true, item: queuedItem };
   }, [getActiveQueueSessionId, onQueueFull, onQueueSessionNotReady, queueMaxSize, updateQueueState]);
 
@@ -428,12 +464,14 @@ export default function useInputQueueController(
     const sessionId = targetQueueSessionId || getActiveQueueSessionId();
     const chatSessionId = getChatSessionIdForQueue(sessionId);
     const submitNow = submitNowRef.current;
+    const hasGeneratingResponse = !!findGeneratingResponse(getMessages());
     if (
       !sessionId ||
       !chatSessionId ||
       !submitNow ||
       drainingRef.current ||
       getLoading() ||
+      hasGeneratingResponse ||
       isQueueSessionActive(sessionId) ||
       queueDrainBlockedSessionRef.current === sessionId
     ) return;
@@ -596,10 +634,25 @@ export default function useInputQueueController(
 
     const messages = getMessages();
     const mirroredGenerating = !!findGeneratingResponse(messages);
+
+    if (mirroredGenerating) {
+      pendingPeerReconnectSessionRef.current = undefined;
+      markQueueSessionActive(queueSessionId);
+      queueDrainBlockedSessionRef.current = queueSessionId;
+      setLoading(true);
+
+      const chatSessionId = getVisibleChatSessionId();
+      if (chatSessionId) {
+        window.setTimeout(() => {
+          void handleReconnectRef.current?.(chatSessionId);
+        }, 0);
+      }
+      return;
+    }
+
     const blockedByPeer =
       pendingPeerReconnectSessionRef.current === queueSessionId ||
-      isQueueSessionActive(queueSessionId) ||
-      mirroredGenerating;
+      isQueueSessionActive(queueSessionId);
 
     if (blockedByPeer) {
       pendingPeerReconnectSessionRef.current = undefined;
@@ -611,28 +664,27 @@ export default function useInputQueueController(
       currentQARef.current.response = undefined;
       currentQARef.current.activeRequestId += 1;
       setLoading(false);
-
-      if (mirroredGenerating) {
-        setMessages(messages.map(item =>
-          item.role === 'assistant' && item.msgStatus === 'generating'
-            ? { ...item, msgStatus: 'interrupted' }
-            : item,
-        ));
-      }
     }
 
     if (!queueState.paused) {
       scheduleDrainQueue(queueSessionId);
+      window.setTimeout(() => {
+        void drainQueueRef.current?.(queueSessionId);
+      }, 50);
     }
   }, [
     currentQARef,
+    getVisibleChatSessionId,
     getMessages,
+    handleReconnectRef,
     isQueueSessionActive,
+    markQueueSessionActive,
     markQueueSessionIdle,
     scheduleDrainQueue,
     setLoading,
-    setMessages,
   ]);
+
+  releasePeerTakeoverBlockRef.current = releasePeerTakeoverBlock;
 
   const rotateTabIdentity = useCallback(() => {
     tabIdRef.current = resetInputQueueTabId();
@@ -721,6 +773,9 @@ export default function useInputQueueController(
       setInputQueueSessionId(sessionId);
       inputQueueStateRef.current = next;
       setInputQueueState(next);
+      if (isInputQueueOwnedByTab(next, tabIdRef.current)) {
+        releasePeerTakeoverBlock(sessionId, next);
+      }
     };
 
     const handleStorage = (event: StorageEvent) => {
@@ -780,9 +835,10 @@ export default function useInputQueueController(
 
         if (event.data?.type === 'input-queue-messages-change') {
           if (event.data.sourceTabId === tabIdRef.current) return;
-          if (event.data.sessionId !== getVisibleQueueSessionId()) return;
+          const queueSessionId = event.data.sessionId;
+          if (queueSessionId !== getVisibleQueueSessionId()) return;
 
-          if (canExecuteQueue(inputQueueStateRef.current)) return;
+          if (canExecuteQueue(readQueueState(queueSessionId))) return;
 
           const messages = event.data.messages || [];
           currentQARef.current.abortController?.abort();
@@ -790,7 +846,6 @@ export default function useInputQueueController(
           currentQARef.current.activeRequestId += 1;
           setMessages(messages);
 
-          const queueSessionId = event.data.sessionId;
           if (findGeneratingResponse(messages)) {
             markQueueSessionActive(queueSessionId);
             setLoading(true);
@@ -826,6 +881,8 @@ export default function useInputQueueController(
     getVisibleQueueSessionId,
     markQueueSessionActive,
     markQueueSessionIdle,
+    readQueueState,
+    releasePeerTakeoverBlock,
     rotateTabIdentity,
     setLoading,
     setMessages,
@@ -984,6 +1041,21 @@ export default function useInputQueueController(
     const chatSessionId = getVisibleChatSessionId();
     if (!chatSessionId) return;
 
+    if (hasInputQueueWork(inputQueueState) && findGeneratingResponse(getMessages())) {
+      markQueueSessionActive(queueSessionId);
+      queueDrainBlockedSessionRef.current = queueSessionId;
+      setLoading(true);
+      window.setTimeout(() => {
+        void handleReconnectRef.current?.(chatSessionId);
+      }, 0);
+      return;
+    }
+
+    if (hasInputQueueWork(inputQueueState)) {
+      releasePeerTakeoverBlock(queueSessionId, inputQueueState);
+      return;
+    }
+
     pendingPeerReconnectSessionRef.current = undefined;
     markQueueSessionIdle(queueSessionId);
     window.setTimeout(() => {
@@ -993,9 +1065,13 @@ export default function useInputQueueController(
     canExecuteQueue,
     currentQueueSessionId,
     getVisibleChatSessionId,
+    getMessages,
     handleReconnectRef,
     inputQueueState,
+    markQueueSessionActive,
     markQueueSessionIdle,
+    releasePeerTakeoverBlock,
+    setLoading,
   ]);
 
   backgroundRunnerSnapshotRef.current = {
@@ -1008,6 +1084,8 @@ export default function useInputQueueController(
 
   useEffect(() => {
     return () => {
+      if (pageUnloadingRef.current) return;
+
       const snapshot = backgroundRunnerSnapshotRef.current;
       const queueSessionId =
         currentQARef.current.activeQueueSessionId ||
