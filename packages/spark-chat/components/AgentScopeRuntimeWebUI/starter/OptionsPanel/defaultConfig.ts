@@ -5,6 +5,11 @@ export default () => {
       colorPrimary: '#615CED',
       darkMode: true,
       prefix: 'agentscope-runtime-webui',
+      bubbleList: {
+        userMessageAnchors: {
+          variant: 'navigator',
+        },
+      },
       leftHeader: {
         logo: 'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
         title: 'Runtime WebUI',

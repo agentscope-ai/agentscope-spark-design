@@ -1,4 +1,4 @@
-import { Button, Flex, Input } from 'antd';
+import { Flex, Input } from 'antd';
 import { Suggestion } from '@ant-design/x';
 import classnames from 'classnames';
 import { useMergedState } from 'rc-util';
@@ -15,11 +15,34 @@ import LoadingButton from './components/LoadingButton';
 import SendButton from './components/SendButton';
 import SpeechButton from './components/SpeechButton';
 import Style from './style';
-import useSpeech, { type AllowSpeech } from './useSpeech';
+import useSpeech from './useSpeech';
 import ModeSelect from './ModeSelect';
 import type { InputRef as AntdInputRef, ButtonProps, GetProp, GetProps } from 'antd';
 import BeforeUIContainer from './BeforeUIContainer';
 
+function hasFileTransfer(dataTransfer?: DataTransfer | null) {
+  if (!dataTransfer) {
+    return false;
+  }
+
+  return Array.from(dataTransfer.types || []).includes('Files');
+}
+
+function getFilesFromDataTransfer(dataTransfer?: DataTransfer | null) {
+  if (!dataTransfer) {
+    return [];
+  }
+
+  const files = Array.from(dataTransfer.files || []);
+  if (files.length > 0) {
+    return files;
+  }
+
+  return Array.from(dataTransfer.items || [])
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null);
+}
 
 export type SubmitType = 'enter' | 'shiftEnter' | false;
 
@@ -29,6 +52,19 @@ type SuggestionItems = Exclude<GetProp<typeof Suggestion, 'items'>, () => void>;
 export interface SenderComponents {
   input?: React.ComponentType<TextareaProps>;
 }
+
+export interface SenderActionInfo {
+  value: string;
+  count: number;
+  maxLength?: number;
+  loading?: boolean | string;
+  disabled?: boolean | string;
+  sendDisabled: boolean;
+}
+
+export type SenderActionAffix =
+  | React.ReactNode
+  | ((info: SenderActionInfo) => React.ReactNode);
 
 export type ActionsRender = (
   ori: React.ReactNode,
@@ -202,6 +238,21 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   maxLength?: number;
   /**
+   * @description 是否显示字符数，默认在设置 maxLength 时显示
+   * @descriptionEn Whether to show character count, defaults to true when maxLength is set
+   */
+  showCharacterCount?: boolean;
+  /**
+   * @description 自定义字符数渲染
+   * @descriptionEn Custom character count renderer
+   */
+  characterCountRender?: (info: SenderActionInfo) => React.ReactNode;
+  /**
+   * @description 右侧操作区附加内容，展示在字符数右侧、发送按钮左侧
+   * @descriptionEn Extra content in the right action area, placed after character count and before send button
+   */
+  actionAffix?: SenderActionAffix;
+  /**
    * @description 是否支持语音输入
    * @descriptionEn Allow speech input
    */
@@ -216,6 +267,11 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    * @descriptionEn Callback function when user pastes a file
    */
   onPasteFile?: (file: File) => void;
+  /**
+   * @description 拖拽文件到输入框释放时的回调函数
+   * @descriptionEn Callback function when user drops a file into the input
+   */
+  onDropFile?: (file: File) => void;
   // prefixCls?: string;
   // components?: SenderComponents;
 }
@@ -296,9 +352,12 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     onBlur,
     // @ts-ignore
     actions,
+    actionAffix,
+    characterCountRender,
     onKeyPress,
     onKeyDown,
     suggestions,
+    showCharacterCount,
     disabled,
     header,
     // @ts-ignore
@@ -308,11 +367,14 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     // @ts-ignore
     onPasteFile,
     // @ts-ignore
+    onDropFile,
+    // @ts-ignore
     components,
     ...rest
   } = props;
 
   const [focus, setFocus] = useState(false);
+  const [draggingFile, setDraggingFile] = useState(false);
   const autoSize = React.useMemo(() => ({ maxRows: 5, minRows: 2 }), []);
 
   const { direction, getPrefixCls } = useProviderContext();
@@ -320,15 +382,16 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
   const containerRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<AntdInputRef>(null);
+  const dragCounterRef = React.useRef(0);
 
   useProxyImperativeHandle(ref, () => ({
     nativeElement: containerRef.current!,
-    focus: inputRef.current?.focus!,
-    blur: inputRef.current?.blur!,
+    focus: () => inputRef.current?.focus(),
+    blur: () => inputRef.current?.blur(),
   }));
 
   useFocusWithin(containerRef, {
-    onFocus: (e) => {
+    onFocus: () => {
       setFocus(true);
       onFocus?.();
     },
@@ -340,7 +403,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     }
   });
 
-  useEventListener('click', (e) => {
+  useEventListener('click', () => {
     setFocus(true);
     onFocus?.();
   }, {
@@ -358,6 +421,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
       [`${prefixCls}-disabled`]: disabled,
       [`${prefixCls}-focus`]: focus && enableFocusExpand,
       [`${prefixCls}-blur`]: !focus && enableFocusExpand,
+      [`${prefixCls}-drag-over`]: draggingFile,
     },
   );
 
@@ -385,7 +449,6 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const filteredSuggestions = React.useMemo(() => {
     return filterSuggestionsByKeyword(suggestions, slashCommandKeyword);
   }, [suggestions, slashCommandKeyword]);
-  const hasFilteredSuggestions = Array.isArray(filteredSuggestions) && filteredSuggestions.length > 0;
 
   const findSuggestionValueByLabel = React.useCallback((items: SuggestionItems | undefined, label: string): string | undefined => {
     if (!items?.length) {
@@ -424,8 +487,10 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   };
 
   // ============================ Events ============================
+  const isSendDisabled = ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
+
   const triggerSend = () => {
-    if (!contextValue.onSendDisabled && onSubmit && (!loading || allowSubmitWhenLoading)) {
+    if (!isSendDisabled && onSubmit && (!loading || allowSubmitWhenLoading)) {
       onSubmit(innerValue);
     }
   };
@@ -495,13 +560,83 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     }
   };
 
+  const onInternalDragEnter: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current += 1;
+
+    if (!disabled && !readOnly) {
+      setDraggingFile(true);
+    }
+  };
+
+  const onInternalDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = disabled || readOnly ? 'none' : 'copy';
+  };
+
+  const onInternalDragLeave: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+
+    if (dragCounterRef.current === 0) {
+      setDraggingFile(false);
+    }
+  };
+
+  const onInternalDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (!onDropFile || !hasFileTransfer(e.dataTransfer)) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setDraggingFile(false);
+
+    if (disabled || readOnly) {
+      return;
+    }
+
+    const files = getFilesFromDataTransfer(e.dataTransfer);
+    files.forEach((file) => onDropFile(file));
+  };
+
   const prefix = React.useMemo(() => {
     const nodes = Array.isArray(props.prefix) ? [...props.prefix] : [props.prefix];
     return nodes.filter((node): node is React.ReactNode => node !== undefined && node !== null);
   }, [props.prefix])
+  const count = Math.min(innerValue.length, props.maxLength || Number.MAX_SAFE_INTEGER);
+  const actionInfo = React.useMemo<SenderActionInfo>(() => ({
+    value: innerValue,
+    count,
+    maxLength: props.maxLength,
+    loading,
+    disabled,
+    sendDisabled: isSendDisabled,
+  }), [count, disabled, innerValue, isSendDisabled, loading, props.maxLength]);
+  const characterCountNode = (showCharacterCount ?? !!props.maxLength) ? (
+    <div className={`${actionListCls}-length`}>
+      {characterCountRender ? characterCountRender(actionInfo) : props.maxLength ? `${count}/${props.maxLength}` : count}
+    </div>
+  ) : null;
+  const actionAffixNode = typeof actionAffix === 'function' ? actionAffix(actionInfo) : actionAffix;
 
-  const onSendDisabled = ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
-  const showSendButton = !loading || (allowSubmitWhenLoading && !onSendDisabled);
+  const showSendButton = !loading || (allowSubmitWhenLoading && !isSendDisabled);
 
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
@@ -524,7 +659,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const contextValue = {
     prefixCls: actionBtnCls,
     onSend: triggerSend,
-    onSendDisabled,
+    onSendDisabled: isSendDisabled,
     onClear: triggerClear,
     onClearDisabled: !innerValue,
     onCancel,
@@ -618,7 +753,15 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   return <>
     <Style />
 
-    <div ref={containerRef} className={mergedCls} style={style}>
+    <div
+      ref={containerRef}
+      className={mergedCls}
+      style={style}
+      onDragEnter={onInternalDragEnter}
+      onDragOver={onInternalDragOver}
+      onDragLeave={onInternalDragLeave}
+      onDrop={onInternalDrop}
+    >
       {header && (
         <SendHeaderContext.Provider value={{ prefixCls, focus, enableFocusExpand }}>{header}</SendHeaderContext.Provider>
       )}
@@ -661,11 +804,8 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
             )}
             style={styles.actions}
           >
-            {
-              props.maxLength ? <div className={`${actionListCls}-length`}>
-                {Math.min(innerValue.length, props.maxLength)}/{props.maxLength}
-              </div> : null
-            }
+            {characterCountNode}
+            {actionAffixNode}
             <ActionButtonContext.Provider
               value={contextValue}
             >

@@ -152,6 +152,13 @@ export default function () {
       },
       theme: {
         ...optionsConfig.theme,
+        bubbleList: {
+          ...optionsConfig.theme?.bubbleList,
+          userMessageAnchors: {
+            variant: 'navigator',
+            ...optionsConfig.theme?.bubbleList?.userMessageAnchors,
+          },
+        },
         rightHeader,
       },
       api: {

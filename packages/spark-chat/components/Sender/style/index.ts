@@ -38,6 +38,18 @@ const IndexStyle = createGlobalStyle`
     }
   }
 
+  &-drag-over {
+    border-color: ${(p) => p.theme.colorPrimaryHover};
+
+    &:after {
+      border-width: ${(p) => p.theme.lineWidth * 2}px;
+    }
+
+    .${(p) => p.theme.prefixCls}-sender-content {
+      background-color: ${(p) => p.theme.colorPrimaryBg};
+    }
+  }
+
   &-disabled {
     .${(p) => p.theme.prefixCls}-sender-content,
     .${(p) => p.theme.prefixCls}-sender-header {
@@ -61,6 +73,7 @@ const IndexStyle = createGlobalStyle`
     padding: 8px;
     box-sizing: border-box;
     overflow: hidden;
+    transition: background-color ${(p) => p.theme.motionDurationSlow};
   }
 
   &-content-bottom {
