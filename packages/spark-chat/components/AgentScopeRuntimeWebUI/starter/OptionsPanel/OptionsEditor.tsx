@@ -116,6 +116,14 @@ const OptionsEditor: React.FC<OptionsEditorProps> = ({
           <InputNumber min={1000} />
         </FormItem>
 
+        <FormItem name={['sender', 'longTextUpload', 'enabled']} label="longTextUpload.enabled" >
+          <Switch />
+        </FormItem>
+
+        <FormItem name={['sender', 'longTextUpload', 'prompt']} label="longTextUpload.prompt" >
+          <Input />
+        </FormItem>
+
         <Divider orientation="left">Welcome</Divider>
 
 
@@ -171,4 +179,3 @@ const OptionsEditor: React.FC<OptionsEditorProps> = ({
 };
 
 export default OptionsEditor;
-
