@@ -42,6 +42,13 @@ export interface QueueEnqueueResult {
   reason?: 'full' | 'session-not-ready';
 }
 
+export interface InputQueueFetchPayload {
+  input: any[];
+  session_id: string;
+  biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+  signal: AbortSignal;
+}
+
 export const MAX_INPUT_QUEUE_SIZE = 50;
 export const INPUT_QUEUE_OWNER_TTL = 10_000;
 export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
@@ -281,6 +288,20 @@ export function createSendNowCommand(itemId: string, sourceTabId: string, now = 
 
 export function hasInputQueueWork(state: InputQueueState) {
   return state.items.length > 0 || !!state.command;
+}
+
+export function createInputQueueFetchPayload(
+  input: any[],
+  data: IAgentScopeRuntimeWebUIInputData,
+  sessionId: string,
+  signal: AbortSignal,
+): InputQueueFetchPayload {
+  return {
+    input,
+    session_id: sessionId,
+    biz_params: data.biz_params,
+    signal,
+  };
 }
 
 // Owner-only states are kept while a request is active so peer tabs cannot

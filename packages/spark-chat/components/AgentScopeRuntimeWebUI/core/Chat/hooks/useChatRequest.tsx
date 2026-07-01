@@ -224,6 +224,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
         input: historyMessages,
+        session_id: sessionId,
         biz_params,
         signal: abortSignal,
       }) : await fetch(currentApiOptions.baseURL, {

@@ -3,6 +3,7 @@ import {
   assignInputQueueOwner,
   canSubmitDirectly,
   createEmptyInputQueueState,
+  createInputQueueFetchPayload,
   createQueuedInputItem,
   createSendNowCommand,
   dequeueNextQueuedInput,
@@ -217,6 +218,31 @@ test('queued input item preserves full message body aliases', () => {
 
   assert.equal(item.data.text, 'with file');
   assert.deepEqual(item.data.attachments, [file]);
+});
+
+test('background fetch payload carries the target chat session id', () => {
+  const signal = new AbortController().signal;
+  const payload = createInputQueueFetchPayload(
+    [{ role: 'user', content: [{ type: 'text', text: 'queued' }] }],
+    {
+      query: 'queued',
+      biz_params: {
+        user_prompt_params: {
+          mode: 'queue',
+        },
+      },
+    },
+    'session-a',
+    signal,
+  );
+
+  assert.equal(payload.session_id, 'session-a');
+  assert.equal(payload.signal, signal);
+  assert.deepEqual(payload.biz_params, {
+    user_prompt_params: {
+      mode: 'queue',
+    },
+  });
 });
 
 test('failed send is restored at the queue head and blocks automatic dequeue', () => {

@@ -14,6 +14,7 @@ import type {
 } from '../../types';
 import {
   assignInputQueueOwner,
+  createInputQueueFetchPayload,
   dequeueNextQueuedInput,
   hasInputQueueWork,
   INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
@@ -136,11 +137,12 @@ async function fetchChat(
   const { enableHistoryMessages = false } = apiOptions;
 
   if (apiOptions.fetch) {
-    return apiOptions.fetch({
-      input: historyMessages,
-      biz_params: data.biz_params,
+    return apiOptions.fetch(createInputQueueFetchPayload(
+      historyMessages,
+      data,
+      chatSessionId,
       signal,
-    });
+    ));
   }
 
   return fetch(apiOptions.baseURL, {
