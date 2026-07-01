@@ -33,6 +33,9 @@ function DefaultResponseRender(props: {
 }) {
   const avatar = useChatAnywhereOptions(v => v.welcome.avatar);
   const nick = useChatAnywhereOptions(v => v.welcome.nick);
+  const nickNode = typeof nick === 'string' || React.isValidElement(nick)
+    ? nick
+    : null;
   const messages = useMemo(() => {
     return AgentScopeRuntimeResponseBuilder.mergeToolMessages(props.data.output);
   }, [props.data.output])
@@ -43,7 +46,7 @@ function DefaultResponseRender(props: {
   return <>
     {avatar && <Flex align="center" gap={8} style={{ marginBottom: 8 }}>
       <Avatar src={avatar} />
-      {nick && <span>{nick as string}</span>}
+      {nickNode && <span>{nickNode}</span>}
     </Flex>}
     {props.contentPrepend ?? null}
     {

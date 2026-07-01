@@ -33,6 +33,7 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
     session_id?: string;
     user_id?: string;
     channel?: string;
+    agent_id?: string;
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
     signal?: AbortSignal;
   }) => Promise<Response>;
@@ -398,6 +399,16 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
    */
   getSessionId?: (sessionId?: string) => string | undefined;
   /**
+   * @description 获取入队请求上下文，用于会话/用户/渠道/智能体切换后仍能发送到原上下文
+   * @descriptionEn Resolve request context for queued inputs so they keep their original session/user/channel/agent after switching.
+   */
+  getRequestContext?: (sessionId?: string) => {
+    session_id?: string;
+    user_id?: string;
+    channel?: string;
+    agent_id?: string;
+  } | undefined;
+  /**
    * @description 队列满时的回调
    * @descriptionEn Called when the queue reaches maxSize
    */
@@ -750,6 +761,26 @@ export interface IAgentScopeRuntimeWebUIInputData {
    * @descriptionEn Quoted message
    */
   quote?: { messageId: string; text: string };
+  /**
+   * @description 请求所属会话
+   * @descriptionEn Session id for this request
+   */
+  session_id?: string;
+  /**
+   * @description 请求所属用户
+   * @descriptionEn User id for this request
+   */
+  user_id?: string;
+  /**
+   * @description 请求所属渠道
+   * @descriptionEn Channel for this request
+   */
+  channel?: string;
+  /**
+   * @description 请求所属智能体
+   * @descriptionEn Agent id for this request
+   */
+  agent_id?: string;
   /**
    * @description 业务参数
    * @descriptionEn Business parameters

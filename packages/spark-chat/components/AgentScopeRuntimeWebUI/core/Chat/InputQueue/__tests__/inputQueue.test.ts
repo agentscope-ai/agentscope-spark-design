@@ -226,6 +226,10 @@ test('background fetch payload carries the target chat session id', () => {
     [{ role: 'user', content: [{ type: 'text', text: 'queued' }] }],
     {
       query: 'queued',
+      session_id: 'backend-session-a',
+      user_id: 'user-a',
+      channel: 'web',
+      agent_id: 'agent-a',
       biz_params: {
         user_prompt_params: {
           mode: 'queue',
@@ -236,7 +240,10 @@ test('background fetch payload carries the target chat session id', () => {
     signal,
   );
 
-  assert.equal(payload.session_id, 'session-a');
+  assert.equal(payload.session_id, 'backend-session-a');
+  assert.equal(payload.user_id, 'user-a');
+  assert.equal(payload.channel, 'web');
+  assert.equal(payload.agent_id, 'agent-a');
   assert.equal(payload.signal, signal);
   assert.deepEqual(payload.biz_params, {
     user_prompt_params: {

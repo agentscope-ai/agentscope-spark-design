@@ -35,6 +35,12 @@ export interface InputQueueBackgroundRunnerOptions {
   ownerTabId: string;
   apiOptions: IAgentScopeRuntimeWebUIAPIOptions;
   sessionApi: IAgentScopeRuntimeWebUISessionAPI;
+  requestContext?: {
+    session_id?: string;
+    user_id?: string;
+    channel?: string;
+    agent_id?: string;
+  };
 }
 
 interface BackgroundRunnerHandle {
@@ -96,9 +102,15 @@ function patchMessageSnapshot(
 }
 
 function isSessionGenerating(session?: IAgentScopeRuntimeWebUISession) {
-  return !!(session as IAgentScopeRuntimeWebUISession & {
+  if (!!(session as IAgentScopeRuntimeWebUISession & {
     generating?: boolean;
-  } | undefined)?.generating;
+  } | undefined)?.generating) {
+    return true;
+  }
+
+  return !!session?.messages?.some(message =>
+    message.role === 'assistant' && message.msgStatus === 'generating',
+  );
 }
 
 function sleep(ms: number) {
@@ -153,7 +165,10 @@ async function fetchChat(
     },
     body: JSON.stringify({
       input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
-      session_id: chatSessionId,
+      session_id: data.session_id || chatSessionId,
+      user_id: data.user_id,
+      channel: data.channel,
+      agent_id: data.agent_id,
       stream: true,
       biz_params: data.biz_params,
     }),
@@ -248,9 +263,21 @@ async function consumeResponse(
   await persistMessages(options, patchMessageSnapshot(nextMessages, responseMessage));
 }
 
+function hasQueuedInputRequestContextMismatch(
+  data: IAgentScopeRuntimeWebUIInputData,
+  context: InputQueueBackgroundRunnerOptions['requestContext'],
+) {
+  if (!context) return false;
+
+  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(key =>
+    !!data[key] && !!context[key] && data[key] !== context[key],
+  );
+}
+
 async function dequeueNextOwnedItem(
   queueSessionId: string,
   ownerTabId: string,
+  requestContext?: InputQueueBackgroundRunnerOptions['requestContext'],
 ) {
   let nextItem: QueuedInputItem | undefined;
   await withInputQueueMutationLock(queueSessionId, () => {
@@ -258,8 +285,9 @@ async function dequeueNextOwnedItem(
     if (state.paused || !isInputQueueOwnedByTab(state, ownerTabId)) return;
 
     const result = dequeueNextQueuedInput(state.items);
+    if (!result.item) return;
+    if (hasQueuedInputRequestContextMismatch(result.item.data, requestContext)) return;
     nextItem = result.item;
-    if (!nextItem) return;
 
     persistInputQueueState(queueSessionId, {
       ...state,
@@ -360,7 +388,11 @@ async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
           break;
         }
 
-        const item = await dequeueNextOwnedItem(queueSessionId, ownerTabId);
+        const item = await dequeueNextOwnedItem(
+          queueSessionId,
+          ownerTabId,
+          handle.options.requestContext,
+        );
         if (!item) break;
 
         try {

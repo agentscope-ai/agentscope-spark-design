@@ -234,7 +234,7 @@ export default function useChatController() {
     );
 
     try {
-      const accepted = await request(historyMessages, data.biz_params, myRequestId);
+      const accepted = await request(historyMessages, data, myRequestId);
       if (!accepted) {
         throw new Error('chat request aborted');
       }

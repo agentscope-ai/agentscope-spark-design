@@ -5,8 +5,15 @@ import { useMemo } from "react";
 import { ConfigProvider, generateTheme, generateThemeByToken } from '@agentscope-ai/design';
 import { createDefaultSessionApi } from "./defaultSessionApi";
 
+const fallbackOptions = {
+  api: {},
+  session: {},
+  theme: {},
+  welcome: {},
+  sender: {},
+} as IAgentScopeRuntimeWebUIOptions;
 
-const ChatAnywhereOptionsContext = createContext<IAgentScopeRuntimeWebUIOptions>(undefined);
+const ChatAnywhereOptionsContext = createContext<IAgentScopeRuntimeWebUIOptions>(fallbackOptions);
 
 export function useChatAnywhereOptions<Selected>(selector: (value: IAgentScopeRuntimeWebUIOptions) => Selected) {
   try {
@@ -14,7 +21,11 @@ export function useChatAnywhereOptions<Selected>(selector: (value: IAgentScopeRu
     return context;
 
   } catch (error) {
-    return {} as Selected;
+    try {
+      return selector(fallbackOptions);
+    } catch {
+      return undefined as Selected;
+    }
   }
 };
 

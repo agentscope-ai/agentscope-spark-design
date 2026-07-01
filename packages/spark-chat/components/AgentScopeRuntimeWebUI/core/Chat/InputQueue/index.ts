@@ -45,6 +45,9 @@ export interface QueueEnqueueResult {
 export interface InputQueueFetchPayload {
   input: any[];
   session_id: string;
+  user_id?: string;
+  channel?: string;
+  agent_id?: string;
   biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
   signal: AbortSignal;
 }
@@ -298,7 +301,10 @@ export function createInputQueueFetchPayload(
 ): InputQueueFetchPayload {
   return {
     input,
-    session_id: sessionId,
+    session_id: data.session_id || sessionId,
+    user_id: data.user_id,
+    channel: data.channel,
+    agent_id: data.agent_id,
     biz_params: data.biz_params,
     signal,
   };

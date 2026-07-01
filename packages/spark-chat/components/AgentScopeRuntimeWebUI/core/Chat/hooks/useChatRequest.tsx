@@ -212,7 +212,10 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
   const request = useCallback(async (
     historyMessages: any[],
-    biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'],
+    data?: Pick<
+      IAgentScopeRuntimeWebUIInputData,
+      'session_id' | 'user_id' | 'channel' | 'agent_id' | 'biz_params'
+    >,
     myRequestId?: number,
   ) => {
     const currentApiOptions = apiOptionsRef.current;
@@ -224,8 +227,11 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     try {
       response = currentApiOptions.fetch ? await currentApiOptions.fetch({
         input: historyMessages,
-        session_id: sessionId,
-        biz_params,
+        session_id: data?.session_id || sessionId,
+        user_id: data?.user_id,
+        channel: data?.channel,
+        agent_id: data?.agent_id,
+        biz_params: data?.biz_params,
         signal: abortSignal,
       }) : await fetch(currentApiOptions.baseURL, {
         method: 'POST',
@@ -235,9 +241,12 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         },
         body: JSON.stringify({
           input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
-          session_id: sessionId,
+          session_id: data?.session_id || sessionId,
+          user_id: data?.user_id,
+          channel: data?.channel,
+          agent_id: data?.agent_id,
           stream: true,
-          biz_params,
+          biz_params: data?.biz_params,
         }),
         signal: abortSignal,
       });

@@ -93,6 +93,24 @@ function isChatRequestAbortedError(error: unknown) {
   return error instanceof Error && error.message === 'chat request aborted';
 }
 
+type QueueRequestContext = {
+  session_id?: string;
+  user_id?: string;
+  channel?: string;
+  agent_id?: string;
+} | undefined;
+
+function hasQueuedInputRequestContextMismatch(
+  data: Parameters<InputProps['onSubmit']>[0],
+  context: QueueRequestContext,
+) {
+  if (!context) return false;
+
+  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(key =>
+    !!data[key] && !!context[key] && data[key] !== context[key],
+  );
+}
+
 export default function useInputQueueController(
   options: UseInputQueueControllerOptions,
 ) {
@@ -120,6 +138,7 @@ export default function useInputQueueController(
   const queueEnabled = queueOptions !== false && queueConfig.enable !== false;
   const queueMaxSize = queueConfig.maxSize ?? MAX_INPUT_QUEUE_SIZE;
   const getQueueSessionId = queueConfig.getSessionId;
+  const getQueueRequestContext = queueConfig.getRequestContext;
   const onQueueFull = queueConfig.onFull;
   const onQueueSessionNotReady = queueConfig.onSessionNotReady;
   const apiOptionsRef = useRef(apiOptions);
@@ -165,6 +184,13 @@ export default function useInputQueueController(
       preferredSessionId?: string,
     ) => string | undefined;
     readQueueState?: (sessionId?: string) => InputQueueState;
+    getMessages?: () => IAgentScopeRuntimeWebUIMessage[];
+    getRequestContext?: (sessionId?: string) => {
+      session_id?: string;
+      user_id?: string;
+      channel?: string;
+      agent_id?: string;
+    } | undefined;
   }>({
     queueEnabled,
   });
@@ -429,8 +455,12 @@ export default function useInputQueueController(
     let full = false;
     let queuedItem: QueueEnqueueResult['item'];
     let nextQueueState: InputQueueState | undefined;
+    const activeChatSessionId = getActiveChatSessionId();
+    const requestContext = getQueueRequestContext?.(activeChatSessionId);
+    const queuedData = requestContext ? { ...data, ...requestContext } : data;
+
     await updateQueueState(sessionId, state => {
-      const result = enqueueInputQueueState(state, data, {
+      const result = enqueueInputQueueState(state, queuedData, {
         maxSize: queueMaxSize,
         ownerTabId: tabIdRef.current,
       });
@@ -458,7 +488,15 @@ export default function useInputQueueController(
     }
 
     return { ok: true, item: queuedItem };
-  }, [getActiveQueueSessionId, onQueueFull, onQueueSessionNotReady, queueMaxSize, updateQueueState]);
+  }, [
+    getActiveChatSessionId,
+    getActiveQueueSessionId,
+    getQueueRequestContext,
+    onQueueFull,
+    onQueueSessionNotReady,
+    queueMaxSize,
+    updateQueueState,
+  ]);
 
   const drainQueue = useCallback(async (targetQueueSessionId?: string) => {
     const sessionId = targetQueueSessionId || getActiveQueueSessionId();
@@ -476,6 +514,8 @@ export default function useInputQueueController(
       queueDrainBlockedSessionRef.current === sessionId
     ) return;
 
+    const currentRequestContext = getQueueRequestContext?.(chatSessionId);
+
     await withQueueSendLock(sessionId, async () => {
       let nextItem: ReturnType<typeof dequeueNextQueuedInput>['item'];
       await withQueueMutationLock(sessionId, () => {
@@ -483,8 +523,9 @@ export default function useInputQueueController(
         if (state.paused || !canExecuteQueue(state)) return;
 
         const result = dequeueNextQueuedInput(state.items);
+        if (!result.item) return;
+        if (hasQueuedInputRequestContextMismatch(result.item.data, currentRequestContext)) return;
         nextItem = result.item;
-        if (!nextItem) return;
 
         commitQueueState(sessionId, {
           ...state,
@@ -521,6 +562,7 @@ export default function useInputQueueController(
     commitQueueState,
     getActiveQueueSessionId,
     getChatSessionIdForQueue,
+    getQueueRequestContext,
     getLoading,
     isQueueSessionActive,
     readQueueState,
@@ -1080,6 +1122,8 @@ export default function useInputQueueController(
     getActiveChatSessionId,
     getChatSessionIdForQueue,
     readQueueState,
+    getMessages,
+    getRequestContext: getQueueRequestContext,
   };
 
   useEffect(() => {
@@ -1108,12 +1152,18 @@ export default function useInputQueueController(
       const sessionApi = sessionApiOptionsRef.current;
       if (!chatSessionId || !sessionApi) return;
 
+      const waitForActiveRequest =
+        currentQARef.current.activeQueueSessionId === queueSessionId ||
+        !!findGeneratingResponse(snapshot.getMessages?.() || []);
+      if (waitForActiveRequest) return;
+
       startInputQueueBackgroundRunner({
         queueSessionId,
         chatSessionId,
         ownerTabId: tabIdRef.current,
         apiOptions: apiOptionsRef.current,
         sessionApi,
+        requestContext: snapshot.getRequestContext?.(chatSessionId),
       });
     };
   }, [currentQARef]);
