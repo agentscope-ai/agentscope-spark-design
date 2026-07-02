@@ -14,14 +14,14 @@ import {
   hasInputQueueWork,
   INPUT_QUEUE_OWNER_TTL,
   INPUT_QUEUE_TAB_ID_STORAGE_KEY,
-  isInputQueueOwner,
   isInputQueueOwnedByTab,
+  isInputQueueOwner,
   isInputQueueStateEmpty,
   removeQueuedInput,
   reorderQueuedInput,
+  resetInputQueueTabId,
   restoreFailedQueuedInput,
   retryQueuedInput,
-  resetInputQueueTabId,
   shouldClaimInputQueueOwner,
   updateQueuedInputQuery,
 } from '../index';
@@ -34,10 +34,7 @@ import {
   getInputQueueVisibleSessionId,
   resolveInputQueueSessionId,
 } from '../session';
-import {
-  persistInputQueueState,
-  readInputQueueState,
-} from '../storage';
+import { persistInputQueueState, readInputQueueState } from '../storage';
 
 const input = (query: string) => ({ query });
 
@@ -65,9 +62,11 @@ function installSessionStorageMock() {
     if (previousDescriptor) {
       Object.defineProperty(globalThis, 'sessionStorage', previousDescriptor);
     } else {
-      delete (globalThis as typeof globalThis & {
-        sessionStorage?: Storage;
-      }).sessionStorage;
+      delete (
+        globalThis as typeof globalThis & {
+          sessionStorage?: Storage;
+        }
+      ).sessionStorage;
     }
   };
 }
@@ -96,9 +95,11 @@ function installLocalStorageMock() {
     if (previousDescriptor) {
       Object.defineProperty(globalThis, 'localStorage', previousDescriptor);
     } else {
-      delete (globalThis as typeof globalThis & {
-        localStorage?: Storage;
-      }).localStorage;
+      delete (
+        globalThis as typeof globalThis & {
+          localStorage?: Storage;
+        }
+      ).localStorage;
     }
   };
 }
@@ -167,6 +168,15 @@ test('direct submit is allowed only when idle, queue is empty and no drain is ac
       queueLength: 0,
       draining: false,
       canExecute: false,
+    }),
+    false,
+  );
+  assert.equal(
+    canSubmitDirectly({
+      loading: false,
+      queueLength: 0,
+      draining: false,
+      sessionRunning: true,
     }),
     false,
   );
@@ -317,10 +327,7 @@ test('tab identity survives refresh storage and can be rotated for duplicated ta
     const first = getInputQueueTabId();
     const second = getInputQueueTabId();
     assert.equal(second, first);
-    assert.equal(
-      sessionStorage.getItem(INPUT_QUEUE_TAB_ID_STORAGE_KEY),
-      first,
-    );
+    assert.equal(sessionStorage.getItem(INPUT_QUEUE_TAB_ID_STORAGE_KEY), first);
 
     const rotated = resetInputQueueTabId();
     assert.notEqual(rotated, first);
@@ -363,10 +370,7 @@ test('queue owner is isolated by tab and can be reclaimed when stale', () => {
     isInputQueueOwner(owned, 'tab-b', 10 + INPUT_QUEUE_OWNER_TTL + 1),
     true,
   );
-  assert.equal(
-    isInputQueueOwnedByTab(owned, 'tab-b'),
-    false,
-  );
+  assert.equal(isInputQueueOwnedByTab(owned, 'tab-b'), false);
 });
 
 test('peer tab claims ownership only when a non-empty queue is ownerless or stale', () => {
@@ -634,14 +638,10 @@ test('queue session equivalence follows the custom stable queue key', () => {
     backendSessionById.get(sessionId || '') || sessionId;
 
   assert.equal(
-    areInputQueueSessionsEquivalent(
-      'temp-1700000000000',
-      'real-chat-uuid',
-      {
-        queueEnabled: true,
-        getSessionId: getStableBackendSessionId,
-      },
-    ),
+    areInputQueueSessionsEquivalent('temp-1700000000000', 'real-chat-uuid', {
+      queueEnabled: true,
+      getSessionId: getStableBackendSessionId,
+    }),
     true,
   );
   assert.equal(

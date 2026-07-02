@@ -56,8 +56,11 @@ export const MAX_INPUT_QUEUE_SIZE = 50;
 export const INPUT_QUEUE_OWNER_TTL = 10_000;
 export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
 export const INPUT_QUEUE_OWNER_CLAIM_INTERVAL = 1_000;
-export const INPUT_QUEUE_STORAGE_PREFIX = 'agentscope-runtime-webui-input-queue';
-export const INPUT_QUEUE_TAB_ID_STORAGE_KEY = 'agentscope-runtime-webui-input-queue-tab-id';
+export const INPUT_QUEUE_RUNNING_RETRY_INTERVAL = 2_500;
+export const INPUT_QUEUE_STORAGE_PREFIX =
+  'agentscope-runtime-webui-input-queue';
+export const INPUT_QUEUE_TAB_ID_STORAGE_KEY =
+  'agentscope-runtime-webui-input-queue-tab-id';
 
 let queueId = 0;
 let commandId = 0;
@@ -89,7 +92,9 @@ export function getInputQueueStorageKey(sessionId: string) {
 }
 
 export function createInputQueueTabId(now = Date.now()) {
-  return `input-queue-tab-${now.toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `input-queue-tab-${now.toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 }
 
 function persistInputQueueTabId(tabId: string) {
@@ -221,14 +226,14 @@ export function removeQueuedInput(
   queue: QueuedInputItem[],
   id: string,
 ): QueuedInputItem[] {
-  return queue.filter(item => item.id !== id);
+  return queue.filter((item) => item.id !== id);
 }
 
 export function retryQueuedInput(
   queue: QueuedInputItem[],
   id: string,
 ): QueuedInputItem[] {
-  return queue.map(item =>
+  return queue.map((item) =>
     item.id === id
       ? {
           ...item,
@@ -247,8 +252,8 @@ export function reorderQueuedInput(
 ): QueuedInputItem[] {
   if (sourceId === targetId) return queue;
 
-  const sourceIndex = queue.findIndex(item => item.id === sourceId);
-  const targetIndex = queue.findIndex(item => item.id === targetId);
+  const sourceIndex = queue.findIndex((item) => item.id === sourceId);
+  const targetIndex = queue.findIndex((item) => item.id === targetId);
   if (sourceIndex < 0 || targetIndex < 0) return queue;
 
   const next = [...queue];
@@ -263,7 +268,7 @@ export function updateQueuedInputQuery(
   id: string,
   query: string,
 ): QueuedInputItem[] {
-  return queue.map(item =>
+  return queue.map((item) =>
     item.id === id
       ? {
           ...item,
@@ -279,7 +284,11 @@ export function updateQueuedInputQuery(
   );
 }
 
-export function createSendNowCommand(itemId: string, sourceTabId: string, now = Date.now()): InputQueueCommand {
+export function createSendNowCommand(
+  itemId: string,
+  sourceTabId: string,
+  now = Date.now(),
+): InputQueueCommand {
   return {
     id: `input-queue-command-${now.toString(36)}-${(++commandId).toString(36)}`,
     type: 'send-now',
@@ -332,10 +341,7 @@ export function isInputQueueOwner(
   );
 }
 
-export function isInputQueueOwnedByTab(
-  state: InputQueueState,
-  tabId: string,
-) {
+export function isInputQueueOwnedByTab(state: InputQueueState, tabId: string) {
   return state.ownerTabId === tabId;
 }
 
@@ -345,7 +351,11 @@ export function assignInputQueueOwner(
   now = Date.now(),
   options?: { force?: boolean },
 ): InputQueueState {
-  if (!options?.force && state.ownerTabId && !isInputQueueOwner(state, tabId, now)) {
+  if (
+    !options?.force &&
+    state.ownerTabId &&
+    !isInputQueueOwner(state, tabId, now)
+  ) {
     return state;
   }
 
@@ -379,7 +389,8 @@ export function restoreFailedQueuedInput(
       ...item,
       status: 'failed',
       retryCount: item.retryCount + 1,
-      errorMessage: error instanceof Error ? error.message : String(error || ''),
+      errorMessage:
+        error instanceof Error ? error.message : String(error || ''),
     },
     ...queue,
   ];
@@ -391,10 +402,12 @@ export function canSubmitDirectly(options: {
   draining: boolean;
   paused?: boolean;
   canExecute?: boolean;
+  sessionRunning?: boolean;
 }) {
   return (
     options.canExecute !== false &&
     !options.paused &&
+    !options.sessionRunning &&
     !options.loading &&
     options.queueLength === 0 &&
     !options.draining

@@ -1,28 +1,36 @@
-import { useCallback, type ReactNode } from "react";
-import { useProviderContext, ChatInput, Disclaimer } from '@agentscope-ai/chat';
-import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
+import {
+  ChatInput,
+  Disclaimer,
+  IAgentScopeRuntimeWebUIInputData,
+  useProviderContext,
+} from '@agentscope-ai/chat';
 import { useGetState } from 'ahooks';
-import { useChatAnywhereInput } from "../../Context/ChatAnywhereInputContext";
-import useAttachments from "./useAttachments";
-import { IAgentScopeRuntimeWebUIInputData } from "@agentscope-ai/chat";
-import type { QueueEnqueueResult, QueuedInputItem } from "../InputQueue";
+import { useCallback, type ReactNode } from 'react';
+import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
+import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
+import type { QueueEnqueueResult, QueuedInputItem } from '../InputQueue';
+import useAttachments from './useAttachments';
 
 export interface InputProps {
   onCancel: () => void;
-  onSubmit: (data: IAgentScopeRuntimeWebUIInputData) => void;
+  onSubmit: (
+    data: IAgentScopeRuntimeWebUIInputData,
+  ) => void | QueueEnqueueResult | Promise<void | QueueEnqueueResult>;
   queue?: {
     items: QueuedInputItem[];
     isOwner: boolean;
     panel?: ReactNode;
-    onEnqueue: (data: IAgentScopeRuntimeWebUIInputData) => QueueEnqueueResult | Promise<QueueEnqueueResult>;
+    onEnqueue: (
+      data: IAgentScopeRuntimeWebUIInputData,
+    ) => QueueEnqueueResult | Promise<QueueEnqueueResult>;
   };
 }
 
 export default function Input(props: InputProps) {
   const [content, setContent, getContent] = useGetState('');
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-input');
-  const senderOptions = useChatAnywhereOptions(v => v.sender);
-  const inputContext = useChatAnywhereInput(v => v);
+  const senderOptions = useChatAnywhereOptions((v) => v.sender);
+  const inputContext = useChatAnywhereInput((v) => v);
 
   const {
     placeholder = '',
@@ -46,11 +54,11 @@ export default function Input(props: InputProps) {
     handlePasteFile,
     handleDropFile,
     uploadIconButton,
-    uploadFileListHeader
+    uploadFileListHeader,
   } = useAttachments(attachments, { disabled: !!inputContext.disabled });
 
   const getSubmittableData = useCallback(() => {
-    const fileList = (getFileList?.() || []).filter(i => i.response?.url);
+    const fileList = (getFileList?.() || []).filter((i) => i.response?.url);
     const query = getContent();
     if (!query.trim() && fileList.length === 0) return;
 
@@ -88,71 +96,97 @@ export default function Input(props: InputProps) {
     const data = getSubmittableData();
     if (!data) return;
 
-    if (props.queue && (
-      inputContext.loading ||
-      props.queue.items.length ||
-      props.queue.isOwner === false
-    )) {
+    if (
+      props.queue &&
+      (inputContext.loading ||
+        props.queue.items.length ||
+        props.queue.isOwner === false)
+    ) {
       const result = await props.queue.onEnqueue(data);
       if (result.ok) {
         clearInput();
       }
     } else {
-      props.onSubmit(data);
+      const result = await props.onSubmit(data);
+      if (result && !result.ok) return;
       clearInput();
     }
-  }, [beforeSubmit, clearInput, getSubmittableData, inputContext.loading, props.onSubmit, props.queue]);
+  }, [
+    beforeSubmit,
+    clearInput,
+    getSubmittableData,
+    inputContext.loading,
+    props.onSubmit,
+    props.queue,
+  ]);
 
-  const handleKeyDownCapture = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== 'Enter' || event.shiftKey) return;
-    if (event.nativeEvent?.isComposing) return;
-    if (!props.queue) return;
-    const forceEnqueue = event.ctrlKey || event.metaKey;
-    if (!forceEnqueue && !inputContext.loading && !props.queue?.items.length) return;
+  const handleKeyDownCapture = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key !== 'Enter' || event.shiftKey) return;
+      if (event.nativeEvent?.isComposing) return;
+      if (!props.queue) return;
+      const forceEnqueue = event.ctrlKey || event.metaKey;
+      if (!forceEnqueue && !inputContext.loading && !props.queue?.items.length)
+        return;
 
-    const data = getSubmittableData();
-    if (!data) return;
+      const data = getSubmittableData();
+      if (!data) return;
 
-    event.preventDefault();
-    event.stopPropagation();
-    void (forceEnqueue ? handleEnqueue() : handleSubmit());
-  }, [getSubmittableData, handleEnqueue, handleSubmit, inputContext.loading, props.queue, props.queue?.items.length]);
+      event.preventDefault();
+      event.stopPropagation();
+      void (forceEnqueue ? handleEnqueue() : handleSubmit());
+    },
+    [
+      getSubmittableData,
+      handleEnqueue,
+      handleSubmit,
+      inputContext.loading,
+      props.queue,
+      props.queue?.items.length,
+    ],
+  );
 
   const handleCancel = useCallback(() => {
     props.onCancel();
   }, [props.onCancel]);
 
-  return <div className={prefixCls} onKeyDownCapture={handleKeyDownCapture}>
-    <div className={`${prefixCls}-wrapper`}>
-      {beforeUI}
-      {props.queue?.panel}
-      <ChatInput
-        loading={inputContext.loading}
-        disabled={inputContext.disabled}
-        placeholder={placeholder}
-        value={content}
-        prefix={<>
-          {uploadIconButton}
-          {prefix}
-        </>}
-        header={uploadFileListHeader}
-        onChange={setContent}
-        maxLength={maxLength}
-        showCharacterCount={showCharacterCount}
-        characterCountRender={characterCountRender}
-        actionAffix={actionAffix}
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
-        allowSubmitWhenLoading={!!props.queue}
-        allowSpeech={allowSpeech}
-        onPasteFile={handlePasteFile}
-        onDropFile={handleDropFile}
-        suggestions={suggestions}
-      />
-      {afterUI}
+  return (
+    <div className={prefixCls} onKeyDownCapture={handleKeyDownCapture}>
+      <div className={`${prefixCls}-wrapper`}>
+        {beforeUI}
+        {props.queue?.panel}
+        <ChatInput
+          loading={inputContext.loading}
+          disabled={inputContext.disabled}
+          placeholder={placeholder}
+          value={content}
+          prefix={
+            <>
+              {uploadIconButton}
+              {prefix}
+            </>
+          }
+          header={uploadFileListHeader}
+          onChange={setContent}
+          maxLength={maxLength}
+          showCharacterCount={showCharacterCount}
+          characterCountRender={characterCountRender}
+          actionAffix={actionAffix}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          allowSubmitWhenLoading={!!props.queue}
+          allowSpeech={allowSpeech}
+          onPasteFile={handlePasteFile}
+          onDropFile={handleDropFile}
+          suggestions={suggestions}
+        />
+        {afterUI}
+      </div>
+      {disclaimer ? (
+        <Disclaimer desc={disclaimer} />
+      ) : (
+        <div className={`${prefixCls}-blank`}></div>
+      )}
     </div>
-    {
-      disclaimer ? <Disclaimer desc={disclaimer} /> : <div className={`${prefixCls}-blank`}></div>
-    }
-  </div>;
+  );
 }

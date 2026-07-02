@@ -1,9 +1,17 @@
+import type { IAgentScopeRuntimeWebUIMessage } from '@agentscope-ai/chat';
 import { message } from 'antd';
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from 'react';
 import { useContextSelector } from 'use-context-selector';
 import { ChatAnywhereMessagesContext } from '../../Context/ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
-import type { IAgentScopeRuntimeWebUIMessage } from '@agentscope-ai/chat';
+import type { IAgentScopeRuntimeWebUIQueueRequestContext } from '../../types';
 import type { InputProps } from '../Input';
 import {
   assignInputQueueOwner,
@@ -18,6 +26,7 @@ import {
   hasInputQueueWork,
   INPUT_QUEUE_OWNER_CLAIM_INTERVAL,
   INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
+  INPUT_QUEUE_RUNNING_RETRY_INTERVAL,
   isInputQueueOwnedByTab,
   isInputQueueOwner,
   MAX_INPUT_QUEUE_SIZE,
@@ -73,7 +82,9 @@ export interface UseInputQueueControllerOptions {
   getCurrentSessionId: () => string | undefined;
   submitNowRef: MutableRefObject<QueueSubmitNow | null>;
   handleCancelRef: MutableRefObject<(() => void) | null>;
-  handleReconnectRef: MutableRefObject<((sessionId: string) => Promise<void>) | null>;
+  handleReconnectRef: MutableRefObject<
+    ((sessionId: string) => Promise<void>) | null
+  >;
 }
 
 function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
@@ -86,19 +97,29 @@ function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
 }
 
 function isQueueSessionSwitchedError(error: unknown) {
-  return error instanceof Error && error.message === 'input queue session switched';
+  return (
+    error instanceof Error && error.message === 'input queue session switched'
+  );
 }
 
 function isChatRequestAbortedError(error: unknown) {
   return error instanceof Error && error.message === 'chat request aborted';
 }
 
-type QueueRequestContext = {
-  session_id?: string;
-  user_id?: string;
-  channel?: string;
-  agent_id?: string;
-} | undefined;
+type QueueRequestContext =
+  | {
+      session_id?: string;
+      user_id?: string;
+      channel?: string;
+      agent_id?: string;
+    }
+  | undefined;
+
+type QueueSessionRunningCheck = (options: {
+  chatSessionId?: string;
+  queueSessionId?: string;
+  requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
+}) => Promise<boolean>;
 
 function hasQueuedInputRequestContextMismatch(
   data: Parameters<InputProps['onSubmit']>[0],
@@ -106,8 +127,8 @@ function hasQueuedInputRequestContextMismatch(
 ) {
   if (!context) return false;
 
-  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(key =>
-    !!data[key] && !!context[key] && data[key] !== context[key],
+  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(
+    (key) => !!data[key] && !!context[key] && data[key] !== context[key],
   );
 }
 
@@ -126,19 +147,29 @@ export default function useInputQueueController(
     handleCancelRef,
     handleReconnectRef,
   } = options;
-  const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
-  const getMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.getMessages);
-  const apiOptions = useChatAnywhereOptions(v => v.api);
-  const sessionApiOptions = useChatAnywhereOptions(v => v.session?.api);
-  const queueOptions = useChatAnywhereOptions(v => v.sender?.queue);
+  const setMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.setMessages,
+  );
+  const getMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.getMessages,
+  );
+  const apiOptions = useChatAnywhereOptions((v) => v.api);
+  const sessionApiOptions = useChatAnywhereOptions((v) => v.session?.api);
+  const queueOptions = useChatAnywhereOptions((v) => v.sender?.queue);
   const queueConfig = useMemo(
-    () => (queueOptions === true || queueOptions === undefined ? {} : queueOptions || {}),
+    () =>
+      queueOptions === true || queueOptions === undefined
+        ? {}
+        : queueOptions || {},
     [queueOptions],
   );
   const queueEnabled = queueOptions !== false && queueConfig.enable !== false;
   const queueMaxSize = queueConfig.maxSize ?? MAX_INPUT_QUEUE_SIZE;
   const getQueueSessionId = queueConfig.getSessionId;
   const getQueueRequestContext = queueConfig.getRequestContext;
+  const isQueueSessionRunning = queueConfig.isSessionRunning;
   const onQueueFull = queueConfig.onFull;
   const onQueueSessionNotReady = queueConfig.onSessionNotReady;
   const apiOptionsRef = useRef(apiOptions);
@@ -158,12 +189,16 @@ export default function useInputQueueController(
   const [inputQueueState, setInputQueueState] = useState<InputQueueState>(() =>
     createEmptyInputQueueState(),
   );
-  const [inputQueueSessionId, setInputQueueSessionId] = useState<string | undefined>(undefined);
+  const [inputQueueSessionId, setInputQueueSessionId] = useState<
+    string | undefined
+  >(undefined);
   const inputQueueStateRef = useRef<InputQueueState>(inputQueueState);
   const drainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduledDrainSessionIdRef = useRef<string | undefined>(undefined);
   const drainingRef = useRef(false);
-  const drainQueueRef = useRef<((sessionId?: string) => Promise<void>) | null>(null);
+  const drainQueueRef = useRef<((sessionId?: string) => Promise<void>) | null>(
+    null,
+  );
   const queueDrainBlockedSessionRef = useRef<string | undefined>(undefined);
   const activeQueueSessionIdsRef = useRef<Set<string>>(new Set());
   const pendingPeerReconnectSessionRef = useRef<string | undefined>(undefined);
@@ -171,10 +206,8 @@ export default function useInputQueueController(
   const processedCommandIdRef = useRef<string | undefined>(undefined);
   const broadcastRef = useRef<BroadcastChannel | null>(null);
   const pageUnloadingRef = useRef(false);
-  const releasePeerTakeoverBlockRef = useRef<(
-    queueSessionId: string,
-    queueState: InputQueueState,
-  ) => void>();
+  const releasePeerTakeoverBlockRef =
+    useRef<(queueSessionId: string, queueState: InputQueueState) => void>();
   const backgroundRunnerSnapshotRef = useRef<{
     queueEnabled: boolean;
     currentQueueSessionId?: string;
@@ -185,12 +218,10 @@ export default function useInputQueueController(
     ) => string | undefined;
     readQueueState?: (sessionId?: string) => InputQueueState;
     getMessages?: () => IAgentScopeRuntimeWebUIMessage[];
-    getRequestContext?: (sessionId?: string) => {
-      session_id?: string;
-      user_id?: string;
-      channel?: string;
-      agent_id?: string;
-    } | undefined;
+    getRequestContext?: (
+      sessionId?: string,
+    ) => IAgentScopeRuntimeWebUIQueueRequestContext | undefined;
+    isSessionRunning?: typeof isQueueSessionRunning;
   }>({
     queueEnabled,
   });
@@ -213,20 +244,26 @@ export default function useInputQueueController(
 
   const readQueueState = useCallback(readInputQueueState, []);
 
-  const resolveQueueSessionId = useCallback((sessionId?: string) => {
-    return resolveInputQueueSessionId(sessionId, {
+  const resolveQueueSessionId = useCallback(
+    (sessionId?: string) => {
+      return resolveInputQueueSessionId(sessionId, {
+        queueEnabled,
+        getSessionId: getQueueSessionId,
+      });
+    },
+    [getQueueSessionId, queueEnabled],
+  );
+
+  const currentQueueSessionId = getInputQueueRouteQueueSessionId(
+    {
+      currentSessionId,
+      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+    },
+    {
       queueEnabled,
       getSessionId: getQueueSessionId,
-    });
-  }, [getQueueSessionId, queueEnabled]);
-
-  const currentQueueSessionId = getInputQueueRouteQueueSessionId({
-    currentSessionId,
-    pendingRouteSessionId: pendingRouteSessionIdRef?.current,
-  }, {
-    queueEnabled,
-    getSessionId: getQueueSessionId,
-  });
+    },
+  );
 
   const getVisibleChatSessionId = useCallback(() => {
     return getInputQueueVisibleChatSessionId({
@@ -237,19 +274,31 @@ export default function useInputQueueController(
   }, [currentQARef, currentSessionIdRef, pendingRouteSessionIdRef]);
 
   const getVisibleQueueSessionId = useCallback(() => {
-    return getInputQueueVisibleSessionId({
-      currentSessionId: currentSessionIdRef.current,
-      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
-      activeSessionId: currentQARef.current.activeSessionId,
-    }, {
-      queueEnabled,
-      getSessionId: getQueueSessionId,
-    });
-  }, [currentQARef, currentSessionIdRef, getQueueSessionId, pendingRouteSessionIdRef, queueEnabled]);
+    return getInputQueueVisibleSessionId(
+      {
+        currentSessionId: currentSessionIdRef.current,
+        pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+        activeSessionId: currentQARef.current.activeSessionId,
+      },
+      {
+        queueEnabled,
+        getSessionId: getQueueSessionId,
+      },
+    );
+  }, [
+    currentQARef,
+    currentSessionIdRef,
+    getQueueSessionId,
+    pendingRouteSessionIdRef,
+    queueEnabled,
+  ]);
 
-  const markQueueSessionActive = useCallback((sessionId: string | undefined) => {
-    if (sessionId) activeQueueSessionIdsRef.current.add(sessionId);
-  }, []);
+  const markQueueSessionActive = useCallback(
+    (sessionId: string | undefined) => {
+      if (sessionId) activeQueueSessionIdsRef.current.add(sessionId);
+    },
+    [],
+  );
 
   const markQueueSessionIdle = useCallback((sessionId: string | undefined) => {
     if (sessionId) activeQueueSessionIdsRef.current.delete(sessionId);
@@ -263,56 +312,65 @@ export default function useInputQueueController(
     return isInputQueueOwnedByTab(state, tabIdRef.current);
   }, []);
 
-  const commitQueueState = useCallback((sessionId: string | undefined, state: InputQueueState) => {
-    if (!sessionId) return state;
-    const next = persistInputQueueState(sessionId, state);
+  const commitQueueState = useCallback(
+    (sessionId: string | undefined, state: InputQueueState) => {
+      if (!sessionId) return state;
+      const next = persistInputQueueState(sessionId, state);
 
-    if (getVisibleQueueSessionId() === sessionId) {
-      setInputQueueSessionId(sessionId);
-      inputQueueStateRef.current = next;
-      setInputQueueState(next);
-    }
+      if (getVisibleQueueSessionId() === sessionId) {
+        setInputQueueSessionId(sessionId);
+        inputQueueStateRef.current = next;
+        setInputQueueState(next);
+      }
 
-    broadcastRef.current?.postMessage({
-      type: 'input-queue-change',
-      sessionId,
-      state: next,
-    });
+      broadcastRef.current?.postMessage({
+        type: 'input-queue-change',
+        sessionId,
+        state: next,
+      });
 
-    return next;
-  }, [getVisibleQueueSessionId]);
+      return next;
+    },
+    [getVisibleQueueSessionId],
+  );
 
   const withQueueMutationLock = useCallback(withInputQueueMutationLock, []);
 
-  const updateQueueState = useCallback((
-    sessionId: string | undefined,
-    updater: (state: InputQueueState) => InputQueueState,
-  ) => {
-    if (!sessionId) return createEmptyInputQueueState();
+  const updateQueueState = useCallback(
+    (
+      sessionId: string | undefined,
+      updater: (state: InputQueueState) => InputQueueState,
+    ) => {
+      if (!sessionId) return createEmptyInputQueueState();
 
-    return withQueueMutationLock(sessionId, () => {
-      const current = readQueueState(sessionId);
-      const next = updater(current);
-      return commitQueueState(sessionId, next);
-    });
-  }, [commitQueueState, readQueueState, withQueueMutationLock]);
+      return withQueueMutationLock(sessionId, () => {
+        const current = readQueueState(sessionId);
+        const next = updater(current);
+        return commitQueueState(sessionId, next);
+      });
+    },
+    [commitQueueState, readQueueState, withQueueMutationLock],
+  );
 
   const withQueueSendLock = useCallback(withInputQueueSendLock, []);
 
-  const syncMessagesToPeerTabs = useCallback((
-    sessionId: string | undefined,
-    messages: IAgentScopeRuntimeWebUIMessage[],
-  ) => {
-    const queueSessionId = resolveQueueSessionId(sessionId);
-    if (!queueSessionId) return;
+  const syncMessagesToPeerTabs = useCallback(
+    (
+      sessionId: string | undefined,
+      messages: IAgentScopeRuntimeWebUIMessage[],
+    ) => {
+      const queueSessionId = resolveQueueSessionId(sessionId);
+      if (!queueSessionId) return;
 
-    broadcastRef.current?.postMessage({
-      type: 'input-queue-messages-change',
-      sessionId: queueSessionId,
-      messages,
-      sourceTabId: tabIdRef.current,
-    });
-  }, [resolveQueueSessionId]);
+      broadcastRef.current?.postMessage({
+        type: 'input-queue-messages-change',
+        sessionId: queueSessionId,
+        messages,
+        sourceTabId: tabIdRef.current,
+      });
+    },
+    [resolveQueueSessionId],
+  );
 
   const getActiveChatSessionId = useCallback(() => {
     return getInputQueueVisibleChatSessionId({
@@ -326,38 +384,68 @@ export default function useInputQueueController(
     return resolveQueueSessionId(getActiveChatSessionId());
   }, [getActiveChatSessionId, resolveQueueSessionId]);
 
-  const getChatSessionIdForQueue = useCallback((
-    queueSessionId: string | undefined,
-    preferredSessionId?: string,
-  ) => {
-    const activeSessionId = currentQARef.current.activeSessionId;
-    const currentChatSessionId = getCurrentSessionId();
-    const rawMatch = [
-      preferredSessionId,
-      activeSessionId,
-      currentChatSessionId,
-      pendingRouteSessionIdRef?.current,
-    ].find(sessionId => !!sessionId && sessionId === queueSessionId);
-    if (rawMatch) return rawMatch;
+  const isHostSessionRunning = useCallback<QueueSessionRunningCheck>(
+    async ({ chatSessionId, queueSessionId, requestContext }) => {
+      if (!isQueueSessionRunning) return false;
 
-    if (
-      queueSessionId &&
-      currentQARef.current.activeQueueSessionId === queueSessionId
-    ) {
-      return activeSessionId;
-    }
+      try {
+        return !!(await isQueueSessionRunning({
+          sessionId: chatSessionId,
+          queueSessionId,
+          requestContext:
+            requestContext ?? getQueueRequestContext?.(chatSessionId),
+        }));
+      } catch (error) {
+        console.error('input queue running check failed:', error);
+        return false;
+      }
+    },
+    [getQueueRequestContext, isQueueSessionRunning],
+  );
 
-    return getInputQueueChatSessionIdForQueue({
-      currentSessionId: currentChatSessionId,
-      pendingRouteSessionId: pendingRouteSessionIdRef?.current,
-      activeSessionId,
-    }, {
+  const getChatSessionIdForQueue = useCallback(
+    (queueSessionId: string | undefined, preferredSessionId?: string) => {
+      const activeSessionId = currentQARef.current.activeSessionId;
+      const currentChatSessionId = getCurrentSessionId();
+      const rawMatch = [
+        preferredSessionId,
+        activeSessionId,
+        currentChatSessionId,
+        pendingRouteSessionIdRef?.current,
+      ].find((sessionId) => !!sessionId && sessionId === queueSessionId);
+      if (rawMatch) return rawMatch;
+
+      if (
+        queueSessionId &&
+        currentQARef.current.activeQueueSessionId === queueSessionId
+      ) {
+        return activeSessionId;
+      }
+
+      return getInputQueueChatSessionIdForQueue(
+        {
+          currentSessionId: currentChatSessionId,
+          pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+          activeSessionId,
+        },
+        {
+          queueEnabled,
+          getSessionId: getQueueSessionId,
+        },
+        queueSessionId,
+        preferredSessionId,
+      );
+    },
+    [
+      currentQARef,
+      getCurrentSessionId,
+      getQueueSessionId,
+      pendingRouteSessionIdRef,
       queueEnabled,
-      getSessionId: getQueueSessionId,
-    }, queueSessionId, preferredSessionId);
-  }, [currentQARef, getCurrentSessionId, getQueueSessionId, pendingRouteSessionIdRef, queueEnabled]);
+    ],
+  );
 
-  const scheduleDrainQueue = useCallback((sessionId?: string) => {
+  const scheduleDrainQueue = useCallback((sessionId?: string, delay = 0) => {
     scheduledDrainSessionIdRef.current = sessionId;
     if (drainTimerRef.current) {
       clearTimeout(drainTimerRef.current);
@@ -368,298 +456,386 @@ export default function useInputQueueController(
       scheduledDrainSessionIdRef.current = undefined;
       drainTimerRef.current = null;
       void drainQueueRef.current?.(nextSessionId);
-    }, 0);
+    }, delay);
   }, []);
 
-  const releaseQueueOwnerIfIdle = useCallback((sessionId: string | undefined) => {
-    if (!sessionId) return;
+  const releaseQueueOwnerIfIdle = useCallback(
+    (sessionId: string | undefined) => {
+      if (!sessionId) return;
 
-    void updateQueueState(sessionId, state => {
-      if (state.ownerTabId !== tabIdRef.current || hasInputQueueWork(state)) {
-        return state;
-      }
-
-      return {
-        ...state,
-        ownerTabId: undefined,
-        ownerUpdatedAt: undefined,
-        updatedAt: Date.now(),
-      };
-    });
-  }, [updateQueueState]);
-
-  const assignOwnerForSubmit = useCallback(async (sessionId: string | undefined) => {
-    if (!sessionId) return;
-    activeSubmitQueueSessionRef.current = sessionId;
-    await updateQueueState(sessionId, state =>
-      assignInputQueueOwner(state, tabIdRef.current),
-    );
-  }, [updateQueueState]);
-
-  const handleResponseFinished = useCallback((activeSessionId: string | undefined) => {
-    const completedQueueSessionIds = [
-      currentQARef.current.activeQueueSessionId,
-      activeSessionId,
-      currentSessionIdRef.current,
-      pendingRouteSessionIdRef?.current,
-      ...getInputQueueCompletionSessionIds({
-        currentSessionId: currentSessionIdRef.current,
-        pendingRouteSessionId: pendingRouteSessionIdRef?.current,
-        activeSessionId,
-      }, {
-        queueEnabled,
-        getSessionId: getQueueSessionId,
-      }),
-    ].filter((sessionId, index, list): sessionId is string =>
-      !!sessionId && list.indexOf(sessionId) === index,
-    );
-
-    completedQueueSessionIds.forEach(markQueueSessionIdle);
-    if (
-      activeSubmitQueueSessionRef.current &&
-      completedQueueSessionIds.includes(activeSubmitQueueSessionRef.current)
-    ) {
-      activeSubmitQueueSessionRef.current = undefined;
-    }
-    if (completedQueueSessionIds.some(sessionId => sessionId === queueDrainBlockedSessionRef.current)) {
-      queueDrainBlockedSessionRef.current = undefined;
-    }
-    const nextDrainSessionId = completedQueueSessionIds.find(sessionId =>
-      hasInputQueueWork(readQueueState(sessionId)),
-    ) || completedQueueSessionIds[0];
-    completedQueueSessionIds.forEach(releaseQueueOwnerIfIdle);
-    scheduleDrainQueue(nextDrainSessionId);
-  }, [
-    currentQARef,
-    currentSessionIdRef,
-    getQueueSessionId,
-    markQueueSessionIdle,
-    pendingRouteSessionIdRef,
-    queueEnabled,
-    readQueueState,
-    releaseQueueOwnerIfIdle,
-    scheduleDrainQueue,
-  ]);
-
-  const enqueueInput = useCallback(async (data: Parameters<InputProps['onSubmit']>[0]): Promise<QueueEnqueueResult> => {
-    const sessionId = getActiveQueueSessionId();
-    if (!sessionId) {
-      if (onQueueSessionNotReady) {
-        onQueueSessionNotReady();
-      } else {
-        message.warning('Current session is still being generated. Please wait before queuing another input.');
-      }
-      return { ok: false, reason: 'session-not-ready' };
-    }
-
-    let full = false;
-    let queuedItem: QueueEnqueueResult['item'];
-    let nextQueueState: InputQueueState | undefined;
-    const activeChatSessionId = getActiveChatSessionId();
-    const requestContext = getQueueRequestContext?.(activeChatSessionId);
-    const queuedData = requestContext ? { ...data, ...requestContext } : data;
-
-    await updateQueueState(sessionId, state => {
-      const result = enqueueInputQueueState(state, queuedData, {
-        maxSize: queueMaxSize,
-        ownerTabId: tabIdRef.current,
-      });
-      full = result.reason === 'full';
-      queuedItem = result.item;
-      nextQueueState = result.state;
-      return result.state;
-    });
-    if (full) {
-      if (onQueueFull) {
-        onQueueFull(queueMaxSize);
-      } else {
-        message.warning(`Queue is full. You can keep up to ${queueMaxSize} items.`);
-      }
-      return { ok: false, reason: 'full' };
-    }
-
-    if (
-      queuedItem &&
-      nextQueueState &&
-      isInputQueueOwnedByTab(nextQueueState, tabIdRef.current) &&
-      activeSubmitQueueSessionRef.current !== sessionId
-    ) {
-      releasePeerTakeoverBlockRef.current?.(sessionId, nextQueueState);
-    }
-
-    return { ok: true, item: queuedItem };
-  }, [
-    getActiveChatSessionId,
-    getActiveQueueSessionId,
-    getQueueRequestContext,
-    onQueueFull,
-    onQueueSessionNotReady,
-    queueMaxSize,
-    updateQueueState,
-  ]);
-
-  const drainQueue = useCallback(async (targetQueueSessionId?: string) => {
-    const sessionId = targetQueueSessionId || getActiveQueueSessionId();
-    const chatSessionId = getChatSessionIdForQueue(sessionId);
-    const submitNow = submitNowRef.current;
-    const hasGeneratingResponse = !!findGeneratingResponse(getMessages());
-    if (
-      !sessionId ||
-      !chatSessionId ||
-      !submitNow ||
-      drainingRef.current ||
-      getLoading() ||
-      hasGeneratingResponse ||
-      isQueueSessionActive(sessionId) ||
-      queueDrainBlockedSessionRef.current === sessionId
-    ) return;
-
-    const currentRequestContext = getQueueRequestContext?.(chatSessionId);
-
-    await withQueueSendLock(sessionId, async () => {
-      let nextItem: ReturnType<typeof dequeueNextQueuedInput>['item'];
-      await withQueueMutationLock(sessionId, () => {
-        const state = readQueueState(sessionId);
-        if (state.paused || !canExecuteQueue(state)) return;
-
-        const result = dequeueNextQueuedInput(state.items);
-        if (!result.item) return;
-        if (hasQueuedInputRequestContextMismatch(result.item.data, currentRequestContext)) return;
-        nextItem = result.item;
-
-        commitQueueState(sessionId, {
-          ...state,
-          items: result.queue,
-          updatedAt: Date.now(),
-        });
-      });
-      if (!nextItem) return;
-
-      drainingRef.current = true;
-      try {
-        await submitNow(nextItem.data, {
-          sessionId: chatSessionId,
-          queueSessionId: sessionId,
-        });
-      } catch (error) {
-        const interrupted = isQueueSessionSwitchedError(error) || isChatRequestAbortedError(error);
-        if (!interrupted) {
-          setLoading(false);
+      void updateQueueState(sessionId, (state) => {
+        if (state.ownerTabId !== tabIdRef.current || hasInputQueueWork(state)) {
+          return state;
         }
-        await updateQueueState(sessionId, current => ({
-          ...current,
-          items: interrupted
-            ? [nextItem!, ...current.items]
-            : restoreFailedQueuedInput(current.items, nextItem!, error),
+
+        return {
+          ...state,
+          ownerTabId: undefined,
+          ownerUpdatedAt: undefined,
           updatedAt: Date.now(),
-        }));
-      } finally {
-        drainingRef.current = false;
+        };
+      });
+    },
+    [updateQueueState],
+  );
+
+  const assignOwnerForSubmit = useCallback(
+    async (sessionId: string | undefined) => {
+      if (!sessionId) return;
+      activeSubmitQueueSessionRef.current = sessionId;
+      await updateQueueState(sessionId, (state) =>
+        assignInputQueueOwner(state, tabIdRef.current),
+      );
+    },
+    [updateQueueState],
+  );
+
+  const handleResponseFinished = useCallback(
+    (activeSessionId: string | undefined) => {
+      const completedQueueSessionIds = [
+        currentQARef.current.activeQueueSessionId,
+        activeSessionId,
+        currentSessionIdRef.current,
+        pendingRouteSessionIdRef?.current,
+        ...getInputQueueCompletionSessionIds(
+          {
+            currentSessionId: currentSessionIdRef.current,
+            pendingRouteSessionId: pendingRouteSessionIdRef?.current,
+            activeSessionId,
+          },
+          {
+            queueEnabled,
+            getSessionId: getQueueSessionId,
+          },
+        ),
+      ].filter(
+        (sessionId, index, list): sessionId is string =>
+          !!sessionId && list.indexOf(sessionId) === index,
+      );
+
+      completedQueueSessionIds.forEach(markQueueSessionIdle);
+      if (
+        activeSubmitQueueSessionRef.current &&
+        completedQueueSessionIds.includes(activeSubmitQueueSessionRef.current)
+      ) {
+        activeSubmitQueueSessionRef.current = undefined;
       }
-    });
-  }, [
-    canExecuteQueue,
-    commitQueueState,
-    getActiveQueueSessionId,
-    getChatSessionIdForQueue,
-    getQueueRequestContext,
-    getLoading,
-    isQueueSessionActive,
-    readQueueState,
-    setLoading,
-    submitNowRef,
-    updateQueueState,
-    withQueueMutationLock,
-    withQueueSendLock,
-  ]);
+      if (
+        completedQueueSessionIds.some(
+          (sessionId) => sessionId === queueDrainBlockedSessionRef.current,
+        )
+      ) {
+        queueDrainBlockedSessionRef.current = undefined;
+      }
+      const nextDrainSessionId =
+        completedQueueSessionIds.find((sessionId) =>
+          hasInputQueueWork(readQueueState(sessionId)),
+        ) || completedQueueSessionIds[0];
+      completedQueueSessionIds.forEach(releaseQueueOwnerIfIdle);
+      scheduleDrainQueue(nextDrainSessionId);
+    },
+    [
+      currentQARef,
+      currentSessionIdRef,
+      getQueueSessionId,
+      markQueueSessionIdle,
+      pendingRouteSessionIdRef,
+      queueEnabled,
+      readQueueState,
+      releaseQueueOwnerIfIdle,
+      scheduleDrainQueue,
+    ],
+  );
+
+  const enqueueInput = useCallback(
+    async (
+      data: Parameters<InputProps['onSubmit']>[0],
+    ): Promise<QueueEnqueueResult> => {
+      const sessionId = getActiveQueueSessionId();
+      if (!sessionId) {
+        if (onQueueSessionNotReady) {
+          onQueueSessionNotReady();
+        } else {
+          message.warning(
+            'Current session is still being generated. Please wait before queuing another input.',
+          );
+        }
+        return { ok: false, reason: 'session-not-ready' };
+      }
+
+      let full = false;
+      let queuedItem: QueueEnqueueResult['item'];
+      let nextQueueState: InputQueueState | undefined;
+      const activeChatSessionId = getActiveChatSessionId();
+      const requestContext = getQueueRequestContext?.(activeChatSessionId);
+      const queuedData = requestContext ? { ...data, ...requestContext } : data;
+
+      await updateQueueState(sessionId, (state) => {
+        const result = enqueueInputQueueState(state, queuedData, {
+          maxSize: queueMaxSize,
+          ownerTabId: tabIdRef.current,
+        });
+        full = result.reason === 'full';
+        queuedItem = result.item;
+        nextQueueState = result.state;
+        return result.state;
+      });
+      if (full) {
+        if (onQueueFull) {
+          onQueueFull(queueMaxSize);
+        } else {
+          message.warning(
+            `Queue is full. You can keep up to ${queueMaxSize} items.`,
+          );
+        }
+        return { ok: false, reason: 'full' };
+      }
+
+      if (
+        queuedItem &&
+        nextQueueState &&
+        isInputQueueOwnedByTab(nextQueueState, tabIdRef.current) &&
+        activeSubmitQueueSessionRef.current !== sessionId
+      ) {
+        releasePeerTakeoverBlockRef.current?.(sessionId, nextQueueState);
+      }
+
+      return { ok: true, item: queuedItem };
+    },
+    [
+      getActiveChatSessionId,
+      getActiveQueueSessionId,
+      getQueueRequestContext,
+      onQueueFull,
+      onQueueSessionNotReady,
+      queueMaxSize,
+      updateQueueState,
+    ],
+  );
+
+  const drainQueue = useCallback(
+    async (targetQueueSessionId?: string) => {
+      const sessionId = targetQueueSessionId || getActiveQueueSessionId();
+      const chatSessionId = getChatSessionIdForQueue(sessionId);
+      const submitNow = submitNowRef.current;
+      const hasGeneratingResponse = !!findGeneratingResponse(getMessages());
+      if (
+        !sessionId ||
+        !chatSessionId ||
+        !submitNow ||
+        drainingRef.current ||
+        getLoading() ||
+        hasGeneratingResponse ||
+        isQueueSessionActive(sessionId) ||
+        queueDrainBlockedSessionRef.current === sessionId
+      )
+        return;
+
+      const currentRequestContext = getQueueRequestContext?.(chatSessionId);
+      const sessionRunning = await isHostSessionRunning({
+        chatSessionId,
+        queueSessionId: sessionId,
+        requestContext: currentRequestContext,
+      });
+      if (sessionRunning) {
+        scheduleDrainQueue(sessionId, INPUT_QUEUE_RUNNING_RETRY_INTERVAL);
+        return;
+      }
+
+      await withQueueSendLock(sessionId, async () => {
+        let nextItem: ReturnType<typeof dequeueNextQueuedInput>['item'];
+        await withQueueMutationLock(sessionId, () => {
+          const state = readQueueState(sessionId);
+          if (state.paused || !canExecuteQueue(state)) return;
+
+          const result = dequeueNextQueuedInput(state.items);
+          if (!result.item) return;
+          if (
+            hasQueuedInputRequestContextMismatch(
+              result.item.data,
+              currentRequestContext,
+            )
+          )
+            return;
+          nextItem = result.item;
+
+          commitQueueState(sessionId, {
+            ...state,
+            items: result.queue,
+            updatedAt: Date.now(),
+          });
+        });
+        if (!nextItem) return;
+
+        drainingRef.current = true;
+        try {
+          await submitNow(nextItem.data, {
+            sessionId: chatSessionId,
+            queueSessionId: sessionId,
+          });
+        } catch (error) {
+          const interrupted =
+            isQueueSessionSwitchedError(error) ||
+            isChatRequestAbortedError(error);
+          if (!interrupted) {
+            setLoading(false);
+          }
+          await updateQueueState(sessionId, (current) => ({
+            ...current,
+            items: interrupted
+              ? [nextItem!, ...current.items]
+              : restoreFailedQueuedInput(current.items, nextItem!, error),
+            updatedAt: Date.now(),
+          }));
+        } finally {
+          drainingRef.current = false;
+        }
+      });
+    },
+    [
+      canExecuteQueue,
+      commitQueueState,
+      getActiveQueueSessionId,
+      getChatSessionIdForQueue,
+      getQueueRequestContext,
+      getLoading,
+      isHostSessionRunning,
+      isQueueSessionActive,
+      readQueueState,
+      scheduleDrainQueue,
+      setLoading,
+      submitNowRef,
+      updateQueueState,
+      withQueueMutationLock,
+      withQueueSendLock,
+    ],
+  );
 
   useEffect(() => {
     drainQueueRef.current = drainQueue;
   }, [drainQueue]);
 
-  const handleSubmit = useCallback<InputProps['onSubmit']>(async (data) => {
-    const sessionId = getActiveQueueSessionId();
-    const queueState = sessionId ? readQueueState(sessionId) : createEmptyInputQueueState();
-    const submitNow = submitNowRef.current;
-    if (!submitNow) return;
+  const handleSubmit = useCallback<InputProps['onSubmit']>(
+    async (data) => {
+      const sessionId = getActiveQueueSessionId();
+      const queueState = sessionId
+        ? readQueueState(sessionId)
+        : createEmptyInputQueueState();
+      const submitNow = submitNowRef.current;
+      if (!submitNow) return;
+      const activeChatSessionId = getActiveChatSessionId();
+      const currentRequestContext =
+        getQueueRequestContext?.(activeChatSessionId);
+      const sessionRunning = await isHostSessionRunning({
+        chatSessionId: activeChatSessionId,
+        queueSessionId: sessionId,
+        requestContext: currentRequestContext,
+      });
 
-    if (!canSubmitDirectly({
-      loading: getLoading(),
-      queueLength: queueState.items.length,
-      draining: drainingRef.current,
-      paused: queueState.paused,
-      canExecute: !sessionId || canExecuteQueue(queueState),
-    })) {
-      await enqueueInput(data);
-      return;
-    }
+      if (
+        !canSubmitDirectly({
+          loading: getLoading(),
+          queueLength: queueState.items.length,
+          draining: drainingRef.current,
+          paused: queueState.paused,
+          canExecute: !sessionId || canExecuteQueue(queueState),
+          sessionRunning,
+        })
+      ) {
+        return enqueueInput(data);
+      }
 
-    await submitNow(data);
-  }, [canExecuteQueue, enqueueInput, getActiveQueueSessionId, getLoading, readQueueState, submitNowRef]);
+      return submitNow(data);
+    },
+    [
+      canExecuteQueue,
+      enqueueInput,
+      getActiveChatSessionId,
+      getActiveQueueSessionId,
+      getQueueRequestContext,
+      getLoading,
+      isHostSessionRunning,
+      readQueueState,
+      submitNowRef,
+    ],
+  );
 
-  const prepareReconnect = useCallback((sessionId: string) => {
-    const queueSessionId = resolveQueueSessionId(sessionId);
-    const queueState = readQueueState(queueSessionId);
-    if (
-      queueSessionId &&
-      (hasInputQueueWork(queueState) ||
-        (!!queueState.ownerTabId && !isInputQueueOwner(queueState, tabIdRef.current))) &&
-      !canExecuteQueue(queueState)
-    ) {
-      pendingPeerReconnectSessionRef.current = queueSessionId;
-      markQueueSessionActive(queueSessionId);
-      setLoading(true);
-      return { blockedByPeer: true, queueSessionId };
-    }
-    if (pendingPeerReconnectSessionRef.current === queueSessionId) {
-      pendingPeerReconnectSessionRef.current = undefined;
-    }
-    return { blockedByPeer: false, queueSessionId };
-  }, [canExecuteQueue, markQueueSessionActive, readQueueState, resolveQueueSessionId, setLoading]);
+  const prepareReconnect = useCallback(
+    (sessionId: string) => {
+      const queueSessionId = resolveQueueSessionId(sessionId);
+      const queueState = readQueueState(queueSessionId);
+      if (
+        queueSessionId &&
+        (hasInputQueueWork(queueState) ||
+          (!!queueState.ownerTabId &&
+            !isInputQueueOwner(queueState, tabIdRef.current))) &&
+        !canExecuteQueue(queueState)
+      ) {
+        pendingPeerReconnectSessionRef.current = queueSessionId;
+        markQueueSessionActive(queueSessionId);
+        setLoading(true);
+        return { blockedByPeer: true, queueSessionId };
+      }
+      if (pendingPeerReconnectSessionRef.current === queueSessionId) {
+        pendingPeerReconnectSessionRef.current = undefined;
+      }
+      return { blockedByPeer: false, queueSessionId };
+    },
+    [
+      canExecuteQueue,
+      markQueueSessionActive,
+      readQueueState,
+      resolveQueueSessionId,
+      setLoading,
+    ],
+  );
 
-  const handleReconnectSettledIdle = useCallback((queueSessionId: string | undefined) => {
-    markQueueSessionIdle(queueSessionId);
-    if (queueDrainBlockedSessionRef.current === queueSessionId) {
-      queueDrainBlockedSessionRef.current = undefined;
-    }
-    scheduleDrainQueue(queueSessionId);
-  }, [markQueueSessionIdle, scheduleDrainQueue]);
+  const handleReconnectSettledIdle = useCallback(
+    (queueSessionId: string | undefined) => {
+      markQueueSessionIdle(queueSessionId);
+      if (queueDrainBlockedSessionRef.current === queueSessionId) {
+        queueDrainBlockedSessionRef.current = undefined;
+      }
+      scheduleDrainQueue(queueSessionId);
+    },
+    [markQueueSessionIdle, scheduleDrainQueue],
+  );
 
-  const handleSessionLoaded = useCallback((
-    sessionId: string | undefined,
-    generating?: boolean,
-  ) => {
-    const queueSessionId = resolveQueueSessionId(sessionId);
-    if (queueSessionId !== currentQueueSessionId) return;
+  const handleSessionLoaded = useCallback(
+    (sessionId: string | undefined, generating?: boolean) => {
+      const queueSessionId = resolveQueueSessionId(sessionId);
+      if (queueSessionId !== currentQueueSessionId) return;
 
-    if (generating) {
-      markQueueSessionActive(queueSessionId);
-      return;
-    }
-    markQueueSessionIdle(queueSessionId);
-    setLoading(false);
-    if (queueDrainBlockedSessionRef.current === queueSessionId) {
-      queueDrainBlockedSessionRef.current = undefined;
-    }
-    scheduleDrainQueue(queueSessionId);
-  }, [
-    currentQueueSessionId,
-    markQueueSessionActive,
-    markQueueSessionIdle,
-    resolveQueueSessionId,
-    scheduleDrainQueue,
-    setLoading,
-  ]);
+      if (generating) {
+        markQueueSessionActive(queueSessionId);
+        return;
+      }
+      markQueueSessionIdle(queueSessionId);
+      setLoading(false);
+      if (queueDrainBlockedSessionRef.current === queueSessionId) {
+        queueDrainBlockedSessionRef.current = undefined;
+      }
+      scheduleDrainQueue(queueSessionId);
+    },
+    [
+      currentQueueSessionId,
+      markQueueSessionActive,
+      markQueueSessionIdle,
+      resolveQueueSessionId,
+      scheduleDrainQueue,
+      setLoading,
+    ],
+  );
 
-  const sameQueueSession = useCallback((
-    left: string | undefined,
-    right: string | undefined,
-  ) => {
-    return areInputQueueSessionsEquivalent(left, right, {
-      queueEnabled,
-      getSessionId: getQueueSessionId,
-    });
-  }, [getQueueSessionId, queueEnabled]);
+  const sameQueueSession = useCallback(
+    (left: string | undefined, right: string | undefined) => {
+      return areInputQueueSessionsEquivalent(left, right, {
+        queueEnabled,
+        getSessionId: getQueueSessionId,
+      });
+    },
+    [getQueueSessionId, queueEnabled],
+  );
 
   const clearDrainTimer = useCallback(() => {
     if (drainTimerRef.current) {
@@ -668,63 +844,63 @@ export default function useInputQueueController(
     }
   }, []);
 
-  const releasePeerTakeoverBlock = useCallback((
-    queueSessionId: string,
-    queueState: InputQueueState,
-  ) => {
-    if (!isInputQueueOwnedByTab(queueState, tabIdRef.current)) return;
+  const releasePeerTakeoverBlock = useCallback(
+    (queueSessionId: string, queueState: InputQueueState) => {
+      if (!isInputQueueOwnedByTab(queueState, tabIdRef.current)) return;
 
-    const messages = getMessages();
-    const mirroredGenerating = !!findGeneratingResponse(messages);
+      const messages = getMessages();
+      const mirroredGenerating = !!findGeneratingResponse(messages);
 
-    if (mirroredGenerating) {
-      pendingPeerReconnectSessionRef.current = undefined;
-      markQueueSessionActive(queueSessionId);
-      queueDrainBlockedSessionRef.current = queueSessionId;
-      setLoading(true);
+      if (mirroredGenerating) {
+        pendingPeerReconnectSessionRef.current = undefined;
+        markQueueSessionActive(queueSessionId);
+        queueDrainBlockedSessionRef.current = queueSessionId;
+        setLoading(true);
 
-      const chatSessionId = getVisibleChatSessionId();
-      if (chatSessionId) {
+        const chatSessionId = getVisibleChatSessionId();
+        if (chatSessionId) {
+          window.setTimeout(() => {
+            void handleReconnectRef.current?.(chatSessionId);
+          }, 0);
+        }
+        return;
+      }
+
+      const blockedByPeer =
+        pendingPeerReconnectSessionRef.current === queueSessionId ||
+        isQueueSessionActive(queueSessionId);
+
+      if (blockedByPeer) {
+        pendingPeerReconnectSessionRef.current = undefined;
+        markQueueSessionIdle(queueSessionId);
+        if (queueDrainBlockedSessionRef.current === queueSessionId) {
+          queueDrainBlockedSessionRef.current = undefined;
+        }
+        currentQARef.current.abortController?.abort();
+        currentQARef.current.response = undefined;
+        currentQARef.current.activeRequestId += 1;
+        setLoading(false);
+      }
+
+      if (!queueState.paused) {
+        scheduleDrainQueue(queueSessionId);
         window.setTimeout(() => {
-          void handleReconnectRef.current?.(chatSessionId);
-        }, 0);
+          void drainQueueRef.current?.(queueSessionId);
+        }, 50);
       }
-      return;
-    }
-
-    const blockedByPeer =
-      pendingPeerReconnectSessionRef.current === queueSessionId ||
-      isQueueSessionActive(queueSessionId);
-
-    if (blockedByPeer) {
-      pendingPeerReconnectSessionRef.current = undefined;
-      markQueueSessionIdle(queueSessionId);
-      if (queueDrainBlockedSessionRef.current === queueSessionId) {
-        queueDrainBlockedSessionRef.current = undefined;
-      }
-      currentQARef.current.abortController?.abort();
-      currentQARef.current.response = undefined;
-      currentQARef.current.activeRequestId += 1;
-      setLoading(false);
-    }
-
-    if (!queueState.paused) {
-      scheduleDrainQueue(queueSessionId);
-      window.setTimeout(() => {
-        void drainQueueRef.current?.(queueSessionId);
-      }, 50);
-    }
-  }, [
-    currentQARef,
-    getVisibleChatSessionId,
-    getMessages,
-    handleReconnectRef,
-    isQueueSessionActive,
-    markQueueSessionActive,
-    markQueueSessionIdle,
-    scheduleDrainQueue,
-    setLoading,
-  ]);
+    },
+    [
+      currentQARef,
+      getVisibleChatSessionId,
+      getMessages,
+      handleReconnectRef,
+      isQueueSessionActive,
+      markQueueSessionActive,
+      markQueueSessionIdle,
+      scheduleDrainQueue,
+      setLoading,
+    ],
+  );
 
   releasePeerTakeoverBlockRef.current = releasePeerTakeoverBlock;
 
@@ -770,10 +946,7 @@ export default function useInputQueueController(
       markQueueSessionActive(activeQueueSessionId);
     }
 
-    if (
-      !activeQueueSessionId ||
-      !isQueueSessionActive(activeQueueSessionId)
-    ) {
+    if (!activeQueueSessionId || !isQueueSessionActive(activeQueueSessionId)) {
       return;
     }
 
@@ -785,17 +958,20 @@ export default function useInputQueueController(
       currentSessionIdRef.current,
       pendingRouteSessionIdRef?.current,
       currentQARef.current.activeSessionId,
-    ].filter((sessionId, index, list): sessionId is string =>
-      !!sessionId &&
-      sessionId !== activeQueueSessionId &&
-      list.indexOf(sessionId) === index,
-    ).forEach(sessionId => {
-      void updateQueueState(sessionId, state =>
-        assignInputQueueOwner(state, tabIdRef.current, Date.now(), {
-          force: true,
-        }),
-      );
-    });
+    ]
+      .filter(
+        (sessionId, index, list): sessionId is string =>
+          !!sessionId &&
+          sessionId !== activeQueueSessionId &&
+          list.indexOf(sessionId) === index,
+      )
+      .forEach((sessionId) => {
+        void updateQueueState(sessionId, (state) =>
+          assignInputQueueOwner(state, tabIdRef.current, Date.now(), {
+            force: true,
+          }),
+        );
+      });
   }, [
     currentQARef,
     currentQueueSessionId,
@@ -829,7 +1005,9 @@ export default function useInputQueueController(
       try {
         applyRemoteState(
           sessionId,
-          event.newValue ? JSON.parse(event.newValue) : createEmptyInputQueueState(),
+          event.newValue
+            ? JSON.parse(event.newValue)
+            : createEmptyInputQueueState(),
         );
       } catch (error) {
         console.error('sync input queue failed:', error);
@@ -839,7 +1017,9 @@ export default function useInputQueueController(
     window.addEventListener('storage', handleStorage);
 
     if (typeof BroadcastChannel !== 'undefined') {
-      const channel = new BroadcastChannel('agentscope-runtime-webui-input-queue');
+      const channel = new BroadcastChannel(
+        'agentscope-runtime-webui-input-queue',
+      );
       broadcastRef.current = channel;
       channel.onmessage = (event) => {
         if (event.data?.type === 'input-queue-tab-presence') {
@@ -935,7 +1115,7 @@ export default function useInputQueueController(
     if (!queueSessionId || !canExecuteQueue()) return;
 
     const refreshOwner = () => {
-      void updateQueueState(queueSessionId, state => {
+      void updateQueueState(queueSessionId, (state) => {
         if (state.ownerTabId !== tabIdRef.current) return state;
         return assignInputQueueOwner(state, tabIdRef.current, Date.now(), {
           force: true,
@@ -961,10 +1141,13 @@ export default function useInputQueueController(
       const snapshot = readQueueState(queueSessionId);
       if (!shouldClaimInputQueueOwner(snapshot, tabIdRef.current)) return;
 
-      void Promise.resolve(updateQueueState(queueSessionId, state => {
-        if (!shouldClaimInputQueueOwner(state, tabIdRef.current)) return state;
-        return assignInputQueueOwner(state, tabIdRef.current);
-      })).then(nextState => {
+      void Promise.resolve(
+        updateQueueState(queueSessionId, (state) => {
+          if (!shouldClaimInputQueueOwner(state, tabIdRef.current))
+            return state;
+          return assignInputQueueOwner(state, tabIdRef.current);
+        }),
+      ).then((nextState) => {
         releasePeerTakeoverBlock(queueSessionId, nextState);
       });
     };
@@ -977,7 +1160,12 @@ export default function useInputQueueController(
     return () => {
       window.clearInterval(timer);
     };
-  }, [currentQueueSessionId, readQueueState, releasePeerTakeoverBlock, updateQueueState]);
+  }, [
+    currentQueueSessionId,
+    readQueueState,
+    releasePeerTakeoverBlock,
+    updateQueueState,
+  ]);
 
   useEffect(() => {
     if (
@@ -991,7 +1179,15 @@ export default function useInputQueueController(
     ) {
       scheduleDrainQueue(currentQueueSessionId);
     }
-  }, [canExecuteQueue, currentQueueSessionId, getLoading, inputQueueSessionId, inputQueueState, isQueueSessionActive, scheduleDrainQueue]);
+  }, [
+    canExecuteQueue,
+    currentQueueSessionId,
+    getLoading,
+    inputQueueSessionId,
+    inputQueueState,
+    isQueueSessionActive,
+    scheduleDrainQueue,
+  ]);
 
   useEffect(() => {
     const command = inputQueueState.command;
@@ -1009,26 +1205,24 @@ export default function useInputQueueController(
     processedCommandIdRef.current = command.id;
     void withQueueSendLock(sessionId, async () => {
       const latest = readQueueState(sessionId);
-      const target = latest.items.find(item => item.id === command.itemId);
-      await updateQueueState(sessionId, state => ({
-        ...state,
-        command: undefined,
-        items: removeQueuedInput(state.items, command.itemId),
-        updatedAt: Date.now(),
-      }));
-
-      if (!target) return;
+      const target = latest.items.find((item) => item.id === command.itemId);
+      if (!target) {
+        await updateQueueState(sessionId, (state) => ({
+          ...state,
+          command: undefined,
+          updatedAt: Date.now(),
+        }));
+        return;
+      }
 
       const chatSessionId = getChatSessionIdForQueue(
         sessionId,
         getVisibleChatSessionId(),
       );
       if (!chatSessionId) {
-        await updateQueueState(sessionId, current => ({
-          ...current,
-          items: current.items.some(item => item.id === target.id)
-            ? current.items
-            : [target, ...current.items],
+        await updateQueueState(sessionId, (state) => ({
+          ...state,
+          command: undefined,
           updatedAt: Date.now(),
         }));
         return;
@@ -1037,34 +1231,64 @@ export default function useInputQueueController(
       const submitNow = submitNowRef.current;
       if (!submitNow) return;
 
+      const requestContext = getQueueRequestContext?.(chatSessionId);
+      const sessionRunning = await isHostSessionRunning({
+        chatSessionId,
+        queueSessionId: sessionId,
+        requestContext,
+      });
+      if (sessionRunning) {
+        await updateQueueState(sessionId, (state) => ({
+          ...state,
+          command: undefined,
+          updatedAt: Date.now(),
+        }));
+        scheduleDrainQueue(sessionId, INPUT_QUEUE_RUNNING_RETRY_INTERVAL);
+        return;
+      }
+
+      await updateQueueState(sessionId, (state) => ({
+        ...state,
+        command: undefined,
+        items: removeQueuedInput(state.items, command.itemId),
+        updatedAt: Date.now(),
+      }));
+
       drainingRef.current = true;
       handleCancelRef.current?.();
-      await Promise.resolve(submitNow(target.data, {
-        sessionId: chatSessionId,
-        queueSessionId: sessionId,
-      })).catch(error => {
-        if (isQueueSessionSwitchedError(error)) {
-          return updateQueueState(sessionId, current => ({
-            ...current,
-            items: current.items.some(item => item.id === target.id)
-              ? current.items
-              : [target, ...current.items],
-            updatedAt: Date.now(),
-          }));
-        }
-        throw error;
-      }).finally(() => {
-        drainingRef.current = false;
-      });
+      await Promise.resolve(
+        submitNow(target.data, {
+          sessionId: chatSessionId,
+          queueSessionId: sessionId,
+        }),
+      )
+        .catch((error) => {
+          if (isQueueSessionSwitchedError(error)) {
+            return updateQueueState(sessionId, (current) => ({
+              ...current,
+              items: current.items.some((item) => item.id === target.id)
+                ? current.items
+                : [target, ...current.items],
+              updatedAt: Date.now(),
+            }));
+          }
+          throw error;
+        })
+        .finally(() => {
+          drainingRef.current = false;
+        });
     });
   }, [
     canExecuteQueue,
     currentQueueSessionId,
     getChatSessionIdForQueue,
+    getQueueRequestContext,
     getVisibleChatSessionId,
     handleCancelRef,
     inputQueueState,
+    isHostSessionRunning,
     readQueueState,
+    scheduleDrainQueue,
     submitNowRef,
     updateQueueState,
     withQueueSendLock,
@@ -1083,7 +1307,10 @@ export default function useInputQueueController(
     const chatSessionId = getVisibleChatSessionId();
     if (!chatSessionId) return;
 
-    if (hasInputQueueWork(inputQueueState) && findGeneratingResponse(getMessages())) {
+    if (
+      hasInputQueueWork(inputQueueState) &&
+      findGeneratingResponse(getMessages())
+    ) {
       markQueueSessionActive(queueSessionId);
       queueDrainBlockedSessionRef.current = queueSessionId;
       setLoading(true);
@@ -1124,6 +1351,7 @@ export default function useInputQueueController(
     readQueueState,
     getMessages,
     getRequestContext: getQueueRequestContext,
+    isSessionRunning: isQueueSessionRunning,
   };
 
   useEffect(() => {
@@ -1136,7 +1364,8 @@ export default function useInputQueueController(
         snapshot.currentQueueSessionId;
       if (!snapshot.queueEnabled || !queueSessionId) return;
 
-      const queueState = snapshot.readQueueState?.(queueSessionId) ||
+      const queueState =
+        snapshot.readQueueState?.(queueSessionId) ||
         createEmptyInputQueueState();
       if (
         !hasInputQueueWork(queueState) ||
@@ -1164,13 +1393,15 @@ export default function useInputQueueController(
         apiOptions: apiOptionsRef.current,
         sessionApi,
         requestContext: snapshot.getRequestContext?.(chatSessionId),
+        isSessionRunning: snapshot.isSessionRunning,
       });
     };
   }, [currentQARef]);
 
-  const visibleInputQueueState = inputQueueSessionId === currentQueueSessionId
-    ? inputQueueState
-    : createEmptyInputQueueState();
+  const visibleInputQueueState =
+    inputQueueSessionId === currentQueueSessionId
+      ? inputQueueState
+      : createEmptyInputQueueState();
 
   return {
     queueEnabled,
@@ -1194,7 +1425,7 @@ export default function useInputQueueController(
     clearDrainTimer,
     removeQueuedInput: (id: string) => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         items: removeQueuedInput(state.items, id),
         updatedAt: Date.now(),
@@ -1202,7 +1433,7 @@ export default function useInputQueueController(
     },
     clearQueuedInputs: () => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         items: [],
         command: undefined,
@@ -1211,7 +1442,7 @@ export default function useInputQueueController(
     },
     retryQueuedInput: (id: string) => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         items: retryQueuedInput(state.items, id),
         updatedAt: Date.now(),
@@ -1220,7 +1451,7 @@ export default function useInputQueueController(
     },
     toggleQueuePaused: () => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         paused: canExecuteQueue(state) ? !state.paused : state.paused,
         updatedAt: Date.now(),
@@ -1229,7 +1460,7 @@ export default function useInputQueueController(
     },
     reorderQueuedInput: (sourceId: string, targetId: string) => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         items: reorderQueuedInput(state.items, sourceId, targetId),
         updatedAt: Date.now(),
@@ -1237,7 +1468,7 @@ export default function useInputQueueController(
     },
     updateQueuedInputQuery: (id: string, query: string) => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         items: updateQueuedInputQuery(state.items, id, query),
         updatedAt: Date.now(),
@@ -1245,7 +1476,7 @@ export default function useInputQueueController(
     },
     sendQueuedInputNow: (id: string) => {
       const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, state => ({
+      void updateQueueState(sessionId, (state) => ({
         ...state,
         command: canExecuteQueue(state)
           ? createSendNowCommand(id, tabIdRef.current)

@@ -77,7 +77,11 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @description 自定义文件点击事件（桌面端可通过此钩子调用原生 API 打开文件链接），不传则默认 window.open
    * @descriptionEn Custom file click handler (desktop apps can use native APIs to open file URLs), defaults to window.open
    */
-  onFileCardClick?: (file: { url?: string; name?: string; size?: number }) => void;
+  onFileCardClick?: (file: {
+    url?: string;
+    name?: string;
+    size?: number;
+  }) => void;
 }
 
 /**
@@ -382,6 +386,31 @@ export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
   }>;
 }
 
+export interface IAgentScopeRuntimeWebUIQueueRequestContext {
+  session_id?: string;
+  user_id?: string;
+  channel?: string;
+  agent_id?: string;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueSessionContext {
+  /**
+   * @description 当前聊天会话 id，用于宿主查询后端运行状态
+   * @descriptionEn Current chat session id for host applications to query backend running state.
+   */
+  sessionId?: string;
+  /**
+   * @description 输入队列使用的稳定会话 id
+   * @descriptionEn Stable session id used by the input queue.
+   */
+  queueSessionId?: string;
+  /**
+   * @description 入队请求上下文
+   * @descriptionEn Request context used by queued inputs.
+   */
+  requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
+}
+
 export interface IAgentScopeRuntimeWebUIQueueOptions {
   /**
    * @description 是否启用输入队列。传 false 可关闭队列。
@@ -402,12 +431,16 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
    * @description 获取入队请求上下文，用于会话/用户/渠道/智能体切换后仍能发送到原上下文
    * @descriptionEn Resolve request context for queued inputs so they keep their original session/user/channel/agent after switching.
    */
-  getRequestContext?: (sessionId?: string) => {
-    session_id?: string;
-    user_id?: string;
-    channel?: string;
-    agent_id?: string;
-  } | undefined;
+  getRequestContext?: (
+    sessionId?: string,
+  ) => IAgentScopeRuntimeWebUIQueueRequestContext | undefined;
+  /**
+   * @description 判断当前会话是否仍在宿主后端运行。返回 true 时，SDK 会把新的输入加入队列并延后出队。
+   * @descriptionEn Whether the host backend is still running for the current session. When true, new input is queued and draining waits.
+   */
+  isSessionRunning?: (
+    context: IAgentScopeRuntimeWebUIQueueSessionContext,
+  ) => boolean | Promise<boolean>;
   /**
    * @description 队列满时的回调
    * @descriptionEn Called when the queue reaches maxSize
@@ -645,7 +678,11 @@ export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
   list?: {
     icon?: React.ReactElement;
     children?: React.ReactElement;
-    render?: ({ data }: { data: IAgentScopeRuntimeRequest }) => React.ReactElement;
+    render?: ({
+      data,
+    }: {
+      data: IAgentScopeRuntimeRequest;
+    }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeRequest }) => void;
   }[];
 }
@@ -670,12 +707,18 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    * @description 右侧操作按钮列表；不传时默认展示 token 用量；传空数组或 false 隐藏右侧
    * @descriptionEn Right-side actions; defaults to token usage; pass [] or false to hide
    */
-  right?: false | {
-    icon?: React.ReactElement;
-    children?: React.ReactElement;
-    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
-    onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
-  }[];
+  right?:
+    | false
+    | {
+        icon?: React.ReactElement;
+        children?: React.ReactElement;
+        render?: ({
+          data,
+        }: {
+          data: IAgentScopeRuntimeResponse;
+        }) => React.ReactElement;
+        onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+      }[];
 
   /**
    * @description 是否显示重新生成按钮

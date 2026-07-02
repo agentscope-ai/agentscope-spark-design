@@ -9,6 +9,7 @@ import type {
   IAgentScopeRuntimeWebUIAPIOptions,
   IAgentScopeRuntimeWebUIInputData,
   IAgentScopeRuntimeWebUIMessage,
+  IAgentScopeRuntimeWebUIQueueSessionContext,
   IAgentScopeRuntimeWebUISession,
   IAgentScopeRuntimeWebUISessionAPI,
 } from '../../types';
@@ -41,6 +42,9 @@ export interface InputQueueBackgroundRunnerOptions {
     channel?: string;
     agent_id?: string;
   };
+  isSessionRunning?: (
+    context: IAgentScopeRuntimeWebUIQueueSessionContext,
+  ) => boolean | Promise<boolean>;
 }
 
 interface BackgroundRunnerHandle {
@@ -56,7 +60,9 @@ const FINISHED_RUNTIME_STATUSES = [
 ];
 
 function isRuntimeStatusFinished(status?: AgentScopeRuntimeRunStatus | string) {
-  return FINISHED_RUNTIME_STATUSES.includes(status as AgentScopeRuntimeRunStatus);
+  return FINISHED_RUNTIME_STATUSES.includes(
+    status as AgentScopeRuntimeRunStatus,
+  );
 }
 
 function isRuntimeResponseFinished(
@@ -65,21 +71,26 @@ function isRuntimeResponseFinished(
   if (isRuntimeStatusFinished(response.status)) return true;
 
   const output = response.output || [];
-  return output.length > 0 && output.every(message => {
-    if (!isRuntimeStatusFinished(message.status)) return false;
-    const content = message.content || [];
-    return content.every(item => isRuntimeStatusFinished(item.status));
-  });
+  return (
+    output.length > 0 &&
+    output.every((message) => {
+      if (!isRuntimeStatusFinished(message.status)) return false;
+      const content = message.content || [];
+      return content.every((item) => isRuntimeStatusFinished(item.status));
+    })
+  );
 }
 
 function createRequestMessage(data: IAgentScopeRuntimeWebUIInputData) {
   return {
     id: uuid(),
     role: 'user',
-    cards: [{
-      code: 'AgentScopeRuntimeRequestCard',
-      data: new AgentScopeRuntimeRequestBuilder().handle(data),
-    }],
+    cards: [
+      {
+        code: 'AgentScopeRuntimeRequestCard',
+        data: new AgentScopeRuntimeRequestBuilder().handle(data),
+      },
+    ],
   } as IAgentScopeRuntimeWebUIMessage;
 }
 
@@ -96,27 +107,51 @@ function patchMessageSnapshot(
   messages: IAgentScopeRuntimeWebUIMessage[],
   message: IAgentScopeRuntimeWebUIMessage,
 ) {
-  const index = messages.findIndex(item => item.id === message.id);
+  const index = messages.findIndex((item) => item.id === message.id);
   if (index === -1) return [...messages, message];
   return [...messages.slice(0, index), message, ...messages.slice(index + 1)];
 }
 
 function isSessionGenerating(session?: IAgentScopeRuntimeWebUISession) {
-  if (!!(session as IAgentScopeRuntimeWebUISession & {
-    generating?: boolean;
-  } | undefined)?.generating) {
+  if (
+    !!(
+      session as
+        | (IAgentScopeRuntimeWebUISession & {
+            generating?: boolean;
+          })
+        | undefined
+    )?.generating
+  ) {
     return true;
   }
 
-  return !!session?.messages?.some(message =>
-    message.role === 'assistant' && message.msgStatus === 'generating',
+  return !!session?.messages?.some(
+    (message) =>
+      message.role === 'assistant' && message.msgStatus === 'generating',
   );
 }
 
 function sleep(ms: number) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+async function isHostSessionRunning(
+  options: InputQueueBackgroundRunnerOptions,
+) {
+  if (!options.isSessionRunning) return false;
+
+  try {
+    return !!(await options.isSessionRunning({
+      sessionId: options.chatSessionId,
+      queueSessionId: options.queueSessionId,
+      requestContext: options.requestContext,
+    }));
+  } catch (error) {
+    console.error('background input queue running check failed:', error);
+    return false;
+  }
 }
 
 async function waitUntilSessionIdle(
@@ -129,7 +164,12 @@ async function waitUntilSessionIdle(
   while (activeRunners.has(options.queueSessionId)) {
     try {
       lastSession = await sessionApi.getSession(chatSessionId);
-      if (!isSessionGenerating(lastSession)) return lastSession;
+      if (
+        !isSessionGenerating(lastSession) &&
+        !(await isHostSessionRunning(options))
+      ) {
+        return lastSession;
+      }
     } catch (error) {
       console.error('background input queue get session failed:', error);
     }
@@ -149,12 +189,14 @@ async function fetchChat(
   const { enableHistoryMessages = false } = apiOptions;
 
   if (apiOptions.fetch) {
-    return apiOptions.fetch(createInputQueueFetchPayload(
-      historyMessages,
-      data,
-      chatSessionId,
-      signal,
-    ));
+    return apiOptions.fetch(
+      createInputQueueFetchPayload(
+        historyMessages,
+        data,
+        chatSessionId,
+        signal,
+      ),
+    );
   }
 
   return fetch(apiOptions.baseURL, {
@@ -164,7 +206,9 @@ async function fetchChat(
       Authorization: `Bearer ${apiOptions.token || ''}`,
     },
     body: JSON.stringify({
-      input: enableHistoryMessages ? historyMessages : historyMessages.slice(-1),
+      input: enableHistoryMessages
+        ? historyMessages
+        : historyMessages.slice(-1),
       session_id: data.session_id || chatSessionId,
       user_id: data.user_id,
       channel: data.channel,
@@ -217,12 +261,17 @@ async function consumeResponse(
       code: String(response.status),
       message: errorMessage,
     });
-    responseMessage.cards = [{
-      code: 'AgentScopeRuntimeResponseCard',
-      data: parsed,
-    }];
+    responseMessage.cards = [
+      {
+        code: 'AgentScopeRuntimeResponseCard',
+        data: parsed,
+      },
+    ];
     responseMessage.msgStatus = 'error';
-    await persistMessages(options, patchMessageSnapshot(messages, responseMessage));
+    await persistMessages(
+      options,
+      patchMessageSnapshot(messages, responseMessage),
+    );
     throw new Error(errorMessage);
   }
 
@@ -241,15 +290,17 @@ async function consumeResponse(
     if (
       !finished &&
       parsed.status !== AgentScopeRuntimeRunStatus.Failed &&
-      !parsed.output?.some(message => message.content?.length)
+      !parsed.output?.some((message) => message.content?.length)
     ) {
       continue;
     }
 
-    responseMessage.cards = [{
-      code: 'AgentScopeRuntimeResponseCard',
-      data: parsed,
-    }];
+    responseMessage.cards = [
+      {
+        code: 'AgentScopeRuntimeResponseCard',
+        data: parsed,
+      },
+    ];
     if (finished) {
       responseMessage.msgStatus = 'finished';
     }
@@ -260,7 +311,10 @@ async function consumeResponse(
   }
 
   responseMessage.msgStatus = 'finished';
-  await persistMessages(options, patchMessageSnapshot(nextMessages, responseMessage));
+  await persistMessages(
+    options,
+    patchMessageSnapshot(nextMessages, responseMessage),
+  );
 }
 
 function hasQueuedInputRequestContextMismatch(
@@ -269,8 +323,8 @@ function hasQueuedInputRequestContextMismatch(
 ) {
   if (!context) return false;
 
-  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(key =>
-    !!data[key] && !!context[key] && data[key] !== context[key],
+  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(
+    (key) => !!data[key] && !!context[key] && data[key] !== context[key],
   );
 }
 
@@ -286,7 +340,8 @@ async function dequeueNextOwnedItem(
 
     const result = dequeueNextQueuedInput(state.items);
     if (!result.item) return;
-    if (hasQueuedInputRequestContextMismatch(result.item.data, requestContext)) return;
+    if (hasQueuedInputRequestContextMismatch(result.item.data, requestContext))
+      return;
     nextItem = result.item;
 
     persistInputQueueState(queueSessionId, {
@@ -313,10 +368,7 @@ async function restoreQueuedItem(
   });
 }
 
-async function releaseOwnerIfIdle(
-  queueSessionId: string,
-  ownerTabId: string,
-) {
+async function releaseOwnerIfIdle(queueSessionId: string, ownerTabId: string) {
   await withInputQueueMutationLock(queueSessionId, () => {
     const state = readInputQueueState(queueSessionId);
     if (state.ownerTabId !== ownerTabId || hasInputQueueWork(state)) return;
@@ -351,7 +403,8 @@ async function sendQueuedItem(
   const nextMessages = [...messages, requestMessage, responseMessage];
   await persistMessages(options, nextMessages);
 
-  const historyMessages = AgentScopeRuntimeRequestBuilder.getHistoryMessages(nextMessages);
+  const historyMessages =
+    AgentScopeRuntimeRequestBuilder.getHistoryMessages(nextMessages);
   const abortController = new AbortController();
   const response = await fetchChat(
     options,
@@ -379,6 +432,9 @@ async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
 
     const acquired = await withInputQueueSendLock(queueSessionId, async () => {
       while (activeRunners.get(queueSessionId) === handle) {
+        await waitUntilSessionIdle(handle.options);
+        if (activeRunners.get(queueSessionId) !== handle) break;
+
         const state = readInputQueueState(queueSessionId);
         if (
           state.paused ||
@@ -432,7 +488,10 @@ export function startInputQueueBackgroundRunner(
   }
 
   const state = readInputQueueState(options.queueSessionId);
-  if (!hasInputQueueWork(state) || !isInputQueueOwnedByTab(state, options.ownerTabId)) {
+  if (
+    !hasInputQueueWork(state) ||
+    !isInputQueueOwnedByTab(state, options.ownerTabId)
+  ) {
     return false;
   }
 
