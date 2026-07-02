@@ -373,6 +373,16 @@ test('queue owner is isolated by tab and can be reclaimed when stale', () => {
   assert.equal(isInputQueueOwnedByTab(owned, 'tab-b'), false);
 });
 
+test('ownerless empty queue can be claimed for the first direct submit', () => {
+  const ownerless = createEmptyInputQueueState(1);
+  assert.equal(isInputQueueOwner(ownerless, 'tab-a', 2), true);
+  assert.equal(isInputQueueOwnedByTab(ownerless, 'tab-a'), false);
+
+  const ownedByA = assignInputQueueOwner(ownerless, 'tab-a', 3);
+  assert.equal(isInputQueueOwner(ownedByA, 'tab-a', 4), true);
+  assert.equal(isInputQueueOwner(ownedByA, 'tab-b', 4), false);
+});
+
 test('peer tab claims ownership only when a non-empty queue is ownerless or stale', () => {
   const ownerless = enqueueInputQueueState(
     createEmptyInputQueueState(1),

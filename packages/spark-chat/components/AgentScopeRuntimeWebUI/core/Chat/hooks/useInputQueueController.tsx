@@ -738,11 +738,18 @@ export default function useInputQueueController(
           queueLength: queueState.items.length,
           draining: drainingRef.current,
           paused: queueState.paused,
-          canExecute: !sessionId || canExecuteQueue(queueState),
+          canExecute:
+            !sessionId || isInputQueueOwner(queueState, tabIdRef.current),
           sessionRunning,
         })
       ) {
         return enqueueInput(data);
+      }
+
+      if (sessionId) {
+        await updateQueueState(sessionId, (state) =>
+          assignInputQueueOwner(state, tabIdRef.current),
+        );
       }
 
       return submitNow(data);
