@@ -10,13 +10,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import UserMessageAnchors from "./UserMessageAnchors";
 
-const PAGE_SIZE = 10;
-const ANCHOR_JUMP_WINDOW_BEFORE = 24;
-const ANCHOR_JUMP_WINDOW_AFTER = 36;
+const PAGE_SIZE = 20;
+const INITIAL_VISIBLE_MESSAGE_COUNT = 60;
+const ANCHOR_JUMP_RENDER_BUFFER = 24;
 
 type MessageWithHistory = IAgentScopeRuntimeWebUIMessage & { history?: boolean };
 type HistoryRange = { start: number; end: number };
-const INITIAL_HISTORY_RANGE: HistoryRange = { start: 0, end: PAGE_SIZE };
+const INITIAL_HISTORY_RANGE: HistoryRange = { start: 0, end: INITIAL_VISIBLE_MESSAGE_COUNT };
 
 function waitForNextFrame() {
   return new Promise<void>((resolve) => {
@@ -26,8 +26,11 @@ function waitForNextFrame() {
 
 function getAnchorJumpHistoryRange(historyIndex: number, historyLength: number): HistoryRange {
   return {
-    start: Math.max(0, historyIndex - ANCHOR_JUMP_WINDOW_BEFORE),
-    end: Math.min(historyLength, historyIndex + ANCHOR_JUMP_WINDOW_AFTER),
+    start: 0,
+    end: Math.min(
+      historyLength,
+      Math.max(INITIAL_VISIBLE_MESSAGE_COUNT, historyIndex + ANCHOR_JUMP_RENDER_BUFFER),
+    ),
   };
 }
 
@@ -36,13 +39,15 @@ function areHistoryRangesEqual(prev: HistoryRange, next: HistoryRange) {
 }
 
 /**
- * 模拟后端分页 Hook：
- * - history 消息（会话加载时的历史记录）按页展示，滚动触底时加载更多
- * - 当前会话新产生的消息（非 history）始终全量展示
+ * Render only the newest window of the conversation, then reveal older
+ * messages on demand. Sessions loaded from storage and messages produced in
+ * the current run use the same window so long-running chats do not accumulate
+ * an unbounded number of mounted bubbles.
  */
-function useSimulatedMessagePagination(
+function useMessageWindowPagination(
   allMessages: MessageWithHistory[],
   sessionId: string | undefined,
+  enabled: boolean,
 ) {
   const [historyRange, setHistoryRangeState] = useState<HistoryRange>(INITIAL_HISTORY_RANGE);
   const historyRangeRef = React.useRef<HistoryRange>(INITIAL_HISTORY_RANGE);
@@ -61,25 +66,34 @@ function useSimulatedMessagePagination(
 
   React.useLayoutEffect(() => {
     ensureMessageSequenceRef.current += 1;
-    setHistoryRange(INITIAL_HISTORY_RANGE);
-  }, [sessionId, setHistoryRange]);
+    setHistoryRange(enabled
+      ? INITIAL_HISTORY_RANGE
+      : { start: 0, end: allMessages.length });
+  }, [allMessages.length, enabled, sessionId, setHistoryRange]);
 
-  const historyMessages = useMemo(
-    () => allMessages.filter((m) => m.history),
-    [allMessages],
-  );
-  const newMessages = useMemo(
-    () => allMessages.filter((m) => !m.history),
-    [allMessages],
-  );
+  React.useEffect(() => {
+    if (!enabled) {
+      setHistoryRange({ start: 0, end: allMessages.length });
+      return;
+    }
 
-  const visibleHistory = historyMessages.slice(historyRange.start, historyRange.end);
-  const noMore = historyRange.end >= historyMessages.length;
+    updateHistoryRange((prev) => {
+      if (allMessages.length <= prev.end) return prev;
+      return {
+        start: 0,
+        end: Math.min(
+          allMessages.length,
+          Math.max(prev.end, INITIAL_VISIBLE_MESSAGE_COUNT),
+        ),
+      };
+    });
+  }, [allMessages.length, enabled, setHistoryRange, updateHistoryRange]);
 
-  // 新消息在前（最新），历史分页消息在后（较旧）
+  const noMore = !enabled || historyRange.end >= allMessages.length;
+
   const visibleMessages = useMemo(
-    () => [...newMessages, ...visibleHistory],
-    [newMessages, visibleHistory],
+    () => enabled ? allMessages.slice(historyRange.start, historyRange.end) : allMessages,
+    [allMessages, enabled, historyRange.end, historyRange.start],
   );
 
   const loadMore = useCallback(() => {
@@ -88,19 +102,24 @@ function useSimulatedMessagePagination(
         flushSync(() => {
           updateHistoryRange((prev) => ({
             start: prev.start,
-            end: Math.min(historyMessages.length, prev.end + PAGE_SIZE),
+            end: Math.min(allMessages.length, prev.end + PAGE_SIZE),
           }));
         });
         resolve();
       }, 300);
     });
-  }, [historyMessages.length, updateHistoryRange]);
+  }, [allMessages.length, updateHistoryRange]);
 
   const ensureMessageVisible = useCallback(async (messageId: string) => {
+    if (!enabled) {
+      await waitForNextFrame();
+      return;
+    }
+
     const sequence = ensureMessageSequenceRef.current + 1;
     ensureMessageSequenceRef.current = sequence;
 
-    const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
+    const historyIndex = allMessages.findIndex((message) => message.id === messageId);
     await waitForNextFrame();
 
     if (ensureMessageSequenceRef.current !== sequence) {
@@ -111,7 +130,7 @@ function useSimulatedMessagePagination(
       const currentRange = historyRangeRef.current;
       const targetVisible = historyIndex >= currentRange.start && historyIndex < currentRange.end;
       if (!targetVisible) {
-        const nextRange = getAnchorJumpHistoryRange(historyIndex, historyMessages.length);
+        const nextRange = getAnchorJumpHistoryRange(historyIndex, allMessages.length);
         if (!areHistoryRangesEqual(currentRange, nextRange)) {
           flushSync(() => {
             setHistoryRange(nextRange);
@@ -124,7 +143,7 @@ function useSimulatedMessagePagination(
       throw new Error('Message visibility request was superseded');
     }
     await waitForNextFrame();
-  }, [historyMessages, setHistoryRange]);
+  }, [allMessages, enabled, setHistoryRange]);
 
   return { visibleMessages, noMore, loadMore, ensureMessageVisible };
 }
@@ -135,11 +154,17 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-message-list');
   const scrollContainerClassName = `${prefixCls}-bubble-scroll`;
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
-  const userMessageAnchorsOptions = useChatAnywhereOptions(v => v.theme?.bubbleList?.userMessageAnchors);
+  const bubbleListOptions = useChatAnywhereOptions(v => v.theme?.bubbleList);
+  const userMessageAnchorsOptions = bubbleListOptions?.userMessageAnchors;
+  const paginationEnabled = bubbleListOptions?.pagination !== false;
   const listRef = React.useRef<{ scrollToBottom: () => void } | null>(null);
   const prevMessagesLengthRef = React.useRef(safeMessages.length);
 
-  const { visibleMessages, noMore, loadMore, ensureMessageVisible } = useSimulatedMessagePagination(safeMessages, currentSessionId);
+  const { visibleMessages, noMore, loadMore, ensureMessageVisible } = useMessageWindowPagination(
+    safeMessages,
+    currentSessionId,
+    paginationEnabled,
+  );
   const renderedItemsKey = useMemo(() => visibleMessages.map((message) => message.id).join('|'), [visibleMessages]);
 
   React.useEffect(() => {

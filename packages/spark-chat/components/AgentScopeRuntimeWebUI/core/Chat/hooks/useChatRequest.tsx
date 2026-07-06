@@ -30,10 +30,54 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
   // Keep apiOptions in a ref to avoid stale closure issues
   const apiOptionsRef = useRef(apiOptions);
+  const pendingMessageUpdateRef = useRef<IAgentScopeRuntimeWebUIMessage | null>(null);
+  const pendingMessageUpdateFrameRef = useRef<number | undefined>();
 
   useEffect(() => {
     apiOptionsRef.current = apiOptions;
   }, [apiOptions]);
+
+  const flushPendingMessageUpdate = useCallback(() => {
+    if (typeof window !== 'undefined' && pendingMessageUpdateFrameRef.current) {
+      window.cancelAnimationFrame(pendingMessageUpdateFrameRef.current);
+    }
+    pendingMessageUpdateFrameRef.current = undefined;
+
+    const pendingMessage = pendingMessageUpdateRef.current;
+    pendingMessageUpdateRef.current = null;
+    if (pendingMessage) {
+      updateMessage(pendingMessage);
+    }
+  }, [updateMessage]);
+
+  const scheduleMessageUpdate = useCallback((message: IAgentScopeRuntimeWebUIMessage) => {
+    if (typeof window === 'undefined') {
+      updateMessage(message);
+      return;
+    }
+
+    pendingMessageUpdateRef.current = message;
+    if (pendingMessageUpdateFrameRef.current) return;
+
+    pendingMessageUpdateFrameRef.current = window.requestAnimationFrame(() => {
+      pendingMessageUpdateFrameRef.current = undefined;
+      const pendingMessage = pendingMessageUpdateRef.current;
+      pendingMessageUpdateRef.current = null;
+      if (pendingMessage) {
+        updateMessage(pendingMessage);
+      }
+    });
+  }, [updateMessage]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && pendingMessageUpdateFrameRef.current) {
+        window.cancelAnimationFrame(pendingMessageUpdateFrameRef.current);
+      }
+      pendingMessageUpdateFrameRef.current = undefined;
+      pendingMessageUpdateRef.current = null;
+    };
+  }, []);
 
 
   const mockRequest = useCallback(async (mockdata) => {
@@ -66,7 +110,6 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     myRequestId: number,
     mySessionId?: string,
   ) => {
-    const currentApiOptions = apiOptionsRef.current;
     const agentScopeRuntimeResponseBuilder = new AgentScopeRuntimeResponseBuilder({
       id: '',
       status: AgentScopeRuntimeRunStatus.Created,
@@ -137,7 +180,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
                 data: agentScopeRuntimeResponseBuilder.cancel(),
               }
             ];
-            updateMessage(currentQARef.current.response);
+            scheduleMessageUpdate(currentQARef.current.response);
           }
           break;
         }
@@ -159,9 +202,10 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           ];
 
           if (res.status === AgentScopeRuntimeRunStatus.Completed || res.status === AgentScopeRuntimeRunStatus.Failed) {
+            flushPendingMessageUpdate();
             onFinish();
           } else {
-            updateMessage(currentQARef.current.response);
+            scheduleMessageUpdate(currentQARef.current.response);
           }
         }
       }
@@ -179,13 +223,13 @@ export default function useChatRequest(options: UseChatRequestOptions) {
               data: agentScopeRuntimeResponseBuilder.cancel(),
             }
           ];
-          updateMessage(currentQARef.current.response);
+          scheduleMessageUpdate(currentQARef.current.response);
         }
       } else {
         console.error(error);
       }
     }
-  }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
+  }, [getCurrentSessionId, currentQARef, flushPendingMessageUpdate, scheduleMessageUpdate, onFinish]);
 
 
   const request = useCallback(async (
@@ -248,4 +292,3 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
   return { request, reconnect, mockRequest };
 }
-

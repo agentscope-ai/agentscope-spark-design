@@ -348,11 +348,21 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const [trackHeight, setTrackHeight] = useState(0);
   const normalizedMinGap = useMemo(() => getUserMessageAnchorMinGap(minGap), [minGap]);
   const normalizedMinCount = useMemo(() => getUserMessageAnchorMinCount(minCount), [minCount]);
+  const itemsRef = React.useRef(items);
+  itemsRef.current = items;
+
+  const userMessagesKey = useMemo(() => {
+    if (!enabled) return '';
+    return items
+      .filter((message) => message.role === 'user' && message.id)
+      .map((message) => `${message.id}:${message.cards?.length ?? 0}`)
+      .join('|');
+  }, [enabled, items]);
 
   const anchors = useMemo<UserMessageAnchor[]>(() => {
     if (!enabled) return [];
 
-    const visualItems = items.slice().reverse();
+    const visualItems = itemsRef.current.slice().reverse();
     const totalCount = Math.max(visualItems.length, 1);
 
     return visualItems.reduce<UserMessageAnchor[]>((result, message, index) => {
@@ -365,7 +375,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       });
       return result;
     }, []);
-  }, [enabled, items]);
+  }, [enabled, userMessagesKey]);
   const anchorIdsKey = useMemo(() => anchors.map((anchor) => anchor.id).join('|'), [anchors]);
   const visible = enabled && anchors.length > 0 && anchors.length >= normalizedMinCount;
 
