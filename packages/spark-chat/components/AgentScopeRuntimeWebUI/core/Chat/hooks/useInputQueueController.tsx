@@ -1238,22 +1238,6 @@ export default function useInputQueueController(
       const submitNow = submitNowRef.current;
       if (!submitNow) return;
 
-      const requestContext = getQueueRequestContext?.(chatSessionId);
-      const sessionRunning = await isHostSessionRunning({
-        chatSessionId,
-        queueSessionId: sessionId,
-        requestContext,
-      });
-      if (sessionRunning) {
-        await updateQueueState(sessionId, (state) => ({
-          ...state,
-          command: undefined,
-          updatedAt: Date.now(),
-        }));
-        scheduleDrainQueue(sessionId, INPUT_QUEUE_RUNNING_RETRY_INTERVAL);
-        return;
-      }
-
       await updateQueueState(sessionId, (state) => ({
         ...state,
         command: undefined,
@@ -1261,6 +1245,7 @@ export default function useInputQueueController(
         updatedAt: Date.now(),
       }));
 
+      // send-now is an explicit user interrupt; do not gate it on isSessionRunning.
       drainingRef.current = true;
       handleCancelRef.current?.();
       await Promise.resolve(
@@ -1289,13 +1274,10 @@ export default function useInputQueueController(
     canExecuteQueue,
     currentQueueSessionId,
     getChatSessionIdForQueue,
-    getQueueRequestContext,
     getVisibleChatSessionId,
     handleCancelRef,
     inputQueueState,
-    isHostSessionRunning,
     readQueueState,
-    scheduleDrainQueue,
     submitNowRef,
     updateQueueState,
     withQueueSendLock,
