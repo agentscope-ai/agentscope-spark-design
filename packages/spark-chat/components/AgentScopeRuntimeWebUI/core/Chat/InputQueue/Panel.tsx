@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useProviderContext } from '@agentscope-ai/chat';
 import { IconButton } from '@agentscope-ai/design';
 import {
@@ -45,6 +45,11 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
   const [dragOverId, setDragOverId] = useState<string>();
   const [editingId, setEditingId] = useState<string>();
   const [draftQuery, setDraftQuery] = useState('');
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const previousListStateRef = useRef({
+    length: items.length,
+    lastItemId: items[items.length - 1]?.id,
+  });
   const prefixCls = useProviderContext().getPrefixCls(
     'chat-anywhere-input-queue',
   );
@@ -57,6 +62,33 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
       setDraftQuery('');
     }
   }, [editingId, items]);
+
+  useEffect(() => {
+    const lastItemId = items[items.length - 1]?.id;
+    const previousListState = previousListStateRef.current;
+    const itemAddedToEnd =
+      items.length > previousListState.length &&
+      !!lastItemId &&
+      lastItemId !== previousListState.lastItemId;
+
+    previousListStateRef.current = {
+      length: items.length,
+      lastItemId,
+    };
+
+    if (!itemAddedToEnd) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const list = listRef.current;
+      if (!list || list.scrollHeight <= list.clientHeight) return;
+      list.scrollTo({
+        top: list.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [items]);
 
   const isNoDragTarget = (target: EventTarget | null) => {
     return target instanceof HTMLElement && !!target.closest('[data-no-drag]');
@@ -130,7 +162,7 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
           </Tooltip>
         </div> : null}
       </div>
-      <div className={`${prefixCls}-list`}>
+      <div className={`${prefixCls}-list`} ref={listRef}>
         {items.map((item, index) => {
           const failed = item.status === 'failed';
           const files = item.data.attachments || item.data.fileList || [];
