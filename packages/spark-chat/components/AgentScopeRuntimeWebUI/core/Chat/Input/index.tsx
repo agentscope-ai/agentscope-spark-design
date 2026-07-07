@@ -1,10 +1,42 @@
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
+import type { ClipboardEvent, ClipboardEventHandler } from "react";
 import { useProviderContext, ChatInput, Disclaimer } from '@agentscope-ai/chat';
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import { useGetState } from 'ahooks';
 import { useChatAnywhereInput } from "../../Context/ChatAnywhereInputContext";
 import useAttachments from "./useAttachments";
 import { IAgentScopeRuntimeWebUIInputData } from "@agentscope-ai/chat";
+
+const DEFAULT_LONG_TEXT_UPLOAD_PROMPT = 'please read the file as prompt then answer it';
+const LONG_TEXT_FILE_TYPE = 'text/plain;charset=utf-8';
+
+function getPastedValue(event: ClipboardEvent<HTMLElement>, currentValue: string) {
+  const pastedText = event.clipboardData?.getData('text');
+  if (!pastedText) return undefined;
+
+  const target = event.target as HTMLTextAreaElement | null;
+  const sourceValue = target?.value ?? currentValue;
+  const selectionStart = target?.selectionStart ?? sourceValue.length;
+  const selectionEnd = target?.selectionEnd ?? selectionStart;
+
+  return `${sourceValue.slice(0, selectionStart)}${pastedText}${sourceValue.slice(selectionEnd)}`;
+}
+
+function getLongTextFileName(fileName?: string) {
+  const resolvedFileName = fileName?.trim() || `prompt-${Date.now()}.txt`;
+  return resolvedFileName.toLowerCase().endsWith('.txt') ? resolvedFileName : `${resolvedFileName}.txt`;
+}
+
+function createLongTextFile(text: string, fileName: string) {
+  if (typeof File === 'function') {
+    return new File([text], fileName, { type: LONG_TEXT_FILE_TYPE });
+  }
+
+  return Object.assign(new Blob([text], { type: LONG_TEXT_FILE_TYPE }), {
+    name: fileName,
+    lastModified: Date.now(),
+  }) as File;
+}
 
 export interface InputProps {
   onCancel: () => void;
@@ -13,6 +45,8 @@ export interface InputProps {
 
 export default function Input(props: InputProps) {
   const [content, setContent, getContent] = useGetState('');
+  const [longTextUploading, setLongTextUploading] = useState(false);
+  const longTextUploadingRef = useRef(false);
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-input');
   const senderOptions = useChatAnywhereOptions(v => v.sender);
   const inputContext = useChatAnywhereInput(v => v);
@@ -31,19 +65,87 @@ export default function Input(props: InputProps) {
     prefix,
     allowSpeech,
     suggestions,
+    longTextUpload,
   } = senderOptions || {};
+
+  const longTextUploadConfig = longTextUpload || undefined;
+  const longTextUploadRequest = longTextUploadConfig?.customRequest || attachments?.customRequest;
+  const longTextUploadEnabled = !!(
+    longTextUploadConfig &&
+    longTextUploadConfig.enabled !== false &&
+    longTextUploadRequest &&
+    maxLength > 0
+  );
 
   const {
     getFileList,
     setFileList,
+    uploadFile,
     handlePasteFile,
     handleDropFile,
     uploadIconButton,
     uploadFileListHeader
-  } = useAttachments(attachments, { disabled: !!inputContext.disabled });
+  } = useAttachments(attachments, { disabled: !!inputContext.disabled || longTextUploading });
+
+  const handleLongTextUpload = useCallback(async (text: string) => {
+    if (
+      !longTextUploadEnabled ||
+      !longTextUploadConfig ||
+      !longTextUploadRequest ||
+      longTextUploadingRef.current
+    ) {
+      return false;
+    }
+
+    longTextUploadingRef.current = true;
+    setLongTextUploading(true);
+    setContent(longTextUploadConfig.prompt || DEFAULT_LONG_TEXT_UPLOAD_PROMPT);
+
+    try {
+      const fileName = getLongTextFileName(longTextUploadConfig.fileName);
+      const file = createLongTextFile(text, fileName);
+      await uploadFile(file, {
+        customRequest: longTextUploadRequest,
+        fileName,
+        fileType: LONG_TEXT_FILE_TYPE,
+      });
+      return true;
+    } catch (error) {
+      console.error('long text upload rejected:', error);
+      return false;
+    } finally {
+      longTextUploadingRef.current = false;
+      setLongTextUploading(false);
+    }
+  }, [longTextUploadConfig, longTextUploadEnabled, longTextUploadRequest, setContent, uploadFile]);
+
+  const handleContentChange = useCallback((nextContent: string) => {
+    if (
+      longTextUploadEnabled &&
+      maxLength &&
+      nextContent.length > maxLength
+    ) {
+      void handleLongTextUpload(nextContent);
+      return;
+    }
+
+    setContent(nextContent);
+  }, [handleLongTextUpload, longTextUploadEnabled, maxLength, setContent]);
+
+  const handlePaste = useCallback<ClipboardEventHandler<HTMLElement>>((event) => {
+    if (!longTextUploadEnabled || !maxLength) return;
+
+    const nextContent = getPastedValue(event, getContent());
+    if (!nextContent || nextContent.length <= maxLength) return;
+
+    event.preventDefault();
+    void handleLongTextUpload(nextContent);
+  }, [getContent, handleLongTextUpload, longTextUploadEnabled, maxLength]);
 
 
   const handleSubmit = useCallback(async () => {
+    if (longTextUploadingRef.current) return;
+
     const next = await beforeSubmit();
     if (!next) return;
 
@@ -51,18 +153,18 @@ export default function Input(props: InputProps) {
     props.onSubmit({ query: getContent(), fileList });
     setContent('');
     setFileList?.([]);
-  }, []);
+  }, [beforeSubmit, getContent, getFileList, props, setContent, setFileList]);
 
   const handleCancel = useCallback(() => {
     props.onCancel();
-  }, []);
+  }, [props]);
 
   return <div className={prefixCls}>
     <div className={`${prefixCls}-wrapper`}>
       {beforeUI}
       <ChatInput
         loading={inputContext.loading}
-        disabled={inputContext.disabled}
+        disabled={inputContext.disabled || longTextUploading}
         placeholder={placeholder}
         value={content}
         prefix={<>
@@ -70,14 +172,16 @@ export default function Input(props: InputProps) {
           {prefix}
         </>}
         header={uploadFileListHeader}
-        onChange={setContent}
+        onChange={handleContentChange}
         maxLength={maxLength}
+        truncateOnMaxLength={!longTextUploadEnabled}
         showCharacterCount={showCharacterCount}
         characterCountRender={characterCountRender}
         actionAffix={actionAffix}
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         allowSpeech={allowSpeech}
+        onPaste={handlePaste}
         onPasteFile={handlePasteFile}
         onDropFile={handleDropFile}
         suggestions={suggestions}
