@@ -20,11 +20,6 @@ export default createGlobalStyle`
   gap: 24px;
   padding: 16px 16px 0 16px;
 
-  > .${(p) => p.theme.prefixCls}-bubble {
-    content-visibility: auto;
-    contain-intrinsic-size: 0 160px;
-  }
-
   &::after {
     display: block;
     content: ' ';
