@@ -295,7 +295,9 @@ const options = {
           options.onSuccess(response);
         }).catch(options.onError);
       },
-      prompt: 'please read the file as prompt then answer it',
+      prompt: () => getCurrentLocale() === 'cn'
+        ? '请先阅读附件中的内容，再基于它回答我的问题'
+        : 'please read the file as prompt then answer it',
     },
     beforeUI: <div>Content above the input</div>,
     afterUI: <div>Content below the input</div>,
@@ -308,7 +310,7 @@ const options = {
 };
 ```
 
-When `longTextUpload` is enabled, `sender.maxLength` is used as the overlong text threshold. If typed or pasted content exceeds that threshold, WebUI automatically creates and uploads a txt attachment, then replaces the input content with `prompt`. If `prompt` is omitted, it defaults to `please read the file as prompt then answer it`. When `customRequest` is omitted, `attachments.customRequest` is reused.
+When `longTextUpload` is enabled, `sender.maxLength` is used as the overlong text threshold. If typed or pasted content exceeds that threshold, WebUI automatically creates and uploads a txt attachment, then replaces the input content with `prompt`. `prompt` supports either a string or a `() => string` function for i18n. If `prompt` is omitted, it defaults to `please read the file as prompt then answer it`. When `customRequest` is omitted, `attachments.customRequest` is reused.
 
 ### Session Management
 

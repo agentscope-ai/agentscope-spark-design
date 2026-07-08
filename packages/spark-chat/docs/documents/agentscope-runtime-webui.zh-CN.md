@@ -295,7 +295,9 @@ const options = {
           options.onSuccess(response);
         }).catch(options.onError);
       },
-      prompt: 'please read the file as prompt then answer it',
+      prompt: () => getCurrentLocale() === 'cn'
+        ? '请先阅读附件中的内容，再基于它回答我的问题'
+        : 'please read the file as prompt then answer it',
     },
     beforeUI: <div>输入框上方内容</div>,
     afterUI: <div>输入框下方内容</div>,
@@ -308,7 +310,7 @@ const options = {
 };
 ```
 
-开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
+开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。`prompt` 支持字符串，也支持 `() => string` 方法用于国际化。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
 
 ### 会话管理
 

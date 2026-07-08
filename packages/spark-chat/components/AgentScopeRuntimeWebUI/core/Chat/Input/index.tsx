@@ -5,7 +5,10 @@ import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext
 import { useGetState } from 'ahooks';
 import { useChatAnywhereInput } from "../../Context/ChatAnywhereInputContext";
 import useAttachments from "./useAttachments";
-import { IAgentScopeRuntimeWebUIInputData } from "@agentscope-ai/chat";
+import type {
+  IAgentScopeRuntimeWebUIInputData,
+  IAgentScopeRuntimeWebUILongTextUploadOptions,
+} from "@agentscope-ai/chat";
 
 const DEFAULT_LONG_TEXT_UPLOAD_PROMPT = 'please read the file as prompt then answer it';
 const LONG_TEXT_FILE_TYPE = 'text/plain;charset=utf-8';
@@ -36,6 +39,16 @@ function createLongTextFile(text: string, fileName: string) {
     name: fileName,
     lastModified: Date.now(),
   }) as File;
+}
+
+function resolveLongTextUploadPrompt(
+  prompt: IAgentScopeRuntimeWebUILongTextUploadOptions['prompt'],
+) {
+  if (typeof prompt === 'function') {
+    return prompt() || DEFAULT_LONG_TEXT_UPLOAD_PROMPT;
+  }
+
+  return prompt || DEFAULT_LONG_TEXT_UPLOAD_PROMPT;
 }
 
 export interface InputProps {
@@ -99,7 +112,7 @@ export default function Input(props: InputProps) {
 
     longTextUploadingRef.current = true;
     setLongTextUploading(true);
-    setContent(longTextUploadConfig.prompt || DEFAULT_LONG_TEXT_UPLOAD_PROMPT);
+    setContent(resolveLongTextUploadPrompt(longTextUploadConfig.prompt));
 
     try {
       const fileName = getLongTextFileName(longTextUploadConfig.fileName);

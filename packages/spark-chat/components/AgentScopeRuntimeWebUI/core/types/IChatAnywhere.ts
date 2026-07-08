@@ -394,10 +394,10 @@ export interface IAgentScopeRuntimeWebUILongTextUploadOptions {
    */
   customRequest?: UploadProps['customRequest'];
   /**
-   * @description 超长文本转附件后替换输入框内容的 prompt
-   * @descriptionEn Prompt used to replace input content after overlong text is uploaded
+   * @description 超长文本转附件后替换输入框内容的 prompt；支持传方法用于国际化
+   * @descriptionEn Prompt used to replace input content after overlong text is uploaded; supports function form for i18n
    */
-  prompt?: string;
+  prompt?: string | (() => string);
   /**
    * @description 生成的 txt 附件文件名
    * @descriptionEn Generated txt attachment file name
