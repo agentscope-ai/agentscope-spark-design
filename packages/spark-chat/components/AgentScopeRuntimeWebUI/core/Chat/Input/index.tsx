@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClipboardEvent, ClipboardEventHandler } from "react";
 import { useProviderContext, ChatInput, Disclaimer } from '@agentscope-ai/chat';
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
@@ -60,6 +60,8 @@ export default function Input(props: InputProps) {
   const [content, setContent, getContent] = useGetState('');
   const [longTextUploading, setLongTextUploading] = useState(false);
   const longTextUploadingRef = useRef(false);
+  const longTextPromptActiveRef = useRef(false);
+  const longTextPromptContentRef = useRef('');
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-input');
   const senderOptions = useChatAnywhereOptions(v => v.sender);
   const inputContext = useChatAnywhereInput(v => v);
@@ -100,6 +102,27 @@ export default function Input(props: InputProps) {
     uploadFileListHeader
   } = useAttachments(attachments, { disabled: !!inputContext.disabled || longTextUploading });
 
+  const setLongTextPromptContent = useCallback((promptContent: string) => {
+    longTextPromptActiveRef.current = true;
+    longTextPromptContentRef.current = promptContent;
+    setContent(promptContent);
+  }, [setContent]);
+
+  useEffect(() => {
+    if (!longTextPromptActiveRef.current || !longTextUploadConfig) return;
+
+    const currentContent = getContent();
+    if (currentContent !== longTextPromptContentRef.current) {
+      longTextPromptActiveRef.current = false;
+      return;
+    }
+
+    const nextPromptContent = resolveLongTextUploadPrompt(longTextUploadConfig.prompt);
+    if (nextPromptContent !== currentContent) {
+      setLongTextPromptContent(nextPromptContent);
+    }
+  }, [getContent, longTextUploadConfig, setLongTextPromptContent]);
+
   const handleLongTextUpload = useCallback(async (text: string) => {
     if (
       !longTextUploadEnabled ||
@@ -112,7 +135,7 @@ export default function Input(props: InputProps) {
 
     longTextUploadingRef.current = true;
     setLongTextUploading(true);
-    setContent(resolveLongTextUploadPrompt(longTextUploadConfig.prompt));
+    setLongTextPromptContent(resolveLongTextUploadPrompt(longTextUploadConfig.prompt));
 
     try {
       const fileName = getLongTextFileName(longTextUploadConfig.fileName);
@@ -130,7 +153,7 @@ export default function Input(props: InputProps) {
       longTextUploadingRef.current = false;
       setLongTextUploading(false);
     }
-  }, [longTextUploadConfig, longTextUploadEnabled, longTextUploadRequest, setContent, uploadFile]);
+  }, [longTextUploadConfig, longTextUploadEnabled, longTextUploadRequest, setLongTextPromptContent, uploadFile]);
 
   const handleContentChange = useCallback((nextContent: string) => {
     if (
@@ -140,6 +163,10 @@ export default function Input(props: InputProps) {
     ) {
       void handleLongTextUpload(nextContent);
       return;
+    }
+
+    if (longTextPromptActiveRef.current && nextContent !== longTextPromptContentRef.current) {
+      longTextPromptActiveRef.current = false;
     }
 
     setContent(nextContent);
@@ -164,6 +191,8 @@ export default function Input(props: InputProps) {
 
     const fileList = (getFileList?.() || []).filter(i => i.response?.url);
     props.onSubmit({ query: getContent(), fileList });
+    longTextPromptActiveRef.current = false;
+    longTextPromptContentRef.current = '';
     setContent('');
     setFileList?.([]);
   }, [beforeSubmit, getContent, getFileList, props, setContent, setFileList]);

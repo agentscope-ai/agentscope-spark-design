@@ -310,7 +310,7 @@ const options = {
 };
 ```
 
-开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。`prompt` 支持字符串，也支持 `() => string` 方法用于国际化。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
+开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。`prompt` 支持字符串，也支持 `() => string` 方法用于国际化。外部语言切换导致 `prompt` 配置更新时，如果输入框内容仍是自动生成的 prompt，WebUI 会同步刷新；如果用户已经手动编辑过输入框，则不会覆盖。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
 
 ### 会话管理
 
