@@ -25,12 +25,26 @@ function waitForNextFrame() {
 }
 
 function getAnchorJumpHistoryRange(historyIndex: number, historyLength: number): HistoryRange {
-  return {
-    start: 0,
-    end: Math.min(
-      historyLength,
-      Math.max(INITIAL_VISIBLE_MESSAGE_COUNT, historyIndex + ANCHOR_JUMP_RENDER_BUFFER),
+  const safeIndex = Math.min(
+    Math.max(historyIndex, 0),
+    Math.max(historyLength - 1, 0),
+  );
+  const desiredStart = Math.max(0, safeIndex - ANCHOR_JUMP_RENDER_BUFFER);
+  const desiredEnd = Math.min(
+    historyLength,
+    Math.max(
+      safeIndex + ANCHOR_JUMP_RENDER_BUFFER + 1,
+      desiredStart + INITIAL_VISIBLE_MESSAGE_COUNT,
     ),
+  );
+  const start = Math.max(
+    0,
+    Math.min(desiredStart, desiredEnd - INITIAL_VISIBLE_MESSAGE_COUNT),
+  );
+
+  return {
+    start,
+    end: desiredEnd,
   };
 }
 
