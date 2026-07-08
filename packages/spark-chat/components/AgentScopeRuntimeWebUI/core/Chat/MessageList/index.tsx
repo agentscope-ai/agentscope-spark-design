@@ -10,13 +10,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import UserMessageAnchors from "./UserMessageAnchors";
 
-const PAGE_SIZE = 20;
-const INITIAL_VISIBLE_MESSAGE_COUNT = 60;
-const ANCHOR_JUMP_RENDER_BUFFER = 24;
+const PAGE_SIZE = 10;
+const ANCHOR_JUMP_WINDOW_BEFORE = 24;
+const ANCHOR_JUMP_WINDOW_AFTER = 36;
 
 type MessageWithHistory = IAgentScopeRuntimeWebUIMessage & { history?: boolean };
 type HistoryRange = { start: number; end: number };
-const INITIAL_HISTORY_RANGE: HistoryRange = { start: 0, end: INITIAL_VISIBLE_MESSAGE_COUNT };
+const INITIAL_HISTORY_RANGE: HistoryRange = { start: 0, end: PAGE_SIZE };
 
 function waitForNextFrame() {
   return new Promise<void>((resolve) => {
@@ -25,26 +25,9 @@ function waitForNextFrame() {
 }
 
 function getAnchorJumpHistoryRange(historyIndex: number, historyLength: number): HistoryRange {
-  const safeIndex = Math.min(
-    Math.max(historyIndex, 0),
-    Math.max(historyLength - 1, 0),
-  );
-  const desiredStart = Math.max(0, safeIndex - ANCHOR_JUMP_RENDER_BUFFER);
-  const desiredEnd = Math.min(
-    historyLength,
-    Math.max(
-      safeIndex + ANCHOR_JUMP_RENDER_BUFFER + 1,
-      desiredStart + INITIAL_VISIBLE_MESSAGE_COUNT,
-    ),
-  );
-  const start = Math.max(
-    0,
-    Math.min(desiredStart, desiredEnd - INITIAL_VISIBLE_MESSAGE_COUNT),
-  );
-
   return {
-    start,
-    end: desiredEnd,
+    start: Math.max(0, historyIndex - ANCHOR_JUMP_WINDOW_BEFORE),
+    end: Math.min(historyLength, historyIndex + ANCHOR_JUMP_WINDOW_AFTER),
   };
 }
 
@@ -53,15 +36,13 @@ function areHistoryRangesEqual(prev: HistoryRange, next: HistoryRange) {
 }
 
 /**
- * Render only the newest window of the conversation, then reveal older
- * messages on demand. Sessions loaded from storage and messages produced in
- * the current run use the same window so long-running chats do not accumulate
- * an unbounded number of mounted bubbles.
+ * 模拟后端分页 Hook：
+ * - history 消息（会话加载时的历史记录）按页展示，滚动触底时加载更多
+ * - 当前会话新产生的消息（非 history）始终全量展示
  */
-function useMessageWindowPagination(
+function useSimulatedMessagePagination(
   allMessages: MessageWithHistory[],
   sessionId: string | undefined,
-  enabled: boolean,
 ) {
   const [historyRange, setHistoryRangeState] = useState<HistoryRange>(INITIAL_HISTORY_RANGE);
   const historyRangeRef = React.useRef<HistoryRange>(INITIAL_HISTORY_RANGE);
@@ -80,34 +61,25 @@ function useMessageWindowPagination(
 
   React.useLayoutEffect(() => {
     ensureMessageSequenceRef.current += 1;
-    setHistoryRange(enabled
-      ? INITIAL_HISTORY_RANGE
-      : { start: 0, end: allMessages.length });
-  }, [allMessages.length, enabled, sessionId, setHistoryRange]);
+    setHistoryRange(INITIAL_HISTORY_RANGE);
+  }, [sessionId, setHistoryRange]);
 
-  React.useEffect(() => {
-    if (!enabled) {
-      setHistoryRange({ start: 0, end: allMessages.length });
-      return;
-    }
+  const historyMessages = useMemo(
+    () => allMessages.filter((m) => m.history),
+    [allMessages],
+  );
+  const newMessages = useMemo(
+    () => allMessages.filter((m) => !m.history),
+    [allMessages],
+  );
 
-    updateHistoryRange((prev) => {
-      if (allMessages.length <= prev.end) return prev;
-      return {
-        start: 0,
-        end: Math.min(
-          allMessages.length,
-          Math.max(prev.end, INITIAL_VISIBLE_MESSAGE_COUNT),
-        ),
-      };
-    });
-  }, [allMessages.length, enabled, setHistoryRange, updateHistoryRange]);
+  const visibleHistory = historyMessages.slice(historyRange.start, historyRange.end);
+  const noMore = historyRange.end >= historyMessages.length;
 
-  const noMore = !enabled || historyRange.end >= allMessages.length;
-
+  // 新消息在前（最新），历史分页消息在后（较旧）
   const visibleMessages = useMemo(
-    () => enabled ? allMessages.slice(historyRange.start, historyRange.end) : allMessages,
-    [allMessages, enabled, historyRange.end, historyRange.start],
+    () => [...newMessages, ...visibleHistory],
+    [newMessages, visibleHistory],
   );
 
   const loadMore = useCallback(() => {
@@ -116,24 +88,19 @@ function useMessageWindowPagination(
         flushSync(() => {
           updateHistoryRange((prev) => ({
             start: prev.start,
-            end: Math.min(allMessages.length, prev.end + PAGE_SIZE),
+            end: Math.min(historyMessages.length, prev.end + PAGE_SIZE),
           }));
         });
         resolve();
       }, 300);
     });
-  }, [allMessages.length, updateHistoryRange]);
+  }, [historyMessages.length, updateHistoryRange]);
 
   const ensureMessageVisible = useCallback(async (messageId: string) => {
-    if (!enabled) {
-      await waitForNextFrame();
-      return;
-    }
-
     const sequence = ensureMessageSequenceRef.current + 1;
     ensureMessageSequenceRef.current = sequence;
 
-    const historyIndex = allMessages.findIndex((message) => message.id === messageId);
+    const historyIndex = historyMessages.findIndex((message) => message.id === messageId);
     await waitForNextFrame();
 
     if (ensureMessageSequenceRef.current !== sequence) {
@@ -144,7 +111,7 @@ function useMessageWindowPagination(
       const currentRange = historyRangeRef.current;
       const targetVisible = historyIndex >= currentRange.start && historyIndex < currentRange.end;
       if (!targetVisible) {
-        const nextRange = getAnchorJumpHistoryRange(historyIndex, allMessages.length);
+        const nextRange = getAnchorJumpHistoryRange(historyIndex, historyMessages.length);
         if (!areHistoryRangesEqual(currentRange, nextRange)) {
           flushSync(() => {
             setHistoryRange(nextRange);
@@ -157,7 +124,7 @@ function useMessageWindowPagination(
       throw new Error('Message visibility request was superseded');
     }
     await waitForNextFrame();
-  }, [allMessages, enabled, setHistoryRange]);
+  }, [historyMessages, setHistoryRange]);
 
   return { visibleMessages, noMore, loadMore, ensureMessageVisible };
 }
@@ -168,17 +135,11 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-message-list');
   const scrollContainerClassName = `${prefixCls}-bubble-scroll`;
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
-  const bubbleListOptions = useChatAnywhereOptions(v => v.theme?.bubbleList);
-  const userMessageAnchorsOptions = bubbleListOptions?.userMessageAnchors;
-  const paginationEnabled = bubbleListOptions?.pagination !== false;
+  const userMessageAnchorsOptions = useChatAnywhereOptions(v => v.theme?.bubbleList?.userMessageAnchors);
   const listRef = React.useRef<{ scrollToBottom: () => void } | null>(null);
   const prevMessagesLengthRef = React.useRef(safeMessages.length);
 
-  const { visibleMessages, noMore, loadMore, ensureMessageVisible } = useMessageWindowPagination(
-    safeMessages,
-    currentSessionId,
-    paginationEnabled,
-  );
+  const { visibleMessages, noMore, loadMore, ensureMessageVisible } = useSimulatedMessagePagination(safeMessages, currentSessionId);
   const renderedItemsKey = useMemo(() => visibleMessages.map((message) => message.id).join('|'), [visibleMessages]);
 
   React.useEffect(() => {
