@@ -131,11 +131,15 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       } catch {
         // Ignore JSON parse errors — still call onFinish to reset loading state
       }
-      if (isStillActive()) onFinish();
-      return;
+      if (isStillActive()) {
+        onFinish();
+        return true;
+      }
+      return false;
     }
 
     const abortSignal = currentQARef.current.abortController?.signal;
+    let sawFinishedChunk = false;
 
     try {
       for await (const chunk of Stream({
@@ -144,7 +148,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       })) {
         // Primary guard: if this SSE is no longer active, stop immediately
         // to prevent ghost writes into a different session/request.
-        if (!isStillActive()) break;
+        if (!isStillActive()) return false;
 
         if (currentQARef.current.response?.msgStatus === 'interrupted') {
           currentQARef.current.abortController?.abort();
@@ -159,7 +163,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
             ];
             updateMessage(currentQARef.current.response);
           }
-          break;
+          return false;
         }
 
         const responseParser = apiOptionsRef.current.responseParser || JSON.parse;
@@ -170,7 +174,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
         if (!finished && res.status !== AgentScopeRuntimeRunStatus.Failed && !res.output?.some(msg => msg.content?.length)) continue;
 
-        if (!isStillActive()) break;
+        if (!isStillActive()) return false;
 
         if (currentQARef.current.response) {
           currentQARef.current.response.cards = [
@@ -181,6 +185,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           ];
 
           if (finished) {
+            sawFinishedChunk = true;
             onFinish();
           } else {
             updateMessage(currentQARef.current.response);
@@ -188,9 +193,9 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         }
       }
     } catch (error) {
-      if (!isStillActive()) {
+      if (!isStillActive() || abortSignal?.aborted) {
         // Request is no longer active; do not write cards or fire cancel.
-        return;
+        return false;
       }
       if (currentQARef.current.response?.msgStatus === 'interrupted') {
         // Cancel was already sent by handleCancel; don't repeat it here.
@@ -203,10 +208,14 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           ];
           updateMessage(currentQARef.current.response);
         }
+        return false;
       } else {
         console.error(error);
       }
+      return true;
     }
+
+    return sawFinishedChunk || isStillActive();
   }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
 
 
@@ -256,8 +265,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
     }
 
     if (response && response.body) {
-      await processSSEResponse(response, requestId, sessionId);
-      return true;
+      return processSSEResponse(response, requestId, sessionId);
     }
 
     return false;
