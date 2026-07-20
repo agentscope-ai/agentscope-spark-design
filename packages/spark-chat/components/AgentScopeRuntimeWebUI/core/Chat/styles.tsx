@@ -10,6 +10,8 @@ export default createGlobalStyle`
 
 .${(p) => p.theme.prefixCls}-chat-anywhere-message-list  {
   position: relative;
+  container-name: spark-chat-message-list;
+  container-type: inline-size;
   flex: 1;
   height: 0;
 
@@ -401,7 +403,24 @@ export default createGlobalStyle`
   }
 }
 
+@container spark-chat-message-list (max-width: 960px) {
+  .${(p) => p.theme.prefixCls}-chat-anywhere-message-list .${(p) => p.theme.prefixCls}-bubble-list {
+    box-sizing: border-box;
+    padding-right: 60px;
+  }
+}
+
 @media (max-width: 640px) {
+  .${(p) => p.theme.prefixCls}-chat-anywhere-message-list .${(p) => p.theme.prefixCls}-bubble-list {
+    padding-right: 16px;
+  }
+
+  .${(p) => p.theme.prefixCls}-chat-anywhere-message-list-anchors {
+    display: none;
+  }
+}
+
+@container spark-chat-message-list (max-width: 640px) {
   .${(p) => p.theme.prefixCls}-chat-anywhere-message-list .${(p) => p.theme.prefixCls}-bubble-list {
     padding-right: 16px;
   }
