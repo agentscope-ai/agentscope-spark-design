@@ -411,6 +411,20 @@ export interface IAgentScopeRuntimeWebUIQueueSessionContext {
   requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
 }
 
+export interface IAgentScopeRuntimeWebUIQueueErrorContext
+  extends IAgentScopeRuntimeWebUIQueueSessionContext {
+  /**
+   * @description 发送失败的原始队列输入
+   * @descriptionEn Original queued input whose submission failed.
+   */
+  data: IAgentScopeRuntimeWebUIInputData;
+  /**
+   * @description 发送或流消费期间抛出的错误
+   * @descriptionEn Error thrown while submitting or consuming the response stream.
+   */
+  error: unknown;
+}
+
 export interface IAgentScopeRuntimeWebUIQueueOptions {
   /**
    * @description 是否启用输入队列。传 false 可关闭队列。
@@ -440,6 +454,13 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
    */
   isSessionRunning?: (
     context: IAgentScopeRuntimeWebUIQueueSessionContext,
+  ) => boolean | Promise<boolean>;
+  /**
+   * @description 判断发送失败后是否应把输入恢复到队列。宿主已确认请求被后端接受时可返回 false，避免切换会话或组件卸载后重复发送。
+   * @descriptionEn Whether a failed submission should be restored to the queue. Hosts may return false after confirming backend acceptance to prevent duplicate delivery after a session switch or component unmount.
+   */
+  shouldRestoreOnError?: (
+    context: IAgentScopeRuntimeWebUIQueueErrorContext,
   ) => boolean | Promise<boolean>;
   /**
    * @description 队列满时的回调

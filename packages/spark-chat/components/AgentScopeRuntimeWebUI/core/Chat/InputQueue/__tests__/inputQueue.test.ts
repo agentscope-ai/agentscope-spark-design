@@ -21,6 +21,7 @@ import {
   reorderQueuedInput,
   resetInputQueueTabId,
   restoreFailedQueuedInput,
+  restoreQueuedInputAfterSubmitError,
   retryQueuedInput,
   shouldClaimInputQueueOwner,
   updateQueuedInputQuery,
@@ -288,6 +289,50 @@ test('retry marks a failed item pending so it can be sent again', () => {
   assert.equal(retried[0].status, 'pending');
   assert.equal(retried[0].errorMessage, undefined);
   assert.equal(next.item?.id, 'q1');
+});
+
+test('send-now failure restores the exact item as failed without duplicating it', () => {
+  const target = enqueueQueuedInput([], input('send now'), {
+    id: 'q1',
+  }).queue[0];
+  const remaining = enqueueQueuedInput([], input('later'), {
+    id: 'q2',
+  }).queue;
+
+  const restored = restoreQueuedInputAfterSubmitError(
+    remaining,
+    target,
+    new Error('network down'),
+  );
+  assert.deepEqual(
+    restored.map((item) => item.id),
+    ['q1', 'q2'],
+  );
+  assert.equal(restored[0].status, 'failed');
+  assert.equal(restored[0].errorMessage, 'network down');
+  assert.equal(
+    restoreQueuedInputAfterSubmitError(
+      restored,
+      target,
+      new Error('network down'),
+    ),
+    restored,
+  );
+});
+
+test('accepted send failure is consumed instead of restored', () => {
+  const target = enqueueQueuedInput([], input('accepted'), {
+    id: 'q1',
+  }).queue[0];
+  const queue = enqueueQueuedInput([], input('later'), { id: 'q2' }).queue;
+
+  assert.equal(
+    restoreQueuedInputAfterSubmitError(queue, target, new Error('aborted'), {
+      interrupted: true,
+      shouldRestore: false,
+    }),
+    queue,
+  );
 });
 
 test('remove deletes only the selected queued input', () => {

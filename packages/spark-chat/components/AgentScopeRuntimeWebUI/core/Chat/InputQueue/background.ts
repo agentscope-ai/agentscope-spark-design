@@ -45,6 +45,12 @@ export interface InputQueueBackgroundRunnerOptions {
   isSessionRunning?: (
     context: IAgentScopeRuntimeWebUIQueueSessionContext,
   ) => boolean | Promise<boolean>;
+  shouldRestoreOnError?: (options: {
+    data: IAgentScopeRuntimeWebUIInputData;
+    error: unknown;
+    chatSessionId?: string;
+    queueSessionId?: string;
+  }) => boolean | Promise<boolean>;
 }
 
 interface BackgroundRunnerHandle {
@@ -395,30 +401,65 @@ function refreshOwner(queueSessionId: string, ownerTabId: string) {
 async function sendQueuedItem(
   options: InputQueueBackgroundRunnerOptions,
   item: QueuedInputItem,
-) {
+): Promise<
+  { ok: true } | { ok: false; error: unknown; shouldRestore: boolean }
+> {
   const session = await options.sessionApi.getSession?.(options.chatSessionId);
   const messages = [...(session?.messages || [])];
-  const requestMessage = createRequestMessage(item.data);
-  const responseMessage = createResponseMessage();
-  const nextMessages = [...messages, requestMessage, responseMessage];
-  await persistMessages(options, nextMessages);
+  try {
+    const requestMessage = createRequestMessage(item.data);
+    const responseMessage = createResponseMessage();
+    const nextMessages = [...messages, requestMessage, responseMessage];
+    await persistMessages(options, nextMessages);
 
-  const historyMessages =
-    AgentScopeRuntimeRequestBuilder.getHistoryMessages(nextMessages);
-  const abortController = new AbortController();
-  const response = await fetchChat(
-    options,
-    historyMessages,
-    item.data,
-    abortController.signal,
-  );
-  await consumeResponse(
-    options,
-    response,
-    responseMessage,
-    nextMessages,
-    abortController.signal,
-  );
+    const historyMessages =
+      AgentScopeRuntimeRequestBuilder.getHistoryMessages(nextMessages);
+    const abortController = new AbortController();
+    const response = await fetchChat(
+      options,
+      historyMessages,
+      item.data,
+      abortController.signal,
+    );
+    await consumeResponse(
+      options,
+      response,
+      responseMessage,
+      nextMessages,
+      abortController.signal,
+    );
+    return { ok: true };
+  } catch (error) {
+    let shouldRestore = true;
+    if (options.shouldRestoreOnError) {
+      try {
+        shouldRestore =
+          (await options.shouldRestoreOnError({
+            data: item.data,
+            error,
+            chatSessionId: options.chatSessionId,
+            queueSessionId: options.queueSessionId,
+          })) !== false;
+      } catch (restoreCheckError) {
+        console.error(
+          'background input queue restore check failed:',
+          restoreCheckError,
+        );
+      }
+    }
+
+    if (shouldRestore) {
+      try {
+        await persistMessages(options, messages);
+      } catch (rollbackError) {
+        console.error(
+          'background input queue message rollback failed:',
+          rollbackError,
+        );
+      }
+    }
+    return { ok: false, error, shouldRestore };
+  }
 }
 
 async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
@@ -451,12 +492,13 @@ async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
         );
         if (!item) break;
 
-        try {
-          await sendQueuedItem(handle.options, item);
-        } catch (error) {
-          console.error('background input queue send failed:', error);
-          await restoreQueuedItem(queueSessionId, item, error);
-          break;
+        const result = await sendQueuedItem(handle.options, item);
+        if ('error' in result) {
+          console.error('background input queue send failed:', result.error);
+          if (result.shouldRestore) {
+            await restoreQueuedItem(queueSessionId, item, result.error);
+            break;
+          }
         }
       }
       return true;

@@ -396,6 +396,27 @@ export function restoreFailedQueuedInput(
   ];
 }
 
+export function restoreQueuedInputAfterSubmitError(
+  queue: QueuedInputItem[],
+  item: QueuedInputItem,
+  error: unknown,
+  options?: {
+    interrupted?: boolean;
+    shouldRestore?: boolean;
+  },
+): QueuedInputItem[] {
+  if (
+    options?.shouldRestore === false ||
+    queue.some((queuedItem) => queuedItem.id === item.id)
+  ) {
+    return queue;
+  }
+
+  return options?.interrupted
+    ? [item, ...queue]
+    : restoreFailedQueuedInput(queue, item, error);
+}
+
 export function canSubmitDirectly(options: {
   loading: boolean | string;
   queueLength: number;
