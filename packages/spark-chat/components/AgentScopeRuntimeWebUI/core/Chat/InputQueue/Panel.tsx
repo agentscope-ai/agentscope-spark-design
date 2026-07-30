@@ -57,7 +57,8 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
   const tr = (key: Parameters<typeof t>[0]) => t?.(key) || key;
 
   useEffect(() => {
-    if (editingId && !items.some(item => item.id === editingId)) {
+    const editingItem = items.find(item => item.id === editingId);
+    if (editingId && (!editingItem || editingItem.status === 'submitting')) {
       setEditingId(undefined);
       setDraftQuery('');
     }

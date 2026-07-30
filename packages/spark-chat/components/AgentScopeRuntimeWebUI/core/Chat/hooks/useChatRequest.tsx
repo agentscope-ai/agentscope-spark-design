@@ -216,10 +216,14 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         return false;
       } else {
         console.error(error);
+        onFinish();
       }
       return true;
     }
 
+    if (!sawFinishedChunk && isStillActive()) {
+      onFinish();
+    }
     return sawFinishedChunk || isStillActive();
   }, [getCurrentSessionId, currentQARef, updateMessage, onFinish]);
 

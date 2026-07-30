@@ -325,6 +325,19 @@ test('retry marks a failed item pending so it can be sent again', () => {
   assert.equal(next.item?.id, 'q1');
 });
 
+test('submitting item cannot be retried or edited while delivery is in flight', () => {
+  const pending = enqueueQueuedInput([], input('in flight'), {
+    id: 'q1',
+  }).queue;
+  const submitting = beginQueuedInputSubmission(pending, 'tab-a').queue;
+
+  assert.equal(retryQueuedInput(submitting, 'q1'), submitting);
+  assert.equal(
+    updateQueuedInputQuery(submitting, 'q1', 'changed'),
+    submitting,
+  );
+});
+
 test('send-now failure restores the exact item as failed without duplicating it', () => {
   const target = enqueueQueuedInput([], input('send now'), {
     id: 'q1',

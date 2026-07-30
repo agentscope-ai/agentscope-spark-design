@@ -1625,7 +1625,10 @@ export default function useInputQueueController(
       const sessionId = getActiveQueueSessionId();
       void updateQueueState(sessionId, (state) => ({
         ...state,
-        items: removeQueuedInput(state.items, id),
+        items:
+          state.items.find((item) => item.id === id)?.status === 'submitting'
+            ? state.items
+            : removeQueuedInput(state.items, id),
         updatedAt: Date.now(),
       }));
     },
@@ -1676,7 +1679,9 @@ export default function useInputQueueController(
       const sessionId = getActiveQueueSessionId();
       void updateQueueState(sessionId, (state) => ({
         ...state,
-        command: canExecuteQueue(state)
+        command:
+          canExecuteQueue(state) &&
+          state.items.some((item) => item.id === id && item.status === 'pending')
           ? createSendNowCommand(id, tabIdRef.current)
           : state.command,
         updatedAt: Date.now(),

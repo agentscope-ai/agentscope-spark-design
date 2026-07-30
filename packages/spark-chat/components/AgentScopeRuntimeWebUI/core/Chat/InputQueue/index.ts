@@ -274,17 +274,18 @@ export function retryQueuedInput(
   queue: QueuedInputItem[],
   id: string,
 ): QueuedInputItem[] {
-  return queue.map((item) =>
-    item.id === id
-      ? {
-          ...item,
-          status: 'pending',
-          errorMessage: undefined,
-          submissionOwnerTabId: undefined,
-          submissionStartedAt: undefined,
-        }
-      : item,
-  );
+  const itemIndex = queue.findIndex((item) => item.id === id);
+  if (itemIndex < 0 || queue[itemIndex].status !== 'failed') return queue;
+
+  const next = [...queue];
+  next[itemIndex] = {
+    ...next[itemIndex],
+    status: 'pending',
+    errorMessage: undefined,
+    submissionOwnerTabId: undefined,
+    submissionStartedAt: undefined,
+  };
+  return next;
 }
 
 // Native drag-and-drop drops the source item before the hovered target item.
@@ -317,22 +318,23 @@ export function updateQueuedInputQuery(
   id: string,
   query: string,
 ): QueuedInputItem[] {
-  return queue.map((item) =>
-    item.id === id
-      ? {
-          ...item,
-          data: {
-            ...item.data,
-            query,
-            text: query,
-          },
-          status: 'pending',
-          errorMessage: undefined,
-          submissionOwnerTabId: undefined,
-          submissionStartedAt: undefined,
-        }
-      : item,
-  );
+  const itemIndex = queue.findIndex((item) => item.id === id);
+  if (itemIndex < 0 || queue[itemIndex].status === 'submitting') return queue;
+
+  const next = [...queue];
+  next[itemIndex] = {
+    ...next[itemIndex],
+    data: {
+      ...next[itemIndex].data,
+      query,
+      text: query,
+    },
+    status: 'pending',
+    errorMessage: undefined,
+    submissionOwnerTabId: undefined,
+    submissionStartedAt: undefined,
+  };
+  return next;
 }
 
 export function createSendNowCommand(
