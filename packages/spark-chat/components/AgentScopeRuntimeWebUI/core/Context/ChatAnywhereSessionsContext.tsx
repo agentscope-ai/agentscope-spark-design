@@ -113,11 +113,21 @@ export const useChatAnywhereSessionLoader = () => {
       loadedSessionAliasesRef.current,
       existingSessions,
     );
-    if (!sameLoadedSession) {
-      ReactDOM.flushSync(() => {
-        setMessages([])
-      })
+    if (sameLoadedSession) {
+      loadedSessionAliasesRef.current = new Set([
+        ...loadedSessionAliasesRef.current,
+        ...collectSessionIdentityAliases(
+          currentSessionId,
+          undefined,
+          existingSessions,
+        ),
+      ]);
+      return;
     }
+
+    ReactDOM.flushSync(() => {
+      setMessages([])
+    })
 
     const session = await options.api.getSession(currentSessionId);
     if (!isLatestLoad()) return;
