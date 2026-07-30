@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   assignInputQueueOwner,
+  beginQueuedInputSubmission,
   canSubmitDirectly,
   createEmptyInputQueueState,
   createInputQueueFetchPayload,
@@ -18,6 +19,7 @@ import {
   isInputQueueOwner,
   isInputQueueStateEmpty,
   removeQueuedInput,
+  recoverInterruptedQueuedInputs,
   reorderQueuedInput,
   resetInputQueueTabId,
   restoreFailedQueuedInput,
@@ -137,6 +139,33 @@ test('enqueue appends inputs in FIFO order and dequeue consumes the head', () =>
   assert.equal(second.queue.length, 0);
 });
 
+test('begin submission keeps the queued item persisted until acceptance', () => {
+  let queue = enqueueQueuedInput([], input('first'), {
+    id: 'q1',
+    now: 1,
+  }).queue;
+  queue = enqueueQueuedInput(queue, input('second'), {
+    id: 'q2',
+    now: 2,
+  }).queue;
+
+  const result = beginQueuedInputSubmission(queue, 'tab-a', { now: 3 });
+
+  assert.equal(result.item?.id, 'q1');
+  assert.equal(result.item?.status, 'submitting');
+  assert.equal(result.item?.submissionOwnerTabId, 'tab-a');
+  assert.equal(result.item?.submissionStartedAt, 3);
+  assert.deepEqual(
+    result.queue.map((item) => item.id),
+    ['q1', 'q2'],
+  );
+  assert.equal(result.queue[1].status, 'pending');
+  assert.equal(
+    beginQueuedInputSubmission(result.queue, 'tab-a').item,
+    undefined,
+  );
+});
+
 test('direct submit is allowed only when idle, queue is empty and no drain is active', () => {
   assert.equal(
     canSubmitDirectly({ loading: false, queueLength: 0, draining: false }),
@@ -249,6 +278,7 @@ test('background fetch payload carries the target chat session id', () => {
     },
     'session-a',
     signal,
+    'queue-item-a',
   );
 
   assert.equal(payload.session_id, 'backend-session-a');
@@ -260,6 +290,10 @@ test('background fetch payload carries the target chat session id', () => {
     user_prompt_params: {
       mode: 'queue',
     },
+  });
+  assert.deepEqual(payload.submission, {
+    source: 'queue',
+    queueItemId: 'queue-item-a',
   });
 });
 
@@ -317,6 +351,62 @@ test('send-now failure restores the exact item as failed without duplicating it'
       new Error('network down'),
     ),
     restored,
+  );
+});
+
+test('submitting item settles in place on failure and returns to pending on interruption', () => {
+  let queue = enqueueQueuedInput([], input('send now'), {
+    id: 'q1',
+  }).queue;
+  queue = enqueueQueuedInput(queue, input('later'), {
+    id: 'q2',
+  }).queue;
+  const submitting = beginQueuedInputSubmission(queue, 'tab-a', {
+    itemId: 'q1',
+    now: 10,
+  });
+
+  const failed = restoreQueuedInputAfterSubmitError(
+    submitting.queue,
+    submitting.item!,
+    new Error('network down'),
+  );
+  assert.deepEqual(
+    failed.map((item) => item.id),
+    ['q1', 'q2'],
+  );
+  assert.equal(failed[0].status, 'failed');
+  assert.equal(failed[0].submissionOwnerTabId, undefined);
+
+  const interrupted = restoreQueuedInputAfterSubmitError(
+    submitting.queue,
+    submitting.item!,
+    new Error('chat request aborted'),
+    { interrupted: true },
+  );
+  assert.equal(interrupted[0].status, 'pending');
+  assert.equal(interrupted[0].retryCount, 0);
+  assert.equal(interrupted[0].submissionOwnerTabId, undefined);
+});
+
+test('accepted submitting item is removed without touching later inputs', () => {
+  let queue = enqueueQueuedInput([], input('accepted'), {
+    id: 'q1',
+  }).queue;
+  queue = enqueueQueuedInput(queue, input('later'), {
+    id: 'q2',
+  }).queue;
+  const submitting = beginQueuedInputSubmission(queue, 'tab-a');
+
+  const settled = restoreQueuedInputAfterSubmitError(
+    submitting.queue,
+    submitting.item!,
+    new Error('stream disconnected'),
+    { shouldRestore: false },
+  );
+  assert.deepEqual(
+    settled.map((item) => item.id),
+    ['q2'],
   );
 });
 
@@ -426,6 +516,37 @@ test('ownerless empty queue can be claimed for the first direct submit', () => {
   const ownedByA = assignInputQueueOwner(ownerless, 'tab-a', 3);
   assert.equal(isInputQueueOwner(ownedByA, 'tab-a', 4), true);
   assert.equal(isInputQueueOwner(ownedByA, 'tab-b', 4), false);
+  assert.equal(assignInputQueueOwner(ownedByA, 'tab-b', 4), ownedByA);
+});
+
+test('stale owner takeover recovers only its interrupted submissions', () => {
+  const pending = enqueueQueuedInput([], input('queued'), {
+    id: 'q1',
+  }).queue;
+  const submitting = beginQueuedInputSubmission(pending, 'tab-a', {
+    now: 10,
+  }).queue;
+  const state = {
+    ...createEmptyInputQueueState(10),
+    items: submitting,
+    ownerTabId: 'tab-a',
+    ownerUpdatedAt: 10,
+  };
+
+  const ownedByB = assignInputQueueOwner(
+    state,
+    'tab-b',
+    10 + INPUT_QUEUE_OWNER_TTL + 1,
+  );
+  assert.equal(ownedByB.ownerTabId, 'tab-b');
+  assert.equal(ownedByB.items[0].status, 'pending');
+  assert.equal(ownedByB.items[0].submissionOwnerTabId, undefined);
+
+  const stillSubmitting = recoverInterruptedQueuedInputs(
+    submitting,
+    'tab-b',
+  );
+  assert.equal(stillSubmitting[0].status, 'submitting');
 });
 
 test('peer tab claims ownership only when a non-empty queue is ownerless or stale', () => {
@@ -480,6 +601,12 @@ test('drag reorder moves a queued input before the drop target', () => {
   );
   assert.equal(reorderQueuedInput(queue, 'missing', 'q1'), queue);
   assert.equal(reorderQueuedInput(queue, 'q2', 'q2'), queue);
+
+  const submitting = beginQueuedInputSubmission(queue, 'tab-a', {
+    itemId: 'q1',
+  }).queue;
+  assert.equal(reorderQueuedInput(submitting, 'q1', 'q3'), submitting);
+  assert.equal(reorderQueuedInput(submitting, 'q3', 'q1'), submitting);
 });
 
 test('queued input query can be edited before sending', () => {

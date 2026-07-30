@@ -1,6 +1,6 @@
 import type { IAgentScopeRuntimeWebUIInputData } from '../../types';
 
-export type QueuedInputStatus = 'pending' | 'failed';
+export type QueuedInputStatus = 'pending' | 'submitting' | 'failed';
 
 export type InputQueueCommandType = 'send-now';
 
@@ -10,6 +10,8 @@ export interface QueuedInputItem {
   status: QueuedInputStatus;
   retryCount: number;
   errorMessage?: string;
+  submissionOwnerTabId?: string;
+  submissionStartedAt?: number;
   createdAt: number;
 }
 
@@ -49,6 +51,10 @@ export interface InputQueueFetchPayload {
   channel?: string;
   agent_id?: string;
   biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+  submission: {
+    source: 'queue';
+    queueItemId?: string;
+  };
   signal: AbortSignal;
 }
 
@@ -57,6 +63,7 @@ export const INPUT_QUEUE_OWNER_TTL = 10_000;
 export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
 export const INPUT_QUEUE_OWNER_CLAIM_INTERVAL = 1_000;
 export const INPUT_QUEUE_RUNNING_RETRY_INTERVAL = 2_500;
+export const INPUT_QUEUE_RUNTIME_RECOVERY_DELAY = 500;
 export const INPUT_QUEUE_STORAGE_PREFIX =
   'agentscope-runtime-webui-input-queue';
 export const INPUT_QUEUE_TAB_ID_STORAGE_KEY =
@@ -222,6 +229,40 @@ export function dequeueNextQueuedInput(queue: QueuedInputItem[]): {
   };
 }
 
+export function beginQueuedInputSubmission(
+  queue: QueuedInputItem[],
+  ownerTabId: string,
+  options?: {
+    itemId?: string;
+    now?: number;
+  },
+): {
+  item?: QueuedInputItem;
+  queue: QueuedInputItem[];
+} {
+  const itemIndex = options?.itemId
+    ? queue.findIndex((item) => item.id === options.itemId)
+    : 0;
+  const item = queue[itemIndex];
+  if (itemIndex < 0 || !item || item.status !== 'pending') {
+    return { queue };
+  }
+
+  const submittingItem: QueuedInputItem = {
+    ...item,
+    status: 'submitting',
+    errorMessage: undefined,
+    submissionOwnerTabId: ownerTabId,
+    submissionStartedAt: options?.now ?? Date.now(),
+  };
+  const next = [...queue];
+  next[itemIndex] = submittingItem;
+  return {
+    item: submittingItem,
+    queue: next,
+  };
+}
+
 export function removeQueuedInput(
   queue: QueuedInputItem[],
   id: string,
@@ -239,6 +280,8 @@ export function retryQueuedInput(
           ...item,
           status: 'pending',
           errorMessage: undefined,
+          submissionOwnerTabId: undefined,
+          submissionStartedAt: undefined,
         }
       : item,
   );
@@ -255,6 +298,12 @@ export function reorderQueuedInput(
   const sourceIndex = queue.findIndex((item) => item.id === sourceId);
   const targetIndex = queue.findIndex((item) => item.id === targetId);
   if (sourceIndex < 0 || targetIndex < 0) return queue;
+  if (
+    queue[sourceIndex].status === 'submitting' ||
+    queue[targetIndex].status === 'submitting'
+  ) {
+    return queue;
+  }
 
   const next = [...queue];
   const [item] = next.splice(sourceIndex, 1);
@@ -279,6 +328,8 @@ export function updateQueuedInputQuery(
           },
           status: 'pending',
           errorMessage: undefined,
+          submissionOwnerTabId: undefined,
+          submissionStartedAt: undefined,
         }
       : item,
   );
@@ -307,6 +358,7 @@ export function createInputQueueFetchPayload(
   data: IAgentScopeRuntimeWebUIInputData,
   sessionId: string,
   signal: AbortSignal,
+  queueItemId?: string,
 ): InputQueueFetchPayload {
   return {
     input,
@@ -315,6 +367,10 @@ export function createInputQueueFetchPayload(
     channel: data.channel,
     agent_id: data.agent_id,
     biz_params: data.biz_params,
+    submission: {
+      source: 'queue',
+      queueItemId,
+    },
     signal,
   };
 }
@@ -359,12 +415,34 @@ export function assignInputQueueOwner(
     return state;
   }
 
+  const ownerChanged = !!state.ownerTabId && state.ownerTabId !== tabId;
   return {
     ...state,
+    items: ownerChanged
+      ? recoverInterruptedQueuedInputs(state.items, state.ownerTabId)
+      : state.items,
     ownerTabId: tabId,
     ownerUpdatedAt: now,
     updatedAt: now,
   };
+}
+
+export function recoverInterruptedQueuedInputs(
+  queue: QueuedInputItem[],
+  ownerTabId: string,
+) {
+  return queue.map((item) =>
+    item.status === 'submitting' &&
+    item.submissionOwnerTabId === ownerTabId
+      ? {
+          ...item,
+          status: 'pending' as const,
+          errorMessage: undefined,
+          submissionOwnerTabId: undefined,
+          submissionStartedAt: undefined,
+        }
+      : item,
+  );
 }
 
 export function shouldClaimInputQueueOwner(
@@ -389,6 +467,8 @@ export function restoreFailedQueuedInput(
       ...item,
       status: 'failed',
       retryCount: item.retryCount + 1,
+      submissionOwnerTabId: undefined,
+      submissionStartedAt: undefined,
       errorMessage:
         error instanceof Error ? error.message : String(error || ''),
     },
@@ -405,16 +485,37 @@ export function restoreQueuedInputAfterSubmitError(
     shouldRestore?: boolean;
   },
 ): QueuedInputItem[] {
-  if (
-    options?.shouldRestore === false ||
-    queue.some((queuedItem) => queuedItem.id === item.id)
-  ) {
-    return queue;
+  if (options?.shouldRestore === false) {
+    return queue.some((queuedItem) => queuedItem.id === item.id)
+      ? removeQueuedInput(queue, item.id)
+      : queue;
   }
 
-  return options?.interrupted
-    ? [item, ...queue]
-    : restoreFailedQueuedInput(queue, item, error);
+  const itemIndex = queue.findIndex((queuedItem) => queuedItem.id === item.id);
+  if (itemIndex >= 0 && queue[itemIndex].status !== 'submitting') return queue;
+
+  const restoredItem: QueuedInputItem = options?.interrupted
+    ? {
+        ...item,
+        status: 'pending',
+        errorMessage: undefined,
+        submissionOwnerTabId: undefined,
+        submissionStartedAt: undefined,
+      }
+    : {
+        ...item,
+        status: 'failed',
+        retryCount: item.retryCount + 1,
+        errorMessage:
+          error instanceof Error ? error.message : String(error || ''),
+        submissionOwnerTabId: undefined,
+        submissionStartedAt: undefined,
+      };
+  if (itemIndex < 0) return [restoredItem, ...queue];
+
+  const next = [...queue];
+  next[itemIndex] = restoredItem;
+  return next;
 }
 
 export function canSubmitDirectly(options: {

@@ -35,6 +35,7 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
     channel?: string;
     agent_id?: string;
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+    submission?: IAgentScopeRuntimeWebUISubmissionContext;
     signal?: AbortSignal;
   }) => Promise<Response>;
 
@@ -82,6 +83,19 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
     name?: string;
     size?: number;
   }) => void;
+}
+
+export interface IAgentScopeRuntimeWebUISubmissionContext {
+  /**
+   * @description 请求来源
+   * @descriptionEn Request submission source.
+   */
+  source: 'direct' | 'queue';
+  /**
+   * @description 输入队列条目 id，仅队列请求存在
+   * @descriptionEn Input queue item id, present only for queued requests.
+   */
+  queueItemId?: string;
 }
 
 /**

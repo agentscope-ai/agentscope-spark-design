@@ -165,17 +165,21 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
       <div className={`${prefixCls}-list`} ref={listRef}>
         {items.map((item, index) => {
           const failed = item.status === 'failed';
+          const submitting = item.status === 'submitting';
           const files = item.data.attachments || item.data.fileList || [];
-          const statusText = failed
-            ? tr('queue.failed')
-            : index === 0
-              ? tr('queue.next')
-              : `${index + 1}`;
+          const statusText = submitting
+            ? tr('queue.sending')
+            : failed
+              ? tr('queue.failed')
+              : index === 0
+                ? tr('queue.next')
+                : `${index + 1}`;
           const queryText = item.data.query || tr('queue.attachmentOnly');
           const itemClassName = [
             `${prefixCls}-item`,
             index === 0 ? `${prefixCls}-item-next` : '',
             failed ? `${prefixCls}-item-failed` : '',
+            submitting ? `${prefixCls}-item-submitting` : '',
           ]
             .filter(Boolean)
             .join(' ');
@@ -189,10 +193,10 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                   ? `${prefixCls}-item-drag-over`
                   : '',
               ].filter(Boolean).join(' ')}
-              draggable
+              draggable={!submitting}
               key={item.id}
               onDragStart={(event) => {
-                if (isNoDragTarget(event.target)) {
+                if (submitting || isNoDragTarget(event.target)) {
                   event.preventDefault();
                   return;
                 }
@@ -202,7 +206,12 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                 event.dataTransfer.setData('text/plain', item.id);
               }}
               onDragOver={(event) => {
-                if (!draggingId || draggingId === item.id) return;
+                if (
+                  submitting ||
+                  !draggingId ||
+                  draggingId === item.id
+                )
+                  return;
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'move';
                 setDragOverId(item.id);
@@ -277,15 +286,15 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                 ) : null}
               </div>
               <div className={`${prefixCls}-actions`} data-no-drag>
-                <Tooltip title={tr('common.edit')}>
+                {!submitting ? <Tooltip title={tr('common.edit')}>
                   <IconButton
                     size="small"
                     bordered={false}
                     icon={<SparkEditLine />}
                     onClick={() => startEdit(item)}
                   />
-                </Tooltip>
-                {isOwner ? <Tooltip title={tr('queue.sendNow')}>
+                </Tooltip> : null}
+                {isOwner && !submitting ? <Tooltip title={tr('queue.sendNow')}>
                     <IconButton
                       size="small"
                       bordered={false}
@@ -303,7 +312,7 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                     />
                   </Tooltip>
                 ) : null}
-                {isOwner ? <Tooltip title={tr('common.delete')}>
+                {isOwner && !submitting ? <Tooltip title={tr('common.delete')}>
                   <IconButton
                     size="small"
                     bordered={false}

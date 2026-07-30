@@ -21,6 +21,11 @@ interface UseChatRequestOptions {
   onFinish: () => void;
 }
 
+interface ChatRequestLifecycleOptions {
+  onAccepted?: (response: Response) => void | Promise<void>;
+  queueItemId?: string;
+}
+
 const FINISHED_RUNTIME_STATUSES = [
   AgentScopeRuntimeRunStatus.Completed,
   AgentScopeRuntimeRunStatus.Canceled,
@@ -226,6 +231,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       'session_id' | 'user_id' | 'channel' | 'agent_id' | 'biz_params'
     >,
     myRequestId?: number,
+    lifecycle?: ChatRequestLifecycleOptions,
   ) => {
     const currentApiOptions = apiOptionsRef.current;
     const { enableHistoryMessages = false } = currentApiOptions;
@@ -241,6 +247,14 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         channel: data?.channel,
         agent_id: data?.agent_id,
         biz_params: data?.biz_params,
+        submission: lifecycle?.queueItemId
+          ? {
+              source: 'queue',
+              queueItemId: lifecycle.queueItemId,
+            }
+          : {
+              source: 'direct',
+            },
         signal: abortSignal,
       }) : await fetch(currentApiOptions.baseURL, {
         method: 'POST',
@@ -264,12 +278,28 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       throw error;
     }
 
-    if (response && response.body) {
+    if (!response) return false;
+
+    if (!response.ok) {
+      await processSSEResponse(response, requestId, sessionId);
+      throw new Error(`chat request failed (${response.status})`);
+    }
+
+    await lifecycle?.onAccepted?.(response);
+
+    if (response.body) {
       return processSSEResponse(response, requestId, sessionId);
     }
 
+    if (
+      currentQARef.current.activeRequestId === requestId &&
+      (!sessionId || currentQARef.current.activeSessionId === sessionId)
+    ) {
+      onFinish();
+      return true;
+    }
     return false;
-  }, [getCurrentSessionId, currentQARef, processSSEResponse]);
+  }, [getCurrentSessionId, currentQARef, onFinish, processSSEResponse]);
 
   const reconnect = useCallback(async (sessionId: string, myRequestId?: number) => {
     const currentApiOptions = apiOptionsRef.current;

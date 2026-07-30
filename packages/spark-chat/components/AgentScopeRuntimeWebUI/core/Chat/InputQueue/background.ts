@@ -15,12 +15,14 @@ import type {
 } from '../../types';
 import {
   assignInputQueueOwner,
+  beginQueuedInputSubmission,
   createInputQueueFetchPayload,
-  dequeueNextQueuedInput,
   hasInputQueueWork,
   INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
   isInputQueueOwnedByTab,
-  restoreFailedQueuedInput,
+  recoverInterruptedQueuedInputs,
+  removeQueuedInput,
+  restoreQueuedInputAfterSubmitError,
   type QueuedInputItem,
 } from './index';
 import {
@@ -190,6 +192,7 @@ async function fetchChat(
   historyMessages: any[],
   data: IAgentScopeRuntimeWebUIInputData,
   signal: AbortSignal,
+  queueItemId: string,
 ) {
   const { apiOptions, chatSessionId } = options;
   const { enableHistoryMessages = false } = apiOptions;
@@ -201,6 +204,7 @@ async function fetchChat(
         data,
         chatSessionId,
         signal,
+        queueItemId,
       ),
     );
   }
@@ -282,7 +286,12 @@ async function consumeResponse(
   }
 
   if (!response.body) {
-    throw new Error('empty response body');
+    responseMessage.msgStatus = 'finished';
+    await persistMessages(
+      options,
+      patchMessageSnapshot(messages, responseMessage),
+    );
+    return;
   }
 
   let nextMessages = messages;
@@ -334,7 +343,7 @@ function hasQueuedInputRequestContextMismatch(
   );
 }
 
-async function dequeueNextOwnedItem(
+async function beginNextOwnedSubmission(
   queueSessionId: string,
   ownerTabId: string,
   requestContext?: InputQueueBackgroundRunnerOptions['requestContext'],
@@ -344,7 +353,11 @@ async function dequeueNextOwnedItem(
     const state = readInputQueueState(queueSessionId);
     if (state.paused || !isInputQueueOwnedByTab(state, ownerTabId)) return;
 
-    const result = dequeueNextQueuedInput(state.items);
+    const recoveredItems = recoverInterruptedQueuedInputs(
+      state.items,
+      ownerTabId,
+    );
+    const result = beginQueuedInputSubmission(recoveredItems, ownerTabId);
     if (!result.item) return;
     if (hasQueuedInputRequestContextMismatch(result.item.data, requestContext))
       return;
@@ -359,16 +372,30 @@ async function dequeueNextOwnedItem(
   return nextItem;
 }
 
-async function restoreQueuedItem(
+async function consumeQueuedItem(queueSessionId: string, itemId: string) {
+  await withInputQueueMutationLock(queueSessionId, () => {
+    const state = readInputQueueState(queueSessionId);
+    persistInputQueueState(queueSessionId, {
+      ...state,
+      items: removeQueuedInput(state.items, itemId),
+      updatedAt: Date.now(),
+    });
+  });
+}
+
+async function settleQueuedItemAfterError(
   queueSessionId: string,
   item: QueuedInputItem,
   error: unknown,
+  shouldRestore: boolean,
 ) {
   await withInputQueueMutationLock(queueSessionId, () => {
     const state = readInputQueueState(queueSessionId);
     persistInputQueueState(queueSessionId, {
       ...state,
-      items: restoreFailedQueuedInput(state.items, item, error),
+      items: restoreQueuedInputAfterSubmitError(state.items, item, error, {
+        shouldRestore,
+      }),
       updatedAt: Date.now(),
     });
   });
@@ -406,6 +433,7 @@ async function sendQueuedItem(
 > {
   const session = await options.sessionApi.getSession?.(options.chatSessionId);
   const messages = [...(session?.messages || [])];
+  let requestAccepted = false;
   try {
     const requestMessage = createRequestMessage(item.data);
     const responseMessage = createResponseMessage();
@@ -420,7 +448,12 @@ async function sendQueuedItem(
       historyMessages,
       item.data,
       abortController.signal,
+      item.id,
     );
+    if (response.ok) {
+      requestAccepted = true;
+      await consumeQueuedItem(options.queueSessionId, item.id);
+    }
     await consumeResponse(
       options,
       response,
@@ -430,8 +463,8 @@ async function sendQueuedItem(
     );
     return { ok: true };
   } catch (error) {
-    let shouldRestore = true;
-    if (options.shouldRestoreOnError) {
+    let shouldRestore = !requestAccepted;
+    if (shouldRestore && options.shouldRestoreOnError) {
       try {
         shouldRestore =
           (await options.shouldRestoreOnError({
@@ -485,7 +518,7 @@ async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
           break;
         }
 
-        const item = await dequeueNextOwnedItem(
+        const item = await beginNextOwnedSubmission(
           queueSessionId,
           ownerTabId,
           handle.options.requestContext,
@@ -495,8 +528,13 @@ async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
         const result = await sendQueuedItem(handle.options, item);
         if ('error' in result) {
           console.error('background input queue send failed:', result.error);
+          await settleQueuedItemAfterError(
+            queueSessionId,
+            item,
+            result.error,
+            result.shouldRestore,
+          );
           if (result.shouldRestore) {
-            await restoreQueuedItem(queueSessionId, item, result.error);
             break;
           }
         }

@@ -206,6 +206,8 @@ export default function useChatController() {
       options?: {
         sessionId?: string;
         queueSessionId?: string;
+        queueItemId?: string;
+        onRequestAccepted?: () => void | Promise<void>;
         shouldRestoreOnError?: (error: unknown) => boolean | Promise<boolean>;
       },
     ) => {
@@ -243,6 +245,7 @@ export default function useChatController() {
       const myRequestId = ++currentQARef.current.activeRequestId;
       let requestMessage: IAgentScopeRuntimeWebUIMessage | undefined;
       let responseMessage: IAgentScopeRuntimeWebUIMessage | undefined;
+      let requestAccepted = false;
       try {
         const messages = messageHandler.getMessages();
         if (submitSessionId) {
@@ -274,7 +277,13 @@ export default function useChatController() {
           submitSessionId,
         );
 
-        const accepted = await request(historyMessages, data, myRequestId);
+        const accepted = await request(historyMessages, data, myRequestId, {
+          onAccepted: async () => {
+            requestAccepted = true;
+            await options?.onRequestAccepted?.();
+          },
+          queueItemId: options?.queueItemId,
+        });
         if (!accepted) {
           throw new Error('chat request aborted');
         }
@@ -283,8 +292,9 @@ export default function useChatController() {
         if (options?.queueSessionId) {
           let shouldRestore = true;
           try {
-            shouldRestore =
-              (await options.shouldRestoreOnError?.(error)) !== false;
+            shouldRestore = requestAccepted
+              ? false
+              : (await options.shouldRestoreOnError?.(error)) !== false;
           } catch (restoreCheckError) {
             console.error(
               'input queue restore check failed:',

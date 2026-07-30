@@ -15,23 +15,25 @@ import type { IAgentScopeRuntimeWebUIQueueRequestContext } from '../../types';
 import type { InputProps } from '../Input';
 import {
   assignInputQueueOwner,
+  beginQueuedInputSubmission,
   canSubmitDirectly,
   createEmptyInputQueueState,
   createInputQueueTabId,
   createSendNowCommand,
-  dequeueNextQueuedInput,
   enqueueInputQueueState,
   getInputQueueStorageKey,
   getInputQueueTabId,
   hasInputQueueWork,
   INPUT_QUEUE_OWNER_CLAIM_INTERVAL,
   INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
+  INPUT_QUEUE_RUNTIME_RECOVERY_DELAY,
   INPUT_QUEUE_RUNNING_RETRY_INTERVAL,
   isInputQueueOwnedByTab,
   isInputQueueOwner,
   MAX_INPUT_QUEUE_SIZE,
   normalizeInputQueueState,
   removeQueuedInput,
+  recoverInterruptedQueuedInputs,
   reorderQueuedInput,
   resetInputQueueTabId,
   restoreQueuedInputAfterSubmitError,
@@ -41,7 +43,10 @@ import {
   type InputQueueState,
   type QueueEnqueueResult,
 } from '../InputQueue';
-import { startInputQueueBackgroundRunner } from '../InputQueue/background';
+import {
+  isInputQueueBackgroundRunnerActive,
+  startInputQueueBackgroundRunner,
+} from '../InputQueue/background';
 import {
   areInputQueueSessionsEquivalent,
   getInputQueueChatSessionIdForQueue,
@@ -72,6 +77,8 @@ export type QueueSubmitNow = (
   options?: {
     sessionId?: string;
     queueSessionId?: string;
+    queueItemId?: string;
+    onRequestAccepted?: () => void | Promise<void>;
     shouldRestoreOnError?: (error: unknown) => boolean | Promise<boolean>;
   },
 ) => Promise<void>;
@@ -540,6 +547,17 @@ export default function useInputQueueController(
     [updateQueueState],
   );
 
+  const consumeQueuedInput = useCallback(
+    async (sessionId: string, itemId: string) => {
+      await updateQueueState(sessionId, (state) => ({
+        ...state,
+        items: removeQueuedInput(state.items, itemId),
+        updatedAt: Date.now(),
+      }));
+    },
+    [updateQueueState],
+  );
+
   const handleResponseFinished = useCallback(
     (activeSessionId: string | undefined) => {
       const completedQueueSessionIds = [
@@ -693,12 +711,15 @@ export default function useInputQueueController(
       }
 
       await withQueueSendLock(sessionId, async () => {
-        let nextItem: ReturnType<typeof dequeueNextQueuedInput>['item'];
+        let nextItem: ReturnType<typeof beginQueuedInputSubmission>['item'];
         await withQueueMutationLock(sessionId, () => {
           const state = readQueueState(sessionId);
           if (state.paused || !canExecuteQueue(state)) return;
 
-          const result = dequeueNextQueuedInput(state.items);
+          const result = beginQueuedInputSubmission(
+            state.items,
+            tabIdRef.current,
+          );
           if (!result.item) return;
           if (
             hasQueuedInputRequestContextMismatch(
@@ -722,6 +743,9 @@ export default function useInputQueueController(
           await submitNow(nextItem.data, {
             sessionId: chatSessionId,
             queueSessionId: sessionId,
+            queueItemId: nextItem.id,
+            onRequestAccepted: () =>
+              consumeQueuedInput(sessionId, nextItem!.id),
             shouldRestoreOnError: (error) =>
               shouldRestoreQueuedInput({
                 data: nextItem!.data,
@@ -746,18 +770,16 @@ export default function useInputQueueController(
                   chatSessionId,
                   queueSessionId: sessionId,
                 });
-          if (shouldRestore) {
-            await updateQueueState(sessionId, (current) => ({
-              ...current,
-              items: restoreQueuedInputAfterSubmitError(
-                current.items,
-                nextItem!,
-                error,
-                { interrupted },
-              ),
-              updatedAt: Date.now(),
-            }));
-          }
+          await updateQueueState(sessionId, (current) => ({
+            ...current,
+            items: restoreQueuedInputAfterSubmitError(
+              current.items,
+              nextItem!,
+              error,
+              { interrupted, shouldRestore },
+            ),
+            updatedAt: Date.now(),
+          }));
         } finally {
           drainingRef.current = false;
         }
@@ -766,6 +788,7 @@ export default function useInputQueueController(
     [
       canExecuteQueue,
       commitQueueState,
+      consumeQueuedInput,
       getActiveQueueSessionId,
       getChatSessionIdForQueue,
       getQueueRequestContext,
@@ -818,13 +841,37 @@ export default function useInputQueueController(
         return enqueueInput(data);
       }
 
-      if (sessionId) {
-        await updateQueueState(sessionId, (state) =>
-          assignInputQueueOwner(state, tabIdRef.current),
-        );
+      if (!sessionId) {
+        return submitNow(data);
       }
 
-      return submitNow(data);
+      const submitted = await withQueueSendLock(sessionId, async () => {
+        let ownerClaimed = false;
+        await updateQueueState(sessionId, (state) => {
+          if (
+            !canSubmitDirectly({
+              loading: getLoading(),
+              queueLength: state.items.length,
+              draining: drainingRef.current,
+              paused: state.paused,
+              canExecute: isInputQueueOwner(state, tabIdRef.current),
+              sessionRunning,
+            })
+          ) {
+            return state;
+          }
+
+          const next = assignInputQueueOwner(state, tabIdRef.current);
+          ownerClaimed = isInputQueueOwnedByTab(next, tabIdRef.current);
+          return next;
+        });
+        if (!ownerClaimed) return false;
+
+        await submitNow(data);
+        return true;
+      });
+      if (submitted === true) return;
+      return enqueueInput(data);
     },
     [
       canExecuteQueue,
@@ -836,6 +883,8 @@ export default function useInputQueueController(
       isHostSessionRunning,
       readQueueState,
       submitNowRef,
+      updateQueueState,
+      withQueueSendLock,
     ],
   );
 
@@ -1007,6 +1056,34 @@ export default function useInputQueueController(
     inputQueueStateRef.current = next;
     setInputQueueState(next);
   }, [currentQueueSessionId, readQueueState]);
+
+  useEffect(() => {
+    if (!currentQueueSessionId) return;
+
+    const timer = window.setTimeout(() => {
+      if (
+        isQueueSessionActive(currentQueueSessionId) ||
+        isInputQueueBackgroundRunnerActive(currentQueueSessionId)
+      ) {
+        return;
+      }
+
+      void updateQueueState(currentQueueSessionId, (state) => ({
+        ...state,
+        items: recoverInterruptedQueuedInputs(
+          state.items,
+          tabIdRef.current,
+        ),
+        updatedAt: Date.now(),
+      }));
+    }, INPUT_QUEUE_RUNTIME_RECOVERY_DELAY);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentQueueSessionId,
+    isQueueSessionActive,
+    updateQueueState,
+  ]);
 
   useEffect(() => {
     let activeQueueSessionId = currentQARef.current.activeQueueSessionId;
@@ -1312,23 +1389,40 @@ export default function useInputQueueController(
             return true;
           }
 
-          await updateQueueState(sessionId, (state) => ({
-            ...state,
-            command: undefined,
-            items: removeQueuedInput(state.items, command.itemId),
-            updatedAt: Date.now(),
-          }));
+          let submittingItem:
+            | ReturnType<typeof beginQueuedInputSubmission>['item']
+            | undefined;
+          await updateQueueState(sessionId, (state) => {
+            const result = beginQueuedInputSubmission(
+              state.items,
+              tabIdRef.current,
+              {
+                itemId: command.itemId,
+              },
+            );
+            submittingItem = result.item;
+            return {
+              ...state,
+              command: undefined,
+              items: result.queue,
+              updatedAt: Date.now(),
+            };
+          });
+          if (!submittingItem) return true;
 
           // send-now is an explicit user interrupt; do not gate it on isSessionRunning.
           drainingRef.current = true;
           handleCancelRef.current?.();
           try {
-            await submitNow(target.data, {
+            await submitNow(submittingItem.data, {
               sessionId: chatSessionId,
               queueSessionId: sessionId,
+              queueItemId: submittingItem.id,
+              onRequestAccepted: () =>
+                consumeQueuedInput(sessionId, submittingItem!.id),
               shouldRestoreOnError: (error) =>
                 shouldRestoreQueuedInput({
-                  data: target.data,
+                  data: submittingItem!.data,
                   error,
                   chatSessionId,
                   queueSessionId: sessionId,
@@ -1345,23 +1439,21 @@ export default function useInputQueueController(
               error instanceof InputQueueSubmitError
                 ? error.shouldRestore
                 : await shouldRestoreQueuedInput({
-                    data: target.data,
+                    data: submittingItem.data,
                     error,
                     chatSessionId,
                     queueSessionId: sessionId,
                   });
-            if (shouldRestore) {
-              await updateQueueState(sessionId, (current) => ({
-                ...current,
-                items: restoreQueuedInputAfterSubmitError(
-                  current.items,
-                  target,
-                  error,
-                  { interrupted },
-                ),
-                updatedAt: Date.now(),
-              }));
-            }
+            await updateQueueState(sessionId, (current) => ({
+              ...current,
+              items: restoreQueuedInputAfterSubmitError(
+                current.items,
+                submittingItem!,
+                error,
+                { interrupted, shouldRestore },
+              ),
+              updatedAt: Date.now(),
+            }));
           } finally {
             drainingRef.current = false;
           }
@@ -1384,6 +1476,7 @@ export default function useInputQueueController(
     })();
   }, [
     canExecuteQueue,
+    consumeQueuedInput,
     currentQueueSessionId,
     getChatSessionIdForQueue,
     getVisibleChatSessionId,
@@ -1540,7 +1633,7 @@ export default function useInputQueueController(
       const sessionId = getActiveQueueSessionId();
       void updateQueueState(sessionId, (state) => ({
         ...state,
-        items: [],
+        items: state.items.filter((item) => item.status === 'submitting'),
         command: undefined,
         updatedAt: Date.now(),
       }));
