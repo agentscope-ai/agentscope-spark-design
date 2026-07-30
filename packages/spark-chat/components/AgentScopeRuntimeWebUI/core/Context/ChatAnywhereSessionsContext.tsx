@@ -8,6 +8,10 @@ import { useChatAnywhereOptions } from './ChatAnywhereOptionsContext';
 import ReactDOM from 'react-dom';
 import { useAsyncEffect } from 'ahooks';
 import { emit } from './useChatAnywhereEventEmitter';
+import {
+  collectSessionIdentityAliases,
+  isSameLoadedSession,
+} from './sessionIdentity';
 
 const hasOwn = Object.prototype.hasOwnProperty;
 
@@ -74,15 +78,18 @@ export function ChatAnywhereSessionsContextProvider(props: {
 export const useChatAnywhereSessionLoader = () => {
   const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
   const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
+  const getSessions = useContextSelector(ChatAnywhereSessionsContext, v => v.getSessions);
   const options = useChatAnywhereOptions(v => v.session);
   const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
   const loadSeqRef = React.useRef(0);
+  const loadedSessionAliasesRef = React.useRef<Set<string>>(new Set());
 
   useAsyncEffect(async () => {
     const loadSeq = ++loadSeqRef.current;
     const isLatestLoad = () => loadSeq === loadSeqRef.current;
 
     if (!currentSessionId) {
+      loadedSessionAliasesRef.current.clear();
       ReactDOM.flushSync(() => {
         setMessages([])
       })
@@ -91,16 +98,35 @@ export const useChatAnywhereSessionLoader = () => {
 
     if (skipNextSessionLoadIdRef?.current === currentSessionId) {
       skipNextSessionLoadIdRef.current = undefined;
+      loadedSessionAliasesRef.current = collectSessionIdentityAliases(
+        currentSessionId,
+        undefined,
+        getSessions(),
+      );
       emit({ type: 'handleSessionLoaded', data: { session_id: currentSessionId, generating: false } });
       return;
     }
 
-    ReactDOM.flushSync(() => {
-      setMessages([])
-    })
+    const existingSessions = getSessions();
+    const sameLoadedSession = isSameLoadedSession(
+      currentSessionId,
+      loadedSessionAliasesRef.current,
+      existingSessions,
+    );
+    if (!sameLoadedSession) {
+      ReactDOM.flushSync(() => {
+        setMessages([])
+      })
+    }
 
     const session = await options.api.getSession(currentSessionId);
     if (!isLatestLoad()) return;
+
+    loadedSessionAliasesRef.current = collectSessionIdentityAliases(
+      currentSessionId,
+      session,
+      getSessions(),
+    );
 
     const messages = session?.messages || [];
     setMessages(messages.map(item => {

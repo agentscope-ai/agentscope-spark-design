@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import {
+  collectSessionIdentityAliases,
+  isSameLoadedSession,
+} from '../../../Context/sessionIdentity';
+import {
   assignInputQueueOwner,
   beginQueuedInputSubmission,
   canSubmitDirectly,
@@ -983,4 +987,51 @@ test('two tabs opened on the same session share a queue key but keep one send ow
   assert.equal(sessionKeyFromTabA, sessionKeyFromTabB);
   assert.equal(isInputQueueOwner(ownedByA, 'tab-a', 11), true);
   assert.equal(isInputQueueOwner(ownedByA, 'tab-b', 11), false);
+});
+
+test('session loader keeps messages when a controlled id changes to an alias', () => {
+  const sessions = [
+    {
+      id: 'local-session-id',
+      realId: 'backend-chat-id',
+      sessionId: 'runtime-session-id',
+      name: 'chat',
+      messages: [],
+    },
+  ];
+  const loadedAliases = collectSessionIdentityAliases(
+    'backend-chat-id',
+    {
+      id: 'backend-chat-id',
+      sessionId: 'runtime-session-id',
+      name: 'chat',
+      messages: [],
+    },
+    sessions,
+  );
+
+  assert.deepEqual([...loadedAliases].sort(), [
+    'backend-chat-id',
+    'local-session-id',
+    'runtime-session-id',
+  ]);
+  assert.equal(
+    isSameLoadedSession('local-session-id', loadedAliases, sessions),
+    true,
+  );
+});
+
+test('session loader clears messages for a genuinely different session', () => {
+  const loadedAliases = collectSessionIdentityAliases('session-a', {
+    id: 'session-a',
+    name: 'chat-a',
+    messages: [],
+  });
+
+  assert.equal(
+    isSameLoadedSession('session-b', loadedAliases, [
+      { id: 'session-b', name: 'chat-b', messages: [] },
+    ]),
+    false,
+  );
 });
