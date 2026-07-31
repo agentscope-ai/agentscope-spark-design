@@ -3,12 +3,13 @@ import {
   collectSessionIdentityAliases,
   isSameLoadedSession,
 } from '../../../Context/sessionIdentity';
+import { hasSubmittableAttachments } from '../../Input/submission';
 import {
   assignInputQueueOwner,
+  beginInputQueueStateSubmission,
   beginQueuedInputSubmission,
   canSubmitDirectly,
   createEmptyInputQueueState,
-  createInputQueueFetchPayload,
   createQueuedInputItem,
   createSendNowCommand,
   dequeueNextQueuedInput,
@@ -17,13 +18,16 @@ import {
   getInputQueueStorageKey,
   getInputQueueTabId,
   hasInputQueueWork,
+  INPUT_QUEUE_CONTEXT_MISMATCH_ERROR,
   INPUT_QUEUE_OWNER_TTL,
+  INPUT_QUEUE_STORAGE_SCHEMA_VERSION,
   INPUT_QUEUE_TAB_ID_STORAGE_KEY,
   isInputQueueOwnedByTab,
   isInputQueueOwner,
   isInputQueueStateEmpty,
-  removeQueuedInput,
+  normalizeInputQueueState,
   recoverInterruptedQueuedInputs,
+  removeQueuedInput,
   reorderQueuedInput,
   resetInputQueueTabId,
   restoreFailedQueuedInput,
@@ -41,7 +45,18 @@ import {
   getInputQueueVisibleSessionId,
   resolveInputQueueSessionId,
 } from '../session';
-import { persistInputQueueState, readInputQueueState } from '../storage';
+import {
+  clearInputQueueState,
+  hasInputQueueItems,
+  migrateInputQueueState,
+  persistInputQueueState,
+  readInputQueueState,
+} from '../storage';
+import {
+  cancelInputQueueSubmission,
+  isInputQueueSubmissionActive,
+  registerInputQueueSubmission,
+} from '../submission';
 
 const input = (query: string) => ({ query });
 
@@ -119,6 +134,18 @@ function test(name: string, fn: () => void) {
     console.error(`not ok - ${name}`);
     throw error;
   }
+}
+
+function testAsync(name: string, fn: () => Promise<void>) {
+  void fn()
+    .then(() => {
+      console.log(`ok - ${name}`);
+    })
+    .catch((error) => {
+      console.error(`not ok - ${name}`);
+      console.error(error);
+      process.exitCode = 1;
+    });
 }
 
 test('enqueue appends inputs in FIFO order and dequeue consumes the head', () => {
@@ -264,41 +291,83 @@ test('queued input item preserves full message body aliases', () => {
   assert.deepEqual(item.data.attachments, [file]);
 });
 
-test('background fetch payload carries the target chat session id', () => {
-  const signal = new AbortController().signal;
-  const payload = createInputQueueFetchPayload(
-    [{ role: 'user', content: [{ type: 'text', text: 'queued' }] }],
+test('queued item ids stay unique when multiple tabs enqueue in the same millisecond', () => {
+  const first = createQueuedInputItem(input('first'), { now: 1 });
+  const second = createQueuedInputItem(input('second'), { now: 1 });
+
+  assert.notEqual(first.id, second.id);
+});
+
+test('queue state normalization upgrades legacy data and rejects unknown schemas', () => {
+  const normalized = normalizeInputQueueState(
     {
-      query: 'queued',
-      session_id: 'backend-session-a',
-      user_id: 'user-a',
-      channel: 'web',
-      agent_id: 'agent-a',
-      biz_params: {
-        user_prompt_params: {
-          mode: 'queue',
-        },
-      },
+      items: [
+        {
+          id: 'legacy-item',
+          data: input('legacy'),
+        } as any,
+        null as any,
+      ],
+      paused: false,
+      updatedAt: 2,
     },
-    'session-a',
-    signal,
-    'queue-item-a',
+    3,
   );
 
-  assert.equal(payload.session_id, 'backend-session-a');
-  assert.equal(payload.user_id, 'user-a');
-  assert.equal(payload.channel, 'web');
-  assert.equal(payload.agent_id, 'agent-a');
-  assert.equal(payload.signal, signal);
-  assert.deepEqual(payload.biz_params, {
-    user_prompt_params: {
-      mode: 'queue',
+  assert.equal(normalized.schemaVersion, INPUT_QUEUE_STORAGE_SCHEMA_VERSION);
+  assert.equal(normalized.items.length, 1);
+  assert.equal(normalized.items[0].status, 'pending');
+  assert.equal(normalized.items[0].retryCount, 0);
+
+  assert.deepEqual(
+    normalizeInputQueueState(
+      {
+        ...normalized,
+        schemaVersion: 999 as any,
+      },
+      4,
+    ),
+    createEmptyInputQueueState(4),
+  );
+});
+
+test('request context mismatch fails the queued item instead of stalling the queue head', () => {
+  const state = enqueueInputQueueState(
+    createEmptyInputQueueState(1),
+    {
+      query: 'wrong agent',
+      agent_id: 'agent-a',
     },
+    { id: 'q1', now: 2, ownerTabId: 'tab-a' },
+  ).state;
+
+  const result = beginInputQueueStateSubmission(state, 'tab-a', {
+    now: 3,
+    requestContext: { agent_id: 'agent-b' },
   });
-  assert.deepEqual(payload.submission, {
-    source: 'queue',
-    queueItemId: 'queue-item-a',
+
+  assert.equal(result.item, undefined);
+  assert.equal(result.error?.message, INPUT_QUEUE_CONTEXT_MISMATCH_ERROR);
+  assert.equal(result.state.items[0].status, 'failed');
+  assert.equal(
+    result.state.items[0].errorMessage,
+    INPUT_QUEUE_CONTEXT_MISMATCH_ERROR,
+  );
+});
+
+test('active queue submissions can be interrupted by queue session id', () => {
+  let cancelCount = 0;
+  const unregister = registerInputQueueSubmission('session-a', () => {
+    cancelCount += 1;
   });
+
+  assert.equal(isInputQueueSubmissionActive('session-a'), true);
+  assert.equal(cancelInputQueueSubmission('session-a'), true);
+  assert.equal(cancelCount, 1);
+
+  unregister();
+  assert.equal(isInputQueueSubmissionActive('session-a'), false);
+  assert.equal(cancelInputQueueSubmission('session-a'), false);
 });
 
 test('failed send is restored at the queue head and blocks automatic dequeue', () => {
@@ -336,10 +405,7 @@ test('submitting item cannot be retried or edited while delivery is in flight', 
   const submitting = beginQueuedInputSubmission(pending, 'tab-a').queue;
 
   assert.equal(retryQueuedInput(submitting, 'q1'), submitting);
-  assert.equal(
-    updateQueuedInputQuery(submitting, 'q1', 'changed'),
-    submitting,
-  );
+  assert.equal(updateQueuedInputQuery(submitting, 'q1', 'changed'), submitting);
 });
 
 test('send-now failure restores the exact item as failed without duplicating it', () => {
@@ -559,10 +625,7 @@ test('stale owner takeover recovers only its interrupted submissions', () => {
   assert.equal(ownedByB.items[0].status, 'pending');
   assert.equal(ownedByB.items[0].submissionOwnerTabId, undefined);
 
-  const stillSubmitting = recoverInterruptedQueuedInputs(
-    submitting,
-    'tab-b',
-  );
+  const stillSubmitting = recoverInterruptedQueuedInputs(submitting, 'tab-b');
   assert.equal(stillSubmitting[0].status, 'submitting');
 });
 
@@ -668,6 +731,18 @@ test('send-now command carries selected task and source tab', () => {
   assert.equal(command.itemId, 'q1');
   assert.equal(command.sourceTabId, 'tab-a');
   assert.equal(command.createdAt, 100);
+});
+
+test('attachment-only input becomes submittable only after upload succeeds', () => {
+  assert.equal(hasSubmittableAttachments([]), false);
+  assert.equal(hasSubmittableAttachments([{ response: {} }]), false);
+  assert.equal(
+    hasSubmittableAttachments([
+      { response: {} },
+      { response: { url: 'https://example.com/attachment.txt' } },
+    ]),
+    true,
+  );
 });
 
 test('queue session resolver requires an enabled queue and a resolvable session id', () => {
@@ -1035,3 +1110,39 @@ test('session loader clears messages for a genuinely different session', () => {
     false,
   );
 });
+
+testAsync(
+  'public storage helpers migrate, inspect and clear queue state',
+  async () => {
+    const restoreLocalStorage = installLocalStorageMock();
+    try {
+      const source = enqueueInputQueueState(
+        createEmptyInputQueueState(1),
+        input('source'),
+        { id: 'q-source', now: 2 },
+      ).state;
+      const destination = enqueueInputQueueState(
+        createEmptyInputQueueState(3),
+        input('destination'),
+        { id: 'q-destination', now: 4 },
+      ).state;
+      persistInputQueueState('local-session', source);
+      persistInputQueueState('backend-session', destination);
+
+      await migrateInputQueueState('local-session', 'backend-session');
+
+      assert.equal(hasInputQueueItems('local-session'), false);
+      assert.deepEqual(
+        readInputQueueState('backend-session').items.map(
+          (item) => item.data.query,
+        ),
+        ['source', 'destination'],
+      );
+
+      clearInputQueueState('backend-session');
+      assert.equal(hasInputQueueItems('backend-session'), false);
+    } finally {
+      restoreLocalStorage();
+    }
+  },
+);

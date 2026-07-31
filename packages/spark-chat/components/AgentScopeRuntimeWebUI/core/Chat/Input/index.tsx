@@ -9,6 +9,7 @@ import { useCallback, type ReactNode } from 'react';
 import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import type { QueueEnqueueResult, QueuedInputItem } from '../InputQueue';
+import { hasSubmittableAttachments } from './submission';
 import useAttachments from './useAttachments';
 
 export interface InputProps {
@@ -49,6 +50,7 @@ export default function Input(props: InputProps) {
   } = senderOptions || {};
 
   const {
+    fileList,
     getFileList,
     setFileList,
     handlePasteFile,
@@ -174,6 +176,7 @@ export default function Input(props: InputProps) {
           actionAffix={actionAffix}
           onSubmit={handleSubmit}
           onCancel={handleCancel}
+          allowEmptySubmit={hasSubmittableAttachments(fileList)}
           allowSubmitWhenLoading={!!props.queue}
           allowSpeech={allowSpeech}
           onPasteFile={handlePasteFile}

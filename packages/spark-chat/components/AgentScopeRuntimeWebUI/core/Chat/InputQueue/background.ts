@@ -1,4 +1,4 @@
-import { Stream, uuid } from '@agentscope-ai/chat';
+import { Stream } from '@agentscope-ai/chat';
 import AgentScopeRuntimeRequestBuilder from '../../AgentScopeRuntime/Request/Builder';
 import AgentScopeRuntimeResponseBuilder from '../../AgentScopeRuntime/Response/Builder';
 import {
@@ -14,9 +14,15 @@ import type {
   IAgentScopeRuntimeWebUISessionAPI,
 } from '../../types';
 import {
+  createChatRequestMessage,
+  createChatResponseMessage,
+  fetchChatSubmission,
+  isRuntimeResponseFinished,
+  patchChatMessageSnapshot,
+} from '../submission';
+import {
   assignInputQueueOwner,
-  beginQueuedInputSubmission,
-  createInputQueueFetchPayload,
+  beginInputQueueStateSubmission,
   hasInputQueueWork,
   INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL,
   isInputQueueOwnedByTab,
@@ -31,6 +37,7 @@ import {
   withInputQueueMutationLock,
   withInputQueueSendLock,
 } from './storage';
+import { registerInputQueueSubmission } from './submission';
 
 export interface InputQueueBackgroundRunnerOptions {
   queueSessionId: string;
@@ -60,65 +67,6 @@ interface BackgroundRunnerHandle {
 }
 
 const activeRunners = new Map<string, BackgroundRunnerHandle>();
-
-const FINISHED_RUNTIME_STATUSES = [
-  AgentScopeRuntimeRunStatus.Completed,
-  AgentScopeRuntimeRunStatus.Canceled,
-  AgentScopeRuntimeRunStatus.Failed,
-];
-
-function isRuntimeStatusFinished(status?: AgentScopeRuntimeRunStatus | string) {
-  return FINISHED_RUNTIME_STATUSES.includes(
-    status as AgentScopeRuntimeRunStatus,
-  );
-}
-
-function isRuntimeResponseFinished(
-  response: ReturnType<AgentScopeRuntimeResponseBuilder['handle']>,
-) {
-  if (isRuntimeStatusFinished(response.status)) return true;
-
-  const output = response.output || [];
-  return (
-    output.length > 0 &&
-    output.every((message) => {
-      if (!isRuntimeStatusFinished(message.status)) return false;
-      const content = message.content || [];
-      return content.every((item) => isRuntimeStatusFinished(item.status));
-    })
-  );
-}
-
-function createRequestMessage(data: IAgentScopeRuntimeWebUIInputData) {
-  return {
-    id: uuid(),
-    role: 'user',
-    cards: [
-      {
-        code: 'AgentScopeRuntimeRequestCard',
-        data: new AgentScopeRuntimeRequestBuilder().handle(data),
-      },
-    ],
-  } as IAgentScopeRuntimeWebUIMessage;
-}
-
-function createResponseMessage() {
-  return {
-    id: uuid(),
-    role: 'assistant',
-    cards: [],
-    msgStatus: 'generating',
-  } as IAgentScopeRuntimeWebUIMessage;
-}
-
-function patchMessageSnapshot(
-  messages: IAgentScopeRuntimeWebUIMessage[],
-  message: IAgentScopeRuntimeWebUIMessage,
-) {
-  const index = messages.findIndex((item) => item.id === message.id);
-  if (index === -1) return [...messages, message];
-  return [...messages.slice(0, index), message, ...messages.slice(index + 1)];
-}
 
 function isSessionGenerating(session?: IAgentScopeRuntimeWebUISession) {
   if (
@@ -187,49 +135,6 @@ async function waitUntilSessionIdle(
   return lastSession;
 }
 
-async function fetchChat(
-  options: InputQueueBackgroundRunnerOptions,
-  historyMessages: any[],
-  data: IAgentScopeRuntimeWebUIInputData,
-  signal: AbortSignal,
-  queueItemId: string,
-) {
-  const { apiOptions, chatSessionId } = options;
-  const { enableHistoryMessages = false } = apiOptions;
-
-  if (apiOptions.fetch) {
-    return apiOptions.fetch(
-      createInputQueueFetchPayload(
-        historyMessages,
-        data,
-        chatSessionId,
-        signal,
-        queueItemId,
-      ),
-    );
-  }
-
-  return fetch(apiOptions.baseURL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiOptions.token || ''}`,
-    },
-    body: JSON.stringify({
-      input: enableHistoryMessages
-        ? historyMessages
-        : historyMessages.slice(-1),
-      session_id: data.session_id || chatSessionId,
-      user_id: data.user_id,
-      channel: data.channel,
-      agent_id: data.agent_id,
-      stream: true,
-      biz_params: data.biz_params,
-    }),
-    signal,
-  });
-}
-
 async function persistMessages(
   options: InputQueueBackgroundRunnerOptions,
   messages: IAgentScopeRuntimeWebUIMessage[],
@@ -280,7 +185,7 @@ async function consumeResponse(
     responseMessage.msgStatus = 'error';
     await persistMessages(
       options,
-      patchMessageSnapshot(messages, responseMessage),
+      patchChatMessageSnapshot(messages, responseMessage),
     );
     throw new Error(errorMessage);
   }
@@ -289,7 +194,7 @@ async function consumeResponse(
     responseMessage.msgStatus = 'finished';
     await persistMessages(
       options,
-      patchMessageSnapshot(messages, responseMessage),
+      patchChatMessageSnapshot(messages, responseMessage),
     );
     return;
   }
@@ -319,7 +224,7 @@ async function consumeResponse(
     if (finished) {
       responseMessage.msgStatus = 'finished';
     }
-    nextMessages = patchMessageSnapshot(nextMessages, responseMessage);
+    nextMessages = patchChatMessageSnapshot(nextMessages, responseMessage);
     await persistMessages(options, nextMessages);
 
     if (finished) return;
@@ -328,18 +233,7 @@ async function consumeResponse(
   responseMessage.msgStatus = 'finished';
   await persistMessages(
     options,
-    patchMessageSnapshot(nextMessages, responseMessage),
-  );
-}
-
-function hasQueuedInputRequestContextMismatch(
-  data: IAgentScopeRuntimeWebUIInputData,
-  context: InputQueueBackgroundRunnerOptions['requestContext'],
-) {
-  if (!context) return false;
-
-  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(
-    (key) => !!data[key] && !!context[key] && data[key] !== context[key],
+    patchChatMessageSnapshot(nextMessages, responseMessage),
   );
 }
 
@@ -357,17 +251,22 @@ async function beginNextOwnedSubmission(
       state.items,
       ownerTabId,
     );
-    const result = beginQueuedInputSubmission(recoveredItems, ownerTabId);
-    if (!result.item) return;
-    if (hasQueuedInputRequestContextMismatch(result.item.data, requestContext))
-      return;
+    const result = beginInputQueueStateSubmission(
+      {
+        ...state,
+        items: recoveredItems,
+      },
+      ownerTabId,
+      { requestContext },
+    );
     nextItem = result.item;
 
-    persistInputQueueState(queueSessionId, {
-      ...state,
-      items: result.queue,
-      updatedAt: Date.now(),
-    });
+    if (result.state !== state) {
+      persistInputQueueState(queueSessionId, result.state);
+    }
+    if (result.error) {
+      console.error('background input queue item rejected:', result.error);
+    }
   });
   return nextItem;
 }
@@ -388,6 +287,7 @@ async function settleQueuedItemAfterError(
   item: QueuedInputItem,
   error: unknown,
   shouldRestore: boolean,
+  interrupted = false,
 ) {
   await withInputQueueMutationLock(queueSessionId, () => {
     const state = readInputQueueState(queueSessionId);
@@ -395,6 +295,7 @@ async function settleQueuedItemAfterError(
       ...state,
       items: restoreQueuedInputAfterSubmitError(state.items, item, error, {
         shouldRestore,
+        interrupted,
       }),
       updatedAt: Date.now(),
     });
@@ -429,27 +330,50 @@ async function sendQueuedItem(
   options: InputQueueBackgroundRunnerOptions,
   item: QueuedInputItem,
 ): Promise<
-  { ok: true } | { ok: false; error: unknown; shouldRestore: boolean }
+  | { ok: true }
+  | {
+      ok: false;
+      error: unknown;
+      shouldRestore: boolean;
+      interrupted: boolean;
+    }
 > {
   const session = await options.sessionApi.getSession?.(options.chatSessionId);
   const messages = [...(session?.messages || [])];
   let requestAccepted = false;
+  let interrupted = false;
+  let responseMessage: IAgentScopeRuntimeWebUIMessage | undefined;
+  let submittedMessages: IAgentScopeRuntimeWebUIMessage[] | undefined;
+  const abortController = new AbortController();
+  const unregisterSubmission = registerInputQueueSubmission(
+    options.queueSessionId,
+    () => {
+      interrupted = true;
+      abortController.abort();
+      try {
+        options.apiOptions.cancel?.({ session_id: options.chatSessionId });
+      } catch (error) {
+        console.error('background input queue cancel failed:', error);
+      }
+    },
+  );
   try {
-    const requestMessage = createRequestMessage(item.data);
-    const responseMessage = createResponseMessage();
-    const nextMessages = [...messages, requestMessage, responseMessage];
-    await persistMessages(options, nextMessages);
+    const requestMessage = createChatRequestMessage(item.data);
+    responseMessage = createChatResponseMessage();
+    submittedMessages = [...messages, requestMessage, responseMessage];
+    await persistMessages(options, submittedMessages);
+    if (interrupted) throw new Error('chat request aborted');
 
     const historyMessages =
-      AgentScopeRuntimeRequestBuilder.getHistoryMessages(nextMessages);
-    const abortController = new AbortController();
-    const response = await fetchChat(
-      options,
+      AgentScopeRuntimeRequestBuilder.getHistoryMessages(submittedMessages);
+    const response = await fetchChatSubmission({
+      apiOptions: options.apiOptions,
       historyMessages,
-      item.data,
-      abortController.signal,
-      item.id,
-    );
+      data: item.data,
+      sessionId: options.chatSessionId,
+      signal: abortController.signal,
+      submission: { source: 'queue', queueItemId: item.id },
+    });
     if (response.ok) {
       requestAccepted = true;
       await consumeQueuedItem(options.queueSessionId, item.id);
@@ -458,13 +382,13 @@ async function sendQueuedItem(
       options,
       response,
       responseMessage,
-      nextMessages,
+      submittedMessages,
       abortController.signal,
     );
     return { ok: true };
   } catch (error) {
     let shouldRestore = !requestAccepted;
-    if (shouldRestore && options.shouldRestoreOnError) {
+    if (shouldRestore && !interrupted && options.shouldRestoreOnError) {
       try {
         shouldRestore =
           (await options.shouldRestoreOnError({
@@ -490,8 +414,23 @@ async function sendQueuedItem(
           rollbackError,
         );
       }
+    } else if (interrupted && responseMessage && submittedMessages) {
+      responseMessage.msgStatus = 'interrupted';
+      try {
+        await persistMessages(
+          options,
+          patchChatMessageSnapshot(submittedMessages, responseMessage),
+        );
+      } catch (persistError) {
+        console.error(
+          'background input queue interrupted state persistence failed:',
+          persistError,
+        );
+      }
     }
-    return { ok: false, error, shouldRestore };
+    return { ok: false, error, shouldRestore, interrupted };
+  } finally {
+    unregisterSubmission();
   }
 }
 
@@ -533,8 +472,9 @@ async function runBackgroundQueue(handle: BackgroundRunnerHandle) {
             item,
             result.error,
             result.shouldRestore,
+            result.interrupted,
           );
-          if (result.shouldRestore) {
+          if (result.interrupted || result.shouldRestore) {
             break;
           }
         }

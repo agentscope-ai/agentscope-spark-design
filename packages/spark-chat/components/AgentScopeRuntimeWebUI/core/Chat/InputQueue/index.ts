@@ -1,4 +1,8 @@
-import type { IAgentScopeRuntimeWebUIInputData } from '../../types';
+import { v4 as uuid } from 'uuid';
+import type {
+  IAgentScopeRuntimeWebUIInputData,
+  IAgentScopeRuntimeWebUIQueueRequestContext,
+} from '../../types';
 
 export type QueuedInputStatus = 'pending' | 'submitting' | 'failed';
 
@@ -24,6 +28,7 @@ export interface InputQueueCommand {
 }
 
 export interface InputQueueState {
+  schemaVersion: 1;
   items: QueuedInputItem[];
   paused: boolean;
   ownerTabId?: string;
@@ -44,20 +49,6 @@ export interface QueueEnqueueResult {
   reason?: 'full' | 'session-not-ready';
 }
 
-export interface InputQueueFetchPayload {
-  input: any[];
-  session_id: string;
-  user_id?: string;
-  channel?: string;
-  agent_id?: string;
-  biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
-  submission: {
-    source: 'queue';
-    queueItemId?: string;
-  };
-  signal: AbortSignal;
-}
-
 export const MAX_INPUT_QUEUE_SIZE = 50;
 export const INPUT_QUEUE_OWNER_TTL = 10_000;
 export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
@@ -68,12 +59,13 @@ export const INPUT_QUEUE_STORAGE_PREFIX =
   'agentscope-runtime-webui-input-queue';
 export const INPUT_QUEUE_TAB_ID_STORAGE_KEY =
   'agentscope-runtime-webui-input-queue-tab-id';
-
-let queueId = 0;
-let commandId = 0;
+export const INPUT_QUEUE_STORAGE_SCHEMA_VERSION = 1;
+export const INPUT_QUEUE_CONTEXT_MISMATCH_ERROR =
+  'Queued input request context no longer matches its queue session.';
 
 export function createEmptyInputQueueState(now = Date.now()): InputQueueState {
   return {
+    schemaVersion: INPUT_QUEUE_STORAGE_SCHEMA_VERSION,
     items: [],
     paused: false,
     updatedAt: now,
@@ -84,13 +76,65 @@ export function normalizeInputQueueState(
   state?: Partial<InputQueueState> | null,
   now = Date.now(),
 ): InputQueueState {
+  if (
+    state?.schemaVersion !== undefined &&
+    state.schemaVersion !== INPUT_QUEUE_STORAGE_SCHEMA_VERSION
+  ) {
+    return createEmptyInputQueueState(now);
+  }
+
   return {
-    items: Array.isArray(state?.items) ? state.items : [],
+    schemaVersion: INPUT_QUEUE_STORAGE_SCHEMA_VERSION,
+    items: Array.isArray(state?.items)
+      ? state.items.flatMap((item) => {
+          if (!item || typeof item !== 'object') return [];
+          const candidate = item as Partial<QueuedInputItem>;
+          if (
+            typeof candidate.id !== 'string' ||
+            !candidate.id ||
+            !candidate.data ||
+            typeof candidate.data !== 'object'
+          ) {
+            return [];
+          }
+          const status: QueuedInputStatus =
+            candidate.status === 'submitting' || candidate.status === 'failed'
+              ? candidate.status
+              : 'pending';
+          return [
+            {
+              ...candidate,
+              id: candidate.id,
+              data: candidate.data as IAgentScopeRuntimeWebUIInputData,
+              status,
+              retryCount:
+                typeof candidate.retryCount === 'number'
+                  ? candidate.retryCount
+                  : 0,
+              createdAt:
+                typeof candidate.createdAt === 'number'
+                  ? candidate.createdAt
+                  : now,
+            } as QueuedInputItem,
+          ];
+        })
+      : [],
     paused: !!state?.paused,
-    ownerTabId: state?.ownerTabId,
-    ownerUpdatedAt: state?.ownerUpdatedAt,
-    command: state?.command,
-    updatedAt: state?.updatedAt ?? now,
+    ownerTabId:
+      typeof state?.ownerTabId === 'string' ? state.ownerTabId : undefined,
+    ownerUpdatedAt:
+      typeof state?.ownerUpdatedAt === 'number'
+        ? state.ownerUpdatedAt
+        : undefined,
+    command:
+      state?.command?.type === 'send-now' &&
+      typeof state.command.id === 'string' &&
+      typeof state.command.itemId === 'string' &&
+      typeof state.command.sourceTabId === 'string' &&
+      typeof state.command.createdAt === 'number'
+        ? state.command
+        : undefined,
+    updatedAt: typeof state?.updatedAt === 'number' ? state.updatedAt : now,
   };
 }
 
@@ -99,9 +143,7 @@ export function getInputQueueStorageKey(sessionId: string) {
 }
 
 export function createInputQueueTabId(now = Date.now()) {
-  return `input-queue-tab-${now.toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+  return `input-queue-tab-${now.toString(36)}-${uuid()}`;
 }
 
 function persistInputQueueTabId(tabId: string) {
@@ -154,7 +196,7 @@ export function createQueuedInputItem(
   return {
     id:
       options?.id ||
-      `input-queue-${Date.now().toString(36)}-${(++queueId).toString(36)}`,
+      `input-queue-${(options?.now ?? Date.now()).toString(36)}-${uuid()}`,
     data: nextData,
     status: 'pending',
     retryCount: 0,
@@ -343,7 +385,7 @@ export function createSendNowCommand(
   now = Date.now(),
 ): InputQueueCommand {
   return {
-    id: `input-queue-command-${now.toString(36)}-${(++commandId).toString(36)}`,
+    id: `input-queue-command-${now.toString(36)}-${uuid()}`,
     type: 'send-now',
     itemId,
     sourceTabId,
@@ -353,28 +395,6 @@ export function createSendNowCommand(
 
 export function hasInputQueueWork(state: InputQueueState) {
   return state.items.length > 0 || !!state.command;
-}
-
-export function createInputQueueFetchPayload(
-  input: any[],
-  data: IAgentScopeRuntimeWebUIInputData,
-  sessionId: string,
-  signal: AbortSignal,
-  queueItemId?: string,
-): InputQueueFetchPayload {
-  return {
-    input,
-    session_id: data.session_id || sessionId,
-    user_id: data.user_id,
-    channel: data.channel,
-    agent_id: data.agent_id,
-    biz_params: data.biz_params,
-    submission: {
-      source: 'queue',
-      queueItemId,
-    },
-    signal,
-  };
 }
 
 // Owner-only states are kept while a request is active so peer tabs cannot
@@ -403,6 +423,23 @@ export function isInputQueueOwnedByTab(state: InputQueueState, tabId: string) {
   return state.ownerTabId === tabId;
 }
 
+export function recoverInterruptedQueuedInputs(
+  queue: QueuedInputItem[],
+  ownerTabId: string,
+) {
+  return queue.map((item) =>
+    item.status === 'submitting' && item.submissionOwnerTabId === ownerTabId
+      ? {
+          ...item,
+          status: 'pending' as const,
+          errorMessage: undefined,
+          submissionOwnerTabId: undefined,
+          submissionStartedAt: undefined,
+        }
+      : item,
+  );
+}
+
 export function assignInputQueueOwner(
   state: InputQueueState,
   tabId: string,
@@ -427,24 +464,6 @@ export function assignInputQueueOwner(
     ownerUpdatedAt: now,
     updatedAt: now,
   };
-}
-
-export function recoverInterruptedQueuedInputs(
-  queue: QueuedInputItem[],
-  ownerTabId: string,
-) {
-  return queue.map((item) =>
-    item.status === 'submitting' &&
-    item.submissionOwnerTabId === ownerTabId
-      ? {
-          ...item,
-          status: 'pending' as const,
-          errorMessage: undefined,
-          submissionOwnerTabId: undefined,
-          submissionStartedAt: undefined,
-        }
-      : item,
-  );
 }
 
 export function shouldClaimInputQueueOwner(
@@ -518,6 +537,68 @@ export function restoreQueuedInputAfterSubmitError(
   const next = [...queue];
   next[itemIndex] = restoredItem;
   return next;
+}
+
+export function hasQueuedInputRequestContextMismatch(
+  data: IAgentScopeRuntimeWebUIInputData,
+  context?: IAgentScopeRuntimeWebUIQueueRequestContext,
+) {
+  if (!context) return false;
+
+  return (['session_id', 'user_id', 'channel', 'agent_id'] as const).some(
+    (key) => !!data[key] && !!context[key] && data[key] !== context[key],
+  );
+}
+
+export function beginInputQueueStateSubmission(
+  state: InputQueueState,
+  ownerTabId: string,
+  options?: {
+    itemId?: string;
+    now?: number;
+    requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
+  },
+): {
+  state: InputQueueState;
+  item?: QueuedInputItem;
+  error?: Error;
+} {
+  const now = options?.now ?? Date.now();
+  const result = beginQueuedInputSubmission(state.items, ownerTabId, {
+    itemId: options?.itemId,
+    now,
+  });
+  if (!result.item) return { state };
+
+  if (
+    hasQueuedInputRequestContextMismatch(
+      result.item.data,
+      options?.requestContext,
+    )
+  ) {
+    const error = new Error(INPUT_QUEUE_CONTEXT_MISMATCH_ERROR);
+    return {
+      state: {
+        ...state,
+        items: restoreQueuedInputAfterSubmitError(
+          result.queue,
+          result.item,
+          error,
+        ),
+        updatedAt: now,
+      },
+      error,
+    };
+  }
+
+  return {
+    state: {
+      ...state,
+      items: result.queue,
+      updatedAt: now,
+    },
+    item: result.item,
+  };
 }
 
 export function canSubmitDirectly(options: {

@@ -10,6 +10,8 @@ import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext
 import { ChatAnywhereSessionsContext } from '../../Context/ChatAnywhereSessionsContext';
 import useChatAnywhereEventEmitter from '../../Context/useChatAnywhereEventEmitter';
 import type { InputProps } from '../Input';
+import { registerInputQueueSubmission } from '../InputQueue/submission';
+import { patchChatMessageSnapshot } from '../submission';
 import useChatMessageHandler from './useChatMessageHandler';
 import useChatRequest from './useChatRequest';
 import useChatSessionHandler from './useChatSessionHandler';
@@ -18,26 +20,6 @@ import useInputQueueController, {
   type QueueSubmitNow,
 } from './useInputQueueController';
 // import mockdata from '../../mock/mock.json'
-
-function patchMessageSnapshot(
-  messages: IAgentScopeRuntimeWebUIMessage[],
-  message: Partial<IAgentScopeRuntimeWebUIMessage> & { id: string },
-) {
-  const index = messages.findIndex((item) => item.id === message.id);
-  if (index === -1) {
-    return [...messages, message as IAgentScopeRuntimeWebUIMessage];
-  }
-
-  const nextMessage = {
-    ...messages[index],
-    ...message,
-  };
-  return [
-    ...messages.slice(0, index),
-    nextMessage,
-    ...messages.slice(index + 1),
-  ];
-}
 
 function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -158,7 +140,7 @@ export default function useChatController() {
         sessionHandler.getCurrentSessionId();
       syncMessagesToPeerTabs(
         sessionId,
-        patchMessageSnapshot(messageHandler.getMessages(), message),
+        patchChatMessageSnapshot(messageHandler.getMessages(), message),
       );
     },
     [messageHandler, sessionHandler, syncMessagesToPeerTabs],
@@ -176,7 +158,7 @@ export default function useChatController() {
         messageHandler.updateMessage(response);
       });
 
-      const nextMessages = patchMessageSnapshot(
+      const nextMessages = patchChatMessageSnapshot(
         messageHandler.getMessages(),
         response,
       );
@@ -241,6 +223,10 @@ export default function useChatController() {
 
       await assignOwnerForSubmit(submitQueueSessionId);
       markQueueSessionActive(submitQueueSessionId);
+      const unregisterSubmission = registerInputQueueSubmission(
+        submitQueueSessionId,
+        () => handleCancelRef.current?.(),
+      );
 
       const myRequestId = ++currentQARef.current.activeRequestId;
       let requestMessage: IAgentScopeRuntimeWebUIMessage | undefined;
@@ -268,7 +254,10 @@ export default function useChatController() {
         responseMessage = messageHandler.createResponseMessage();
         syncMessagesToPeerTabs(
           submitSessionId,
-          patchMessageSnapshot(messageHandler.getMessages(), responseMessage),
+          patchChatMessageSnapshot(
+            messageHandler.getMessages(),
+            responseMessage,
+          ),
         );
 
         const historyMessages = messageHandler.getHistoryMessages();
@@ -334,6 +323,8 @@ export default function useChatController() {
         }
         setLoading(false);
         console.error(error);
+      } finally {
+        unregisterSubmission();
       }
       // mockRequest(mockdata);
     },
@@ -378,6 +369,9 @@ export default function useChatController() {
 
   const handleCancel = useCallback(() => {
     finishResponse('interrupted');
+    // Invalidate the request even when cancellation happens before the
+    // assistant placeholder or AbortController has been created.
+    currentQARef.current.activeRequestId += 1;
     const sessionId = sessionHandler.getCurrentSessionId();
     const cancelFn = apiOptionsRef.current.cancel;
     if (cancelFn && sessionId) {

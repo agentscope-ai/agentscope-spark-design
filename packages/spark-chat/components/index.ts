@@ -26,15 +26,18 @@ export {
 export type { ChatAnywhereRef, TMessage, TSession } from './ChatAnywhere';
 export * as DefaultCards from './DefaultCards';
 
-export { default as AgentScopeRuntimeWebUI } from './AgentScopeRuntimeWebUI';
-export * from './AgentScopeRuntimeWebUI/core/types';
 export {
+  default as AgentScopeRuntimeWebUI,
+  ChatAnywhereInputContext,
+  ChatAnywhereSessionsContext,
+  clearInputQueueState,
+  hasInputQueueItems,
+  migrateInputQueueState,
+  useChatAnywhereInput,
   useChatAnywhereSessions,
   useChatAnywhereSessionsState,
-  ChatAnywhereSessionsContext,
-  ChatAnywhereInputContext,
-  useChatAnywhereInput,
 } from './AgentScopeRuntimeWebUI';
+export * from './AgentScopeRuntimeWebUI/core/types';
 
 export {
   Accordion,
