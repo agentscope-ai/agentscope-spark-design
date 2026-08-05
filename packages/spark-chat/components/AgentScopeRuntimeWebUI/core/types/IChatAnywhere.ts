@@ -6,6 +6,7 @@ import {
   IContent,
 } from '../AgentScopeRuntime/types';
 import { IAgentScopeRuntimeWebUISession } from './ISessions';
+import type { SenderComponents } from '../../../Sender';
 
 /**
  * @description API 配置选项
@@ -273,6 +274,11 @@ export interface IAgentScopeRuntimeWebUISenderActionInfo {
  * @descriptionEn Sender configuration options
  */
 export interface IAgentScopeRuntimeWebUISenderOptions {
+  /**
+   * @description 自定义输入组件
+   * @descriptionEn Custom input component
+   */
+  components?: SenderComponents;
   /**
    * @description 输入框占位符
    * @descriptionEn Input placeholder

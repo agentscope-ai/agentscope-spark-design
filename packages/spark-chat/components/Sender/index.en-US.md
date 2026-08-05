@@ -24,6 +24,7 @@ The following are examples and variations of this component
 <code src="./demo/suggestions.tsx" center height="350">Suggestions</code>
 <code src="./demo/beforeUI.tsx" center height="350">Before UI</code>
 <code src="./demo/morePrefixAction.tsx" center height="350">Custom Functionality</code>
+<code src="./demo/customInput.tsx" center height="350">Custom Input Component</code>
 <code src="./demo/asr.tsx" center height="350">Voice Input</code>
 
 #### API

@@ -267,7 +267,11 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   onDropFile?: (file: File) => void;
   // prefixCls?: string;
-  // components?: SenderComponents;
+  /**
+   * @description 自定义输入组件
+   * @descriptionEn Custom input component
+   */
+  components?: SenderComponents;
 }
 
 export type SenderRef = {
