@@ -1,13 +1,21 @@
-import { Flex, Input } from 'antd';
+import { useProviderContext } from '@agentscope-ai/chat';
 import { Suggestion } from '@ant-design/x';
+import { useEventListener, useFocusWithin } from 'ahooks';
+import type {
+  InputRef as AntdInputRef,
+  ButtonProps,
+  GetProp,
+  GetProps,
+} from 'antd';
+import { Flex, Input } from 'antd';
 import classnames from 'classnames';
 import { useMergedState } from 'rc-util';
 import pickAttrs from 'rc-util/lib/pickAttrs';
 import getValue from 'rc-util/lib/utils/get';
 import React, { useState } from 'react';
-import { useFocusWithin, useEventListener } from 'ahooks';
 import useProxyImperativeHandle from '../Util/hooks/use-proxy-imperative-handle';
-import { useProviderContext } from '@agentscope-ai/chat';
+import BeforeUIContainer from './BeforeUIContainer';
+import ModeSelect from './ModeSelect';
 import SenderHeader, { SendHeaderContext } from './SenderHeader';
 import { ActionButtonContext } from './components/ActionButton';
 import ClearButton from './components/ClearButton';
@@ -16,9 +24,6 @@ import SendButton from './components/SendButton';
 import SpeechButton from './components/SpeechButton';
 import Style from './style';
 import useSpeech from './useSpeech';
-import ModeSelect from './ModeSelect';
-import type { InputRef as AntdInputRef, ButtonProps, GetProp, GetProps } from 'antd';
-import BeforeUIContainer from './BeforeUIContainer';
 
 function hasFileTransfer(dataTransfer?: DataTransfer | null) {
   if (!dataTransfer) {
@@ -49,8 +54,13 @@ export type SubmitType = 'enter' | 'shiftEnter' | false;
 type TextareaProps = GetProps<typeof Input.TextArea>;
 type SuggestionItems = Exclude<GetProp<typeof Suggestion, 'items'>, () => void>;
 
+export interface SenderInputProps extends TextareaProps {
+  /** Reports the selection offsets in the raw sender value. */
+  onSelectionChange?: (start: number, end: number) => void;
+}
+
 export interface SenderComponents {
-  input?: React.ComponentType<TextareaProps>;
+  input?: React.ComponentType<SenderInputProps>;
 }
 
 export interface SenderActionInfo {
@@ -77,7 +87,8 @@ export type ActionsRender = (
   },
 ) => React.ReactNode;
 
-export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyPress'> {
+export interface SenderProps
+  extends Pick<TextareaProps, 'placeholder' | 'onKeyPress'> {
   /**
    * @description 建议列表
    * @descriptionEn Suggestions list
@@ -88,6 +99,8 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   suggestions?: { label?: string | React.ReactNode; value: string }[];
 
+  /** Reports selection offsets in the raw sender value. */
+  onSelectionChange?: (start: number, end: number) => void;
 
   /**
    * @description 输入框的默认初始值，仅在非受控模式下生效
@@ -154,7 +167,9 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   onChange?: (
     value: string,
-    event?: React.FormEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLTextAreaElement>,
+    event?:
+      | React.FormEvent<HTMLTextAreaElement>
+      | React.ChangeEvent<HTMLTextAreaElement>,
   ) => void;
   /**
    * @description 用户取消操作时的回调函数，通常用于清空输入或重置状态
@@ -267,7 +282,11 @@ export interface SenderProps extends Pick<TextareaProps, 'placeholder' | 'onKeyP
    */
   onDropFile?: (file: File) => void;
   // prefixCls?: string;
-  // components?: SenderComponents;
+  /**
+   * @description 自定义发送器内部组件
+   * @descriptionEn Custom sender internal components
+   */
+  components?: SenderComponents;
 }
 
 export type SenderRef = {
@@ -313,7 +332,8 @@ function filterSuggestionsByKeyword(
   }
 
   return suggestions.filter((item) => {
-    const valueText = typeof item.value === 'string' ? item.value.toLowerCase() : '';
+    const valueText =
+      typeof item.value === 'string' ? item.value.toLowerCase() : '';
     const labelText =
       typeof item.label === 'string' || typeof item.label === 'number'
         ? String(item.label).toLowerCase()
@@ -349,6 +369,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     characterCountRender,
     onKeyPress,
     onKeyDown,
+    onSelectionChange,
     suggestions,
     showCharacterCount,
     disabled,
@@ -389,34 +410,36 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
       onFocus?.();
     },
     onBlur: () => {
-      if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(document.activeElement)
+      ) {
         setFocus(false);
         onBlur?.();
       }
-    }
+    },
   });
 
-  useEventListener('click', () => {
-    setFocus(true);
-    onFocus?.();
-  }, {
-    target: containerRef,
-  });
+  useEventListener(
+    'click',
+    () => {
+      setFocus(true);
+      onFocus?.();
+    },
+    {
+      target: containerRef,
+    },
+  );
 
   const inputCls = `${prefixCls}-input`;
 
-  const mergedCls = classnames(
-    prefixCls,
-    className,
-    rootClassName,
-    {
-      [`${prefixCls}-rtl`]: direction === 'rtl',
-      [`${prefixCls}-disabled`]: disabled,
-      [`${prefixCls}-focus`]: focus && enableFocusExpand,
-      [`${prefixCls}-blur`]: !focus && enableFocusExpand,
-      [`${prefixCls}-drag-over`]: draggingFile,
-    },
-  );
+  const mergedCls = classnames(prefixCls, className, rootClassName, {
+    [`${prefixCls}-rtl`]: direction === 'rtl',
+    [`${prefixCls}-disabled`]: disabled,
+    [`${prefixCls}-focus`]: focus && enableFocusExpand,
+    [`${prefixCls}-blur`]: !focus && enableFocusExpand,
+    [`${prefixCls}-drag-over`]: draggingFile,
+  });
 
   const actionBtnCls = `${prefixCls}-actions-btn`;
   const actionListCls = `${prefixCls}-actions-list`;
@@ -433,40 +456,53 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     }
   };
 
-  const [speechPermission, triggerSpeech, speechRecording] = useSpeech((transcript) => {
-    triggerValueChange(`${innerValue} ${transcript}`);
-  }, allowSpeech);
+  const [speechPermission, triggerSpeech, speechRecording] = useSpeech(
+    (transcript) => {
+      triggerValueChange(`${innerValue} ${transcript}`);
+    },
+    allowSpeech,
+  );
   const hasSuggestions = Array.isArray(suggestions) && suggestions.length > 0;
-  const slashCommandKeyword = React.useMemo(() => getSlashCommandKeyword(innerValue), [innerValue]);
+  const slashCommandKeyword = React.useMemo(
+    () => getSlashCommandKeyword(innerValue),
+    [innerValue],
+  );
 
   const filteredSuggestions = React.useMemo(() => {
     return filterSuggestionsByKeyword(suggestions, slashCommandKeyword);
   }, [suggestions, slashCommandKeyword]);
 
-  const findSuggestionValueByLabel = React.useCallback((items: SuggestionItems | undefined, label: string): string | undefined => {
-    if (!items?.length) {
+  const findSuggestionValueByLabel = React.useCallback(
+    (items: SuggestionItems | undefined, label: string): string | undefined => {
+      if (!items?.length) {
+        return undefined;
+      }
+
+      for (const item of items as any[]) {
+        if (!item || typeof item !== 'object') {
+          continue;
+        }
+
+        if (item.label === label && typeof item.value === 'string') {
+          return item.value;
+        }
+
+        const childValue = findSuggestionValueByLabel(item.children, label);
+        if (childValue) {
+          return childValue;
+        }
+      }
+
       return undefined;
-    }
+    },
+    [],
+  );
 
-    for (const item of items as any[]) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-
-      if (item.label === label && typeof item.value === 'string') {
-        return item.value;
-      }
-
-      const childValue = findSuggestionValueByLabel(item.children, label);
-      if (childValue) {
-        return childValue;
-      }
-    }
-
-    return undefined;
-  }, []);
-
-  const InputTextArea = getComponent(components, ['input'], Input.TextArea);
+  const InputTextArea = getComponent<SenderInputProps>(
+    components,
+    ['input'],
+    Input.TextArea,
+  );
 
   const domProps = pickAttrs(rest, {
     attr: true,
@@ -480,7 +516,8 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   };
 
   // ============================ Events ============================
-  const isSendDisabled = ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
+  const isSendDisabled =
+    ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
 
   const triggerSend = () => {
     if (!isSendDisabled && onSubmit && !loading) {
@@ -500,7 +537,9 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     isCompositionRef.current = true;
   };
 
-  const onInternalCompositionEnd = (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+  const onInternalCompositionEnd = (
+    e: React.CompositionEvent<HTMLTextAreaElement>,
+  ) => {
     isCompositionRef.current = false;
     if (props.maxLength) {
       const currentValue = (e.target as HTMLTextAreaElement).value;
@@ -541,12 +580,12 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     if (files.length === 0) {
       const items = Array.from(e.clipboardData?.items || []);
       files = items
-        .filter(item => item.kind === 'file')
-        .map(item => item.getAsFile())
+        .filter((item) => item.kind === 'file')
+        .map((item) => item.getAsFile())
         .filter((file): file is File => file !== null);
     }
     if (files.length > 0) {
-      files.forEach(file => onPasteFile(file));
+      files.forEach((file) => onPasteFile(file));
       e.preventDefault();
     } else {
       onPaste?.(e);
@@ -610,28 +649,48 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   };
 
   const prefix = React.useMemo(() => {
-    const nodes = Array.isArray(props.prefix) ? [...props.prefix] : [props.prefix];
-    return nodes.filter((node): node is React.ReactNode => node !== undefined && node !== null);
-  }, [props.prefix])
-  const count = Math.min(innerValue.length, props.maxLength || Number.MAX_SAFE_INTEGER);
-  const actionInfo = React.useMemo<SenderActionInfo>(() => ({
-    value: innerValue,
-    count,
-    maxLength: props.maxLength,
-    loading,
-    disabled,
-    sendDisabled: isSendDisabled,
-  }), [count, disabled, innerValue, isSendDisabled, loading, props.maxLength]);
-  const characterCountNode = (showCharacterCount ?? !!props.maxLength) ? (
-    <div className={`${actionListCls}-length`}>
-      {characterCountRender ? characterCountRender(actionInfo) : props.maxLength ? `${count}/${props.maxLength}` : count}
-    </div>
-  ) : null;
-  const actionAffixNode = typeof actionAffix === 'function' ? actionAffix(actionInfo) : actionAffix;
+    const nodes = Array.isArray(props.prefix)
+      ? [...props.prefix]
+      : [props.prefix];
+    return nodes.filter(
+      (node): node is React.ReactNode => node !== undefined && node !== null,
+    );
+  }, [props.prefix]);
+  const count = Math.min(
+    innerValue.length,
+    props.maxLength || Number.MAX_SAFE_INTEGER,
+  );
+  const actionInfo = React.useMemo<SenderActionInfo>(
+    () => ({
+      value: innerValue,
+      count,
+      maxLength: props.maxLength,
+      loading,
+      disabled,
+      sendDisabled: isSendDisabled,
+    }),
+    [count, disabled, innerValue, isSendDisabled, loading, props.maxLength],
+  );
+  const characterCountNode =
+    showCharacterCount ?? !!props.maxLength ? (
+      <div className={`${actionListCls}-length`}>
+        {characterCountRender
+          ? characterCountRender(actionInfo)
+          : props.maxLength
+          ? `${count}/${props.maxLength}`
+          : count}
+      </div>
+    ) : null;
+  const actionAffixNode =
+    typeof actionAffix === 'function' ? actionAffix(actionInfo) : actionAffix;
 
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
-      {loading ? <LoadingButton loading={loading} disabled={!!disabled} /> : <SendButton disabled={!!disabled} />}
+      {loading ? (
+        <LoadingButton loading={loading} disabled={!!disabled} />
+      ) : (
+        <SendButton disabled={!!disabled} />
+      )}
     </Flex>
   );
 
@@ -659,21 +718,20 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     onSpeechDisabled: !speechPermission,
     speechRecording,
     disabled: !!disabled,
+  };
 
-  }
-
-  const renderInput = (
-    suggestionProps?: {
-      onTrigger?: (open?: boolean) => void;
-      onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
-      open?: boolean;
-    },
-  ) => {
+  const renderInput = (suggestionProps?: {
+    onTrigger?: (open?: boolean) => void;
+    onKeyDown?: React.KeyboardEventHandler<HTMLTextAreaElement>;
+    open?: boolean;
+  }) => {
     suggestionOpenRef.current = !!suggestionProps?.open;
 
     return (
       <InputTextArea
         {...inputProps}
+        data-sender-input="true"
+        {...(components?.input ? { onSelectionChange } : {})}
         disabled={!!disabled}
         style={styles.input}
         className={classnames(inputCls, classNames.input)}
@@ -681,7 +739,11 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
         value={innerValue.slice(0, props.maxLength || Number.MAX_SAFE_INTEGER)}
         onChange={(event) => {
           let nextValue = (event.target as HTMLTextAreaElement).value;
-          if (props.maxLength && !isCompositionRef.current && nextValue.length > props.maxLength) {
+          if (
+            props.maxLength &&
+            !isCompositionRef.current &&
+            nextValue.length > props.maxLength
+          ) {
             nextValue = nextValue.slice(0, props.maxLength);
           }
           triggerValueChange(
@@ -691,11 +753,18 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
           if (hasSuggestions) {
             const nextSlashCommandKeyword = getSlashCommandKeyword(nextValue);
-            const nextFilteredSuggestions = filterSuggestionsByKeyword(suggestions, nextSlashCommandKeyword);
+            const nextFilteredSuggestions = filterSuggestionsByKeyword(
+              suggestions,
+              nextSlashCommandKeyword,
+            );
             const nextHasFilteredSuggestions =
-              Array.isArray(nextFilteredSuggestions) && nextFilteredSuggestions.length > 0;
+              Array.isArray(nextFilteredSuggestions) &&
+              nextFilteredSuggestions.length > 0;
 
-            if (nextSlashCommandKeyword !== null && nextHasFilteredSuggestions) {
+            if (
+              nextSlashCommandKeyword !== null &&
+              nextHasFilteredSuggestions
+            ) {
               suggestionProps?.onTrigger?.(true);
             } else {
               suggestionProps?.onTrigger?.(false);
@@ -705,21 +774,40 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
           triggerSpeech(true);
         }}
         onKeyPress={onKeyPress}
+        onSelect={(event) => {
+          const target = event.target;
+          if (target instanceof HTMLTextAreaElement) {
+            onSelectionChange?.(target.selectionStart, target.selectionEnd);
+          }
+        }}
         onPressEnter={onInternalPressEnter}
         onCompositionStart={onInternalCompositionStart}
         onCompositionEnd={onInternalCompositionEnd}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' && suggestionProps?.open && hasSuggestions) {
+          if (
+            event.key === 'Enter' &&
+            suggestionProps?.open &&
+            hasSuggestions
+          ) {
             const root = containerRef.current?.ownerDocument;
-            const selectedMenuItem = root?.querySelector('[role="menuitemcheckbox"][aria-checked="true"]');
-            const activeMenuItem = root?.querySelector('[role="menuitem"][aria-current="true"]');
+            const selectedMenuItem = root?.querySelector(
+              '[role="menuitemcheckbox"][aria-checked="true"]',
+            );
+            const activeMenuItem = root?.querySelector(
+              '[role="menuitem"][aria-current="true"]',
+            );
             const menuItem =
               (selectedMenuItem instanceof HTMLElement && selectedMenuItem) ||
               (activeMenuItem instanceof HTMLElement && activeMenuItem) ||
               null;
             const itemValueByPath = menuItem?.getAttribute('data-path-key');
             const itemLabel = menuItem?.getAttribute('title')?.trim();
-            const itemValueByLabel = itemLabel ? findSuggestionValueByLabel(suggestions as SuggestionItems, itemLabel) : undefined;
+            const itemValueByLabel = itemLabel
+              ? findSuggestionValueByLabel(
+                  suggestions as SuggestionItems,
+                  itemLabel,
+                )
+              : undefined;
             const selectedValue = itemValueByLabel || itemValueByPath;
 
             if (selectedValue) {
@@ -741,73 +829,74 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     );
   };
 
-  return <>
-    <Style />
+  return (
+    <>
+      <Style />
 
-    <div
-      ref={containerRef}
-      className={mergedCls}
-      style={style}
-      onDragEnter={onInternalDragEnter}
-      onDragOver={onInternalDragOver}
-      onDragLeave={onInternalDragLeave}
-      onDrop={onInternalDrop}
-    >
-      {header && (
-        <SendHeaderContext.Provider value={{ prefixCls, focus, enableFocusExpand }}>{header}</SendHeaderContext.Provider>
-      )}
-
-      <div className={`${prefixCls}-content`}>
-        {hasSuggestions ? (
-          <Suggestion
-            items={filteredSuggestions}
-            onSelect={(itemValue) => {
-              triggerValueChange(`/${itemValue} `);
-            }}
+      <div
+        ref={containerRef}
+        data-sender-root="true"
+        className={mergedCls}
+        style={style}
+        onDragEnter={onInternalDragEnter}
+        onDragOver={onInternalDragOver}
+        onDragLeave={onInternalDragLeave}
+        onDrop={onInternalDrop}
+      >
+        {header && (
+          <SendHeaderContext.Provider
+            value={{ prefixCls, focus, enableFocusExpand }}
           >
-            {(suggestionProps) => renderInput(suggestionProps)}
-          </Suggestion>
-        ) : renderInput()}
+            {header}
+          </SendHeaderContext.Provider>
+        )}
 
-        <div className={`${prefixCls}-content-bottom`}>
-          {prefix.length > 0 && (
-            <div
-              className={classnames(
-                `${prefixCls}-prefix`,
-                classNames.prefix,
-              )}
-              style={styles.prefix}
+        <div className={`${prefixCls}-content`}>
+          {hasSuggestions ? (
+            <Suggestion
+              items={filteredSuggestions}
+              onSelect={(itemValue) => {
+                triggerValueChange(`/${itemValue} `);
+              }}
             >
-              <Flex gap={8}>
-                {allowSpeech && <ActionButtonContext.Provider
-                  value={contextValue}
-                >
-                  <SpeechButton />
-                </ActionButtonContext.Provider>}
-                {prefix}
-              </Flex>
-            </div>
+              {(suggestionProps) => renderInput(suggestionProps)}
+            </Suggestion>
+          ) : (
+            renderInput()
           )}
-          <div
-            className={classnames(
-              actionListCls,
-              classNames.actions,
+
+          <div className={`${prefixCls}-content-bottom`}>
+            {prefix.length > 0 && (
+              <div
+                className={classnames(`${prefixCls}-prefix`, classNames.prefix)}
+                style={styles.prefix}
+              >
+                <Flex gap={8}>
+                  {allowSpeech && (
+                    <ActionButtonContext.Provider value={contextValue}>
+                      <SpeechButton />
+                    </ActionButtonContext.Provider>
+                  )}
+                  {prefix}
+                </Flex>
+              </div>
             )}
-            style={styles.actions}
-          >
-            {characterCountNode}
-            {actionAffixNode}
-            <ActionButtonContext.Provider
-              value={contextValue}
+            <div
+              className={classnames(actionListCls, classNames.actions)}
+              style={styles.actions}
             >
-              {actionNode}
-            </ActionButtonContext.Provider>
+              {characterCountNode}
+              {actionAffixNode}
+              <ActionButtonContext.Provider value={contextValue}>
+                {actionNode}
+              </ActionButtonContext.Provider>
+            </div>
           </div>
+          {props.footer}
         </div>
-        {props.footer}
       </div>
-    </div>
-  </>
+    </>
+  );
 });
 
 type CompoundedSender = typeof ForwardSender & {

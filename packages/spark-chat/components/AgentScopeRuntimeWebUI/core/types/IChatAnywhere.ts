@@ -1,4 +1,5 @@
 import { UploadProps } from 'antd';
+import type { SenderComponents } from '../../../Sender';
 import {
   IAgentScopeRuntimeMessage,
   IAgentScopeRuntimeRequest,
@@ -31,6 +32,7 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
   fetch?: (data: {
     input: any[];
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+    mentions?: IAgentScopeRuntimeWebUISenderMentionData[];
     signal?: AbortSignal;
   }) => Promise<Response>;
 
@@ -73,7 +75,11 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @description 自定义文件点击事件（桌面端可通过此钩子调用原生 API 打开文件链接），不传则默认 window.open
    * @descriptionEn Custom file click handler (desktop apps can use native APIs to open file URLs), defaults to window.open
    */
-  onFileCardClick?: (file: { url?: string; name?: string; size?: number }) => void;
+  onFileCardClick?: (file: {
+    url?: string;
+    name?: string;
+    size?: number;
+  }) => void;
 }
 
 /**
@@ -269,10 +275,140 @@ export interface IAgentScopeRuntimeWebUISenderActionInfo {
 }
 
 /**
+ * @description 输入框中的通用提及项
+ * @descriptionEn Generic mention item used by the sender
+ */
+export interface IAgentScopeRuntimeWebUISenderMentionItem {
+  /**
+   * @description 提交时使用的值
+   * @descriptionEn Value used when submitting the mention
+   */
+  value: string;
+  /**
+   * @description 候选项和胶囊中展示的内容，默认使用 value
+   * @descriptionEn Content displayed in the option and capsule, defaults to value
+   */
+  label?: React.ReactNode;
+  /**
+   * @description 候选项和胶囊中展示的图标
+   * @descriptionEn Icon displayed in the option and capsule
+   */
+  icon?: React.ReactNode;
+  /**
+   * @description 可选的业务类型，例如 file 或 folder
+   * @descriptionEn Optional business type, for example file or folder
+   */
+  type?: string;
+  /**
+   * @description 是否禁用该候选项
+   * @descriptionEn Whether this option is disabled
+   */
+  disabled?: boolean;
+}
+
+/**
+ * @description 可安全序列化并传递给业务请求的提及数据
+ * @descriptionEn Serializable mention data passed to business requests
+ */
+export interface IAgentScopeRuntimeWebUISenderMentionData {
+  value: string;
+  type?: string;
+}
+
+export interface IAgentScopeRuntimeWebUISenderBeforeSubmitResult {
+  /**
+   * @description 是否继续由组件提交当前消息
+   * @descriptionEn Whether the component should continue submitting
+   */
+  proceed: boolean;
+  /**
+   * @description 可选的最终提交文本
+   * @descriptionEn Optional final query override
+   */
+  query?: string;
+  /**
+   * @description 即使中止提交也清空输入区，例如消息已转入宿主队列
+   * @descriptionEn Clear the sender even when submission is intercepted, for example after host-side queueing
+   */
+  clear?: boolean;
+}
+
+/**
+ * @description 输入框提及配置
+ * @descriptionEn Sender mention configuration
+ */
+export interface IAgentScopeRuntimeWebUISenderMentionsOptions {
+  /**
+   * @description 静态候选项或按需加载候选项的函数
+   * @descriptionEn Static items or a function that lazily loads items
+   */
+  items:
+    | IAgentScopeRuntimeWebUISenderMentionItem[]
+    | ((context: {
+        signal: AbortSignal;
+      }) =>
+        | IAgentScopeRuntimeWebUISenderMentionItem[]
+        | Promise<IAgentScopeRuntimeWebUISenderMentionItem[]>);
+  /**
+   * @description 触发字符，默认为 @
+   * @descriptionEn Trigger character, defaults to @
+   */
+  trigger?: string;
+  /**
+   * @description 最多展示的候选项数量，默认为 50
+   * @descriptionEn Maximum number of visible options, defaults to 50
+   */
+  maxOptions?: number;
+  /**
+   * @description 无匹配候选项时展示的内容
+   * @descriptionEn Content displayed when no option matches
+   */
+  emptyText?: React.ReactNode;
+  /**
+   * @description 候选项加载中展示的内容
+   * @descriptionEn Content displayed while options are loading
+   */
+  loadingText?: React.ReactNode;
+  /**
+   * @description 胶囊展示位置，默认为 header；inline 模式会把格式化后的文本写回输入值
+   * @descriptionEn Capsule display mode. Defaults to header; inline mode writes formatted text back to the input value
+   */
+  displayMode?: 'header' | 'inline';
+  /**
+   * @description inline 模式下生成提交文本的方法
+   * @descriptionEn Builds the submitted text inserted for an inline mention
+   */
+  getInsertText?: (
+    item: IAgentScopeRuntimeWebUISenderMentionItem,
+    trigger: string,
+  ) => string;
+  /**
+   * @description 是否缓存异步候选项，默认为 true；设为 false 时每次打开重新加载
+   * @descriptionEn Whether to cache lazy items. Defaults to true; false reloads whenever the menu opens
+   */
+  cacheItems?: boolean;
+  /**
+   * @description 是否允许重复选择相同 value，默认为 false
+   * @descriptionEn Whether the same value can be selected more than once. Defaults to false
+   */
+  allowDuplicates?: boolean;
+  /**
+   * @description 已选项变化回调
+   * @descriptionEn Callback fired when selected mentions change
+   */
+  onChange?: (items: IAgentScopeRuntimeWebUISenderMentionItem[]) => void;
+}
+
+/**
  * @description 输入框配置选项
  * @descriptionEn Sender configuration options
  */
 export interface IAgentScopeRuntimeWebUISenderOptions {
+  /**
+   * @description 自定义输入组件等发送器内部组件
+   * @descriptionEn Custom sender internals such as the input component
+   */
+  components?: SenderComponents;
   /**
    * @description 输入框占位符
    * @descriptionEn Input placeholder
@@ -316,7 +452,9 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * @description 提交前的钩子函数
    * @descriptionEn Hook function before submit
    */
-  beforeSubmit?: () => Promise<boolean>;
+  beforeSubmit?: (
+    data: IAgentScopeRuntimeWebUIInputData,
+  ) => Promise<boolean | IAgentScopeRuntimeWebUISenderBeforeSubmitResult>;
   /**
    * @description 提交回调函数
    * @descriptionEn Submit callback function
@@ -356,6 +494,11 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    * ]
    */
   suggestions?: { label?: string | React.ReactNode; value: string }[];
+  /**
+   * @description 通用提及配置，例如通过 @ 选择文件或文件夹路径
+   * @descriptionEn Generic mention configuration, for example selecting file or folder paths with @
+   */
+  mentions?: IAgentScopeRuntimeWebUISenderMentionsOptions;
 }
 
 /**
@@ -588,7 +731,11 @@ export interface IAgentScopeRuntimeWebUIRequestActionsOptions {
   list?: {
     icon?: React.ReactElement;
     children?: React.ReactElement;
-    render?: ({ data }: { data: IAgentScopeRuntimeRequest }) => React.ReactElement;
+    render?: ({
+      data,
+    }: {
+      data: IAgentScopeRuntimeRequest;
+    }) => React.ReactElement;
     onClick?: ({ data }: { data: IAgentScopeRuntimeRequest }) => void;
   }[];
 }
@@ -613,12 +760,18 @@ export interface IAgentScopeRuntimeWebUIActionsOptions {
    * @description 右侧操作按钮列表；不传时默认展示 token 用量；传空数组或 false 隐藏右侧
    * @descriptionEn Right-side actions; defaults to token usage; pass [] or false to hide
    */
-  right?: false | {
-    icon?: React.ReactElement;
-    children?: React.ReactElement;
-    render?: ({ data }: { data: IAgentScopeRuntimeResponse }) => React.ReactElement;
-    onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
-  }[];
+  right?:
+    | false
+    | {
+        icon?: React.ReactElement;
+        children?: React.ReactElement;
+        render?: ({
+          data,
+        }: {
+          data: IAgentScopeRuntimeResponse;
+        }) => React.ReactElement;
+        onClick?: ({ data }: { data: IAgentScopeRuntimeResponse }) => void;
+      }[];
 
   /**
    * @description 是否显示重新生成按钮
@@ -679,6 +832,11 @@ export interface IAgentScopeRuntimeWebUIInputData {
    * @descriptionEn File list
    */
   fileList?: (UploadProps['fileList'][number] & { file_id?: string })[];
+  /**
+   * @description 已选择的提及项
+   * @descriptionEn Selected mention items
+   */
+  mentions?: IAgentScopeRuntimeWebUISenderMentionData[];
   /**
    * @description 业务参数
    * @descriptionEn Business parameters
