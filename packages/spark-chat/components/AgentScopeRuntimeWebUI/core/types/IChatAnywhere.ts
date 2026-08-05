@@ -439,6 +439,69 @@ export interface IAgentScopeRuntimeWebUIQueueErrorContext
   error: unknown;
 }
 
+export type IAgentScopeRuntimeWebUIQueuedInputStatus =
+  | 'pending'
+  | 'submitting'
+  | 'failed';
+
+/**
+ * @description 输入队列条目
+ * @descriptionEn Input queue item
+ */
+export interface IAgentScopeRuntimeWebUIQueuedInputItem {
+  id: string;
+  data: IAgentScopeRuntimeWebUIInputData;
+  status: IAgentScopeRuntimeWebUIQueuedInputStatus;
+  retryCount: number;
+  errorMessage?: string;
+  submissionOwnerTabId?: string;
+  submissionStartedAt?: number;
+  createdAt: number;
+}
+
+/**
+ * @description 队列条目操作上下文
+ * @descriptionEn Queue item action context
+ */
+export interface IAgentScopeRuntimeWebUIQueueItemActionContext {
+  item: IAgentScopeRuntimeWebUIQueuedInputItem;
+  index: number;
+  isOwner: boolean;
+  remove: () => void;
+  updateQuery: (query: string) => void;
+  sendNow: () => void;
+  retry: () => void;
+}
+
+export type IAgentScopeRuntimeWebUIQueueItemActionValue<T> =
+  | T
+  | ((context: IAgentScopeRuntimeWebUIQueueItemActionContext) => T);
+
+/**
+ * @description 队列条目自定义操作。业务行为由宿主实现，SDK 仅负责展示和提供队列操作上下文。
+ * @descriptionEn Custom queue item action. The host owns the business behavior; the SDK only renders it and provides queue helpers.
+ */
+export interface IAgentScopeRuntimeWebUIQueueItemAction {
+  /** 唯一且稳定的操作标识 / Unique and stable action key */
+  key: string;
+  /** 按钮提示及无障碍名称 / Button tooltip and accessible name */
+  label: IAgentScopeRuntimeWebUIQueueItemActionValue<React.ReactNode>;
+  /** 按钮图标 / Button icon */
+  icon: IAgentScopeRuntimeWebUIQueueItemActionValue<React.ReactNode>;
+  /** 是否展示，默认为 true / Whether to render, defaults to true */
+  visible?: IAgentScopeRuntimeWebUIQueueItemActionValue<boolean>;
+  /** 是否禁用；submitting 状态始终禁用 / Whether disabled; submitting items are always disabled */
+  disabled?: IAgentScopeRuntimeWebUIQueueItemActionValue<boolean>;
+  /** 是否仅队列 owner 展示，默认为 true / Whether only the queue owner can see it, defaults to true */
+  ownerOnly?: boolean;
+  /** 是否使用危险操作样式 / Whether to use the danger style */
+  danger?: boolean;
+  /** 点击回调 / Click handler */
+  onClick: (
+    context: IAgentScopeRuntimeWebUIQueueItemActionContext,
+  ) => void | Promise<void>;
+}
+
 export interface IAgentScopeRuntimeWebUIQueueOptions {
   /**
    * @description 是否启用输入队列。传 false 可关闭队列。
@@ -450,6 +513,11 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
    * @descriptionEn Maximum number of queued inputs
    */
   maxSize?: number;
+  /**
+   * @description 队列条目自定义操作，展示在编辑与立即发送操作之间
+   * @descriptionEn Custom queue item actions rendered between edit and send-now
+   */
+  itemActions?: readonly IAgentScopeRuntimeWebUIQueueItemAction[];
   /**
    * @description 获取队列使用的会话 id
    * @descriptionEn Resolve the session id used by the input queue

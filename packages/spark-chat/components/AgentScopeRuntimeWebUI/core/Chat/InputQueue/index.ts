@@ -1,23 +1,16 @@
 import { v4 as uuid } from 'uuid';
 import type {
   IAgentScopeRuntimeWebUIInputData,
+  IAgentScopeRuntimeWebUIQueuedInputItem,
+  IAgentScopeRuntimeWebUIQueuedInputStatus,
   IAgentScopeRuntimeWebUIQueueRequestContext,
 } from '../../types';
 
-export type QueuedInputStatus = 'pending' | 'submitting' | 'failed';
+export type QueuedInputStatus = IAgentScopeRuntimeWebUIQueuedInputStatus;
 
 export type InputQueueCommandType = 'send-now';
 
-export interface QueuedInputItem {
-  id: string;
-  data: IAgentScopeRuntimeWebUIInputData;
-  status: QueuedInputStatus;
-  retryCount: number;
-  errorMessage?: string;
-  submissionOwnerTabId?: string;
-  submissionStartedAt?: number;
-  createdAt: number;
-}
+export type QueuedInputItem = IAgentScopeRuntimeWebUIQueuedInputItem;
 
 export interface InputQueueCommand {
   id: string;

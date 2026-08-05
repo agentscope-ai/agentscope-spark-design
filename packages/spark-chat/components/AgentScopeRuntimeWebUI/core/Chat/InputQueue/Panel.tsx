@@ -13,12 +13,18 @@ import {
 } from '@agentscope-ai/icons';
 import { Tooltip } from 'antd';
 import { useTranslation } from '../../Context/ChatAnywhereI18nContext';
+import type {
+  IAgentScopeRuntimeWebUIQueueItemAction,
+  IAgentScopeRuntimeWebUIQueueItemActionContext,
+} from '../../types';
+import { resolveInputQueueItemActions } from './actions';
 import type { QueuedInputItem } from './index';
 
 interface InputQueuePanelProps {
   items: QueuedInputItem[];
   paused: boolean;
   isOwner: boolean;
+  itemActions?: readonly IAgentScopeRuntimeWebUIQueueItemAction[];
   onRemove: (id: string) => void;
   onClear: () => void;
   onRetry: (id: string) => void;
@@ -33,6 +39,7 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
     items,
     paused,
     isOwner,
+    itemActions,
     onRemove,
     onClear,
     onRetry,
@@ -184,6 +191,19 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
           ]
             .filter(Boolean)
             .join(' ');
+          const actionContext: IAgentScopeRuntimeWebUIQueueItemActionContext = {
+            item,
+            index,
+            isOwner,
+            remove: () => onRemove(item.id),
+            updateQuery: (query) => onUpdateQuery(item.id, query),
+            sendNow: () => onSendNow(item.id),
+            retry: () => onRetry(item.id),
+          };
+          const resolvedItemActions = resolveInputQueueItemActions(
+            itemActions,
+            actionContext,
+          );
 
           return (
             <div
@@ -287,22 +307,40 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                 ) : null}
               </div>
               <div className={`${prefixCls}-actions`} data-no-drag>
-                {!submitting ? <Tooltip title={tr('common.edit')}>
-                  <IconButton
-                    size="small"
-                    bordered={false}
-                    icon={<SparkEditLine />}
-                    onClick={() => startEdit(item)}
-                  />
-                </Tooltip> : null}
-                {isOwner && !submitting ? <Tooltip title={tr('queue.sendNow')}>
+                {!submitting ? (
+                  <Tooltip title={tr('common.edit')}>
+                    <IconButton
+                      size="small"
+                      bordered={false}
+                      icon={<SparkEditLine />}
+                      onClick={() => startEdit(item)}
+                    />
+                  </Tooltip>
+                ) : null}
+                {resolvedItemActions.map(({ action, label, icon, disabled }) => (
+                  <Tooltip key={action.key} title={label}>
+                    <IconButton
+                      aria-label={typeof label === 'string' ? label : undefined}
+                      size="small"
+                      bordered={false}
+                      danger={action.danger}
+                      data-queue-action-key={action.key}
+                      disabled={disabled}
+                      icon={icon}
+                      onClick={() => action.onClick(actionContext)}
+                    />
+                  </Tooltip>
+                ))}
+                {isOwner && !submitting ? (
+                  <Tooltip title={tr('queue.sendNow')}>
                     <IconButton
                       size="small"
                       bordered={false}
                       icon={<SparkSendLine />}
                       onClick={() => onSendNow(item.id)}
                     />
-                  </Tooltip> : null}
+                  </Tooltip>
+                ) : null}
                 {isOwner && failed ? (
                   <Tooltip title={tr('queue.retry')}>
                     <IconButton
@@ -313,14 +351,16 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                     />
                   </Tooltip>
                 ) : null}
-                {isOwner && !submitting ? <Tooltip title={tr('common.delete')}>
-                  <IconButton
-                    size="small"
-                    bordered={false}
-                    icon={<SparkDeleteLine />}
-                    onClick={() => onRemove(item.id)}
-                  />
-                </Tooltip> : null}
+                {isOwner && !submitting ? (
+                  <Tooltip title={tr('common.delete')}>
+                    <IconButton
+                      size="small"
+                      bordered={false}
+                      icon={<SparkDeleteLine />}
+                      onClick={() => onRemove(item.id)}
+                    />
+                  </Tooltip>
+                ) : null}
               </div>
             </div>
           );

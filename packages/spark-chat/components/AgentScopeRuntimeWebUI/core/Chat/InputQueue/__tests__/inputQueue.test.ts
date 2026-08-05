@@ -57,6 +57,11 @@ import {
   isInputQueueSubmissionActive,
   registerInputQueueSubmission,
 } from '../submission';
+import { resolveInputQueueItemActions } from '../actions';
+import type {
+  IAgentScopeRuntimeWebUIQueueItemAction,
+  IAgentScopeRuntimeWebUIQueueItemActionContext,
+} from '../../../types';
 
 const input = (query: string) => ({ query });
 
@@ -168,6 +173,125 @@ test('enqueue appends inputs in FIFO order and dequeue consumes the head', () =>
   const second = dequeueNextQueuedInput(first.queue);
   assert.equal(second.item?.data.query, 'second');
   assert.equal(second.queue.length, 0);
+});
+
+test('custom queue item actions resolve host configuration per item', () => {
+  const item = createQueuedInputItem(input('guide this'), {
+    id: 'q1',
+    now: 1,
+  });
+  let removedItemId: string | undefined;
+  const context: IAgentScopeRuntimeWebUIQueueItemActionContext = {
+    item,
+    index: 0,
+    isOwner: true,
+    remove: () => {
+      removedItemId = item.id;
+    },
+    updateQuery: () => undefined,
+    sendNow: () => undefined,
+    retry: () => undefined,
+  };
+  const actions: IAgentScopeRuntimeWebUIQueueItemAction[] = [
+    {
+      key: 'steer',
+      label: ({ item: currentItem }) => `Steer ${currentItem.data.query}`,
+      icon: 'steer-icon',
+      disabled: ({ index }) => index > 0,
+      onClick: ({ remove }) => remove(),
+    },
+    {
+      key: 'hidden',
+      label: 'Hidden',
+      icon: 'hidden-icon',
+      visible: false,
+      onClick: () => undefined,
+    },
+    {
+      key: 'steer',
+      label: 'Duplicate',
+      icon: 'duplicate-icon',
+      onClick: () => undefined,
+    },
+  ];
+
+  const resolved = resolveInputQueueItemActions(actions, context);
+
+  assert.equal(resolved.length, 1);
+  assert.equal(resolved[0].action.key, 'steer');
+  assert.equal(resolved[0].label, 'Steer guide this');
+  assert.equal(resolved[0].icon, 'steer-icon');
+  assert.equal(resolved[0].disabled, false);
+  resolved[0].action.onClick(context);
+  assert.equal(removedItemId, 'q1');
+});
+
+test('custom queue item actions are owner-only by default', () => {
+  const item = createQueuedInputItem(input('queued'), {
+    id: 'q1',
+    now: 1,
+  });
+  const context: IAgentScopeRuntimeWebUIQueueItemActionContext = {
+    item,
+    index: 0,
+    isOwner: false,
+    remove: () => undefined,
+    updateQuery: () => undefined,
+    sendNow: () => undefined,
+    retry: () => undefined,
+  };
+  const actions: IAgentScopeRuntimeWebUIQueueItemAction[] = [
+    {
+      key: 'owner-only',
+      label: 'Owner only',
+      icon: 'owner-icon',
+      onClick: () => undefined,
+    },
+    {
+      key: 'shared',
+      label: 'Shared',
+      icon: 'shared-icon',
+      ownerOnly: false,
+      onClick: () => undefined,
+    },
+  ];
+
+  assert.deepEqual(
+    resolveInputQueueItemActions(actions, context).map(
+      ({ action }) => action.key,
+    ),
+    ['shared'],
+  );
+});
+
+test('custom queue item actions are disabled while the item is submitting', () => {
+  const item = {
+    ...createQueuedInputItem(input('queued'), { id: 'q1', now: 1 }),
+    status: 'submitting' as const,
+  };
+  const context: IAgentScopeRuntimeWebUIQueueItemActionContext = {
+    item,
+    index: 0,
+    isOwner: true,
+    remove: () => undefined,
+    updateQuery: () => undefined,
+    sendNow: () => undefined,
+    retry: () => undefined,
+  };
+  const actions: IAgentScopeRuntimeWebUIQueueItemAction[] = [
+    {
+      key: 'steer',
+      label: 'Steer',
+      icon: 'steer-icon',
+      disabled: false,
+      onClick: () => undefined,
+    },
+  ];
+
+  assert.equal(
+    resolveInputQueueItemActions(actions, context)[0].disabled,
+    true,
+  );
 });
 
 test('begin submission keeps the queued item persisted until acceptance', () => {
