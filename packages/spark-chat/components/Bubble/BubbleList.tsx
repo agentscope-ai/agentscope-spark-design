@@ -111,6 +111,7 @@ interface LoadMoreProps {
 function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMoreProps) {
   const ref = useRef(null);
   const [inViewport] = useInViewport(ref)
+  const [loading, setLoading] = useState(false)
   const loadingRef = useRef(false)
   const mountedRef = useRef(true)
   const inViewportRef = useRef(inViewport)
@@ -129,9 +130,13 @@ function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMorePr
   const doLoad = useCallback(() => {
     if (!mountedRef.current || loadingRef.current) return;
     loadingRef.current = true;
+    setLoading(true);
     onLoadMoreStart?.();
     handleLoadMore().finally(() => {
       loadingRef.current = false;
+      if (mountedRef.current) {
+        setLoading(false);
+      }
       onLoadMoreEnd?.();
       // If spinner is still visible after load (container not yet scrollable),
       // schedule another load via rAF so React can process noMore state first.
@@ -151,7 +156,7 @@ function LoadMore({ handleLoadMore, onLoadMoreStart, onLoadMoreEnd }: LoadMorePr
     }
   }, [previousInViewport, inViewport, doLoad])
 
-  return <div ref={ref} className={`${prefixCls}-load-more`}><Spin spinning={true} /></div>
+  return <div ref={ref} className={`${prefixCls}-load-more`}>{loading ? <Spin /> : null}</div>
 }
 
 const BubbleList: React.ForwardRefRenderFunction<BubbleListRef, BubbleListProps> = (props, ref) => {
