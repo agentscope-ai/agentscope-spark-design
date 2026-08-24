@@ -247,6 +247,11 @@ export interface SenderProps
    */
   maxLength?: number;
   /**
+   * @description 是否按 maxLength 截断输入内容，默认截断
+   * @descriptionEn Whether to truncate input by maxLength, defaults to true
+   */
+  truncateOnMaxLength?: boolean;
+  /**
    * @description 是否显示字符数，默认在设置 maxLength 时显示
    * @descriptionEn Whether to show character count, defaults to true when maxLength is set
    */
@@ -371,7 +376,9 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     onKeyDown,
     onSelectionChange,
     suggestions,
+    maxLength,
     showCharacterCount,
+    truncateOnMaxLength = true,
     disabled,
     header,
     // @ts-ignore
@@ -447,6 +454,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   const [innerValue, setInnerValue] = useMergedState(defaultValue || '', {
     value,
   });
+  const shouldTruncateOnMaxLength = truncateOnMaxLength && !!maxLength;
 
   const triggerValueChange: SenderProps['onChange'] = (nextValue, event) => {
     setInnerValue(nextValue);
@@ -541,10 +549,10 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     e: React.CompositionEvent<HTMLTextAreaElement>,
   ) => {
     isCompositionRef.current = false;
-    if (props.maxLength) {
+    if (shouldTruncateOnMaxLength) {
       const currentValue = (e.target as HTMLTextAreaElement).value;
-      if (currentValue.length > props.maxLength) {
-        triggerValueChange(currentValue.slice(0, props.maxLength));
+      if (currentValue.length > maxLength) {
+        triggerValueChange(currentValue.slice(0, maxLength));
       }
     }
   };
@@ -658,26 +666,26 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   }, [props.prefix]);
   const count = Math.min(
     innerValue.length,
-    props.maxLength || Number.MAX_SAFE_INTEGER,
+    maxLength || Number.MAX_SAFE_INTEGER,
   );
   const actionInfo = React.useMemo<SenderActionInfo>(
     () => ({
       value: innerValue,
       count,
-      maxLength: props.maxLength,
+      maxLength,
       loading,
       disabled,
       sendDisabled: isSendDisabled,
     }),
-    [count, disabled, innerValue, isSendDisabled, loading, props.maxLength],
+    [count, disabled, innerValue, isSendDisabled, loading, maxLength],
   );
   const characterCountNode =
-    showCharacterCount ?? !!props.maxLength ? (
+    showCharacterCount ?? !!maxLength ? (
       <div className={`${actionListCls}-length`}>
         {characterCountRender
           ? characterCountRender(actionInfo)
-          : props.maxLength
-          ? `${count}/${props.maxLength}`
+          : maxLength
+          ? `${count}/${maxLength}`
           : count}
       </div>
     ) : null;
@@ -736,15 +744,15 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
         style={styles.input}
         className={classnames(inputCls, classNames.input)}
         autoSize={autoSize}
-        value={innerValue.slice(0, props.maxLength || Number.MAX_SAFE_INTEGER)}
+        value={shouldTruncateOnMaxLength ? innerValue.slice(0, maxLength) : innerValue}
         onChange={(event) => {
           let nextValue = (event.target as HTMLTextAreaElement).value;
           if (
-            props.maxLength &&
+            shouldTruncateOnMaxLength &&
             !isCompositionRef.current &&
-            nextValue.length > props.maxLength
+            nextValue.length > maxLength
           ) {
-            nextValue = nextValue.slice(0, props.maxLength);
+            nextValue = nextValue.slice(0, maxLength);
           }
           triggerValueChange(
             nextValue,

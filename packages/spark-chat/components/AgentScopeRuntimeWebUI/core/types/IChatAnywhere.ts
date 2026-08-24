@@ -476,6 +476,11 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    */
   attachments?: IAgentScopeRuntimeWebUISenderAttachmentsOptions;
   /**
+   * @description 超过 maxLength 时自动转 txt 附件上传配置
+   * @descriptionEn Upload text over maxLength as a txt attachment automatically
+   */
+  longTextUpload?: false | IAgentScopeRuntimeWebUILongTextUploadOptions;
+  /**
    * @description 输入框前缀 UI，显示在输入框底部操作栏
    * @descriptionEn Prefix UI displayed in the bottom action bar of the input
    */
@@ -514,6 +519,33 @@ export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
   trigger?: React.FC<{
     disabled?: boolean;
   }>;
+}
+
+/**
+ * @description 超过 sender.maxLength 时自动转 txt 附件上传配置
+ * @descriptionEn Upload text over sender.maxLength as a txt attachment automatically
+ */
+export interface IAgentScopeRuntimeWebUILongTextUploadOptions {
+  /**
+   * @description 是否开启，默认为 true；设为 false 可关闭
+   * @descriptionEn Whether enabled, defaults to true; set false to disable
+   */
+  enabled?: boolean;
+  /**
+   * @description 上传接口；不传时复用 attachments.customRequest
+   * @descriptionEn Upload request; falls back to attachments.customRequest when omitted
+   */
+  customRequest?: UploadProps['customRequest'];
+  /**
+   * @description 超长文本转附件后替换输入框内容的 prompt；支持传方法用于国际化
+   * @descriptionEn Prompt used to replace input content after overlong text is uploaded; supports function form for i18n
+   */
+  prompt?: string | (() => string);
+  /**
+   * @description 生成的 txt 附件文件名
+   * @descriptionEn Generated txt attachment file name
+   */
+  fileName?: string;
 }
 
 /**

@@ -6,6 +6,14 @@ import { SparkAttachmentLine } from "@agentscope-ai/icons";
 import { Sender, Attachments } from '@agentscope-ai/chat';
 import React, { useCallback, useRef, useState } from "react";
 
+type UploadCustomRequest = NonNullable<IAgentScopeRuntimeWebUISenderAttachmentsOptions['customRequest']>;
+
+interface UploadFileOptions {
+  customRequest?: UploadCustomRequest;
+  fileName?: string;
+  fileType?: string;
+}
+
 function isAcceptedFile(file: File, accept?: string) {
   if (!accept) return true;
 
@@ -35,7 +43,7 @@ function getFileExtension(fileName: string, fileType: string) {
 }
 
 export default function useAttachments(
-  attachments: IAgentScopeRuntimeWebUISenderAttachmentsOptions,
+  attachments?: IAgentScopeRuntimeWebUISenderAttachmentsOptions,
   options?: {
     disabled?: boolean;
   }
@@ -66,22 +74,29 @@ export default function useAttachments(
   const disabled = !!options?.disabled;
   const uidCounter = useRef(0);
 
-  const handleManualFile = useCallback((file: File) => {
-    if (disabled || !customRequest || !isAcceptedFile(file, accept)) return;
-    if (maxCount && fileListRef.current.length >= maxCount) return;
+  const uploadFile = useCallback((
+    fileToUpload: File | Blob,
+    uploadOptions: UploadFileOptions = {},
+  ) => {
+    return new Promise<UploadFile>((resolve, reject) => {
+      const request = uploadOptions.customRequest || customRequest;
+      if (disabled || !request) {
+        reject(new Error('Upload request is not available.'));
+        return;
+      }
 
-    const fileType = file.type || '';
-    const fileName = file.name || '';
+      if (maxCount && fileListRef.current.length >= maxCount) {
+        reject(new Error('Maximum upload count reached.'));
+        return;
+      }
 
-    const startUpload = (fileToUpload: File | Blob) => {
-      if (maxCount && fileListRef.current.length >= maxCount) return;
-
-      const uploadType = fileToUpload.type || fileType;
+      const uploadType = fileToUpload.type || uploadOptions.fileType || '';
+      const sourceName = uploadOptions.fileName || ('name' in fileToUpload ? fileToUpload.name : '');
       const timestamp = Date.now();
       const uid = `manual-${timestamp}-${uidCounter.current++}`;
-      const uploadFile: UploadFile = {
+      const uploadFileItem: UploadFile = {
         uid,
-        name: fileName || `file-${timestamp}.${getFileExtension(fileName, uploadType)}`,
+        name: sourceName || `file-${timestamp}.${getFileExtension(sourceName, uploadType)}`,
         size: fileToUpload.size,
         type: uploadType,
         status: 'uploading',
@@ -89,7 +104,7 @@ export default function useAttachments(
         originFileObj: fileToUpload as any,
       };
 
-      setMergedFileList(prev => [...prev, uploadFile]);
+      setMergedFileList(prev => [...prev, uploadFileItem]);
 
       if (uploadType.startsWith('image/')) {
         const reader = new FileReader();
@@ -104,31 +119,45 @@ export default function useAttachments(
         reader.readAsDataURL(fileToUpload);
       }
 
-      customRequest(
-        {
-          file: fileToUpload as any,
-          filename: 'file',
-          action: '',
-          method: 'POST',
-          onSuccess: (response: any) => {
-            setMergedFileList(prev => prev.map(f =>
-              f.uid === uid ? { ...f, status: 'done' as const, response, percent: 100 } : f
-            ));
+      try {
+        request(
+          {
+            file: fileToUpload as any,
+            filename: 'file',
+            action: '',
+            method: 'POST',
+            onSuccess: (response: any) => {
+              let completedFile: UploadFile | undefined;
+              setMergedFileList(prev => prev.map(f =>
+                f.uid === uid ? (completedFile = { ...f, status: 'done' as const, response, percent: 100 }) : f
+              ));
+              resolve(completedFile || { ...uploadFileItem, status: 'done', response, percent: 100 });
+            },
+            onError: (error: any) => {
+              setMergedFileList(prev => prev.map(f =>
+                f.uid === uid ? { ...f, status: 'error' as const, error } : f
+              ));
+              reject(error);
+            },
+            onProgress: (event: any) => {
+              setMergedFileList(prev => prev.map(f =>
+                f.uid === uid ? { ...f, percent: event?.percent } : f
+              ));
+            },
           },
-          onError: (error: any) => {
-            setMergedFileList(prev => prev.map(f =>
-              f.uid === uid ? { ...f, status: 'error' as const, error } : f
-            ));
-          },
-          onProgress: (event: any) => {
-            setMergedFileList(prev => prev.map(f =>
-              f.uid === uid ? { ...f, percent: event?.percent } : f
-            ));
-          },
-        },
-        { defaultRequest: () => undefined },
-      );
-    };
+          { defaultRequest: () => undefined },
+        );
+      } catch (error) {
+        setMergedFileList(prev => prev.map(f =>
+          f.uid === uid ? { ...f, status: 'error' as const, error } : f
+        ));
+        reject(error);
+      }
+    });
+  }, [customRequest, disabled, maxCount, setMergedFileList]);
+
+  const handleManualFile = useCallback((file: File) => {
+    if (disabled || !customRequest || !isAcceptedFile(file, accept)) return;
 
     try {
       const beforeUploadResult = beforeUpload?.(file as any, [file as any]);
@@ -144,11 +173,19 @@ export default function useAttachments(
           }
 
           if (processedFile && typeof processedFile === 'object') {
-            startUpload(processedFile as File | Blob);
+            uploadFile(processedFile as File | Blob, {
+              customRequest,
+              fileName: file.name,
+              fileType: file.type,
+            }).catch((error) => {
+              console.error('upload file rejected:', error);
+            });
             return;
           }
 
-          startUpload(file);
+          uploadFile(file, { customRequest }).catch((error) => {
+            console.error('upload file rejected:', error);
+          });
         }).catch((error) => {
           console.error('beforeUpload promise rejected:', error);
         });
@@ -156,15 +193,33 @@ export default function useAttachments(
       }
 
       if (beforeUploadResult && typeof beforeUploadResult === 'object') {
-        startUpload(beforeUploadResult as unknown as File | Blob);
+        uploadFile(beforeUploadResult as unknown as File | Blob, {
+          customRequest,
+          fileName: file.name,
+          fileType: file.type,
+        }).catch((error) => {
+          console.error('upload file rejected:', error);
+        });
         return;
       }
 
-      startUpload(file);
+      uploadFile(file, { customRequest }).catch((error) => {
+        console.error('upload file rejected:', error);
+      });
     } catch (error) {
       console.error('beforeUpload rejected:', error);
     }
-  }, [accept, beforeUpload, customRequest, disabled, maxCount, setMergedFileList]);
+  }, [accept, beforeUpload, customRequest, disabled, uploadFile]);
+
+  const uploadFileListHeader = <Sender.Header
+    closable={false}
+    open={fileList?.length > 0}
+  >
+    <Attachments
+      items={fileList}
+      onChange={(info) => setMergedFileList(info.fileList)}
+    />
+  </Sender.Header>
 
   if (customRequest) {
     const uploadIconButton = <Upload
@@ -186,22 +241,11 @@ export default function useAttachments(
       }
     </Upload>
 
-
-    const uploadFileListHeader = <Sender.Header
-      closable={false}
-      open={fileList?.length > 0}
-    >
-      <Attachments
-        items={fileList}
-        onChange={(info) => setMergedFileList(info.fileList)}
-      />
-    </Sender.Header>
-
-
     return {
       fileList,
       getFileList,
       setFileList: setMergedFileList,
+      uploadFile,
       handlePasteFile: handleManualFile,
       handleDropFile: handleManualFile,
       uploadIconButton,
@@ -214,8 +258,10 @@ export default function useAttachments(
       fileList,
       getFileList,
       setFileList: setMergedFileList,
+      uploadFile,
       handlePasteFile: undefined,
       handleDropFile: undefined,
+      uploadFileListHeader,
     };
   }
 }
