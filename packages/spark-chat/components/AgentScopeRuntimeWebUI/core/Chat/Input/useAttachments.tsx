@@ -8,11 +8,16 @@ import React, { useCallback, useRef, useState } from "react";
 
 type UploadCustomRequest = NonNullable<IAgentScopeRuntimeWebUISenderAttachmentsOptions['customRequest']>;
 
-interface UploadFileOptions {
+export interface UploadFileOptions {
   customRequest?: UploadCustomRequest;
   fileName?: string;
   fileType?: string;
 }
+
+export type AttachmentUploadFile = (
+  fileToUpload: File | Blob,
+  uploadOptions?: UploadFileOptions,
+) => Promise<UploadFile>;
 
 function isAcceptedFile(file: File, accept?: string) {
   if (!accept) return true;
