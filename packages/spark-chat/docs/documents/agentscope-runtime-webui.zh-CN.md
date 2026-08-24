@@ -287,6 +287,18 @@ const options = {
       accept: '.png,.jpg,.pdf',
       maxCount: 5,
     },
+    longTextUpload: {
+      enabled: true,
+      customRequest(options) {
+        // 超过 maxLength 的输入会作为 txt 文件传入这里
+        uploadTextFile(options.file).then((response) => {
+          options.onSuccess(response);
+        }).catch(options.onError);
+      },
+      prompt: () => getCurrentLocale() === 'cn'
+        ? '请先阅读附件中的内容，再基于它回答我的问题'
+        : 'please read the file as prompt then answer it',
+    },
     beforeUI: <div>输入框上方内容</div>,
     afterUI: <div>输入框下方内容</div>,
     prefix: <button>工具按钮</button>,
@@ -297,6 +309,8 @@ const options = {
   },
 };
 ```
+
+开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。`prompt` 支持字符串，也支持 `() => string` 方法用于国际化。外部语言切换导致 `prompt` 配置更新时，如果输入框内容仍是自动生成的 prompt，WebUI 会同步刷新；如果用户已经手动编辑过输入框，则不会覆盖。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
 
 ### 会话管理
 

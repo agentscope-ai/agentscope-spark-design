@@ -287,6 +287,18 @@ const options = {
       accept: '.png,.jpg,.pdf',
       maxCount: 5,
     },
+    longTextUpload: {
+      enabled: true,
+      customRequest(options) {
+        // Input over maxLength is passed here as a txt file
+        uploadTextFile(options.file).then((response) => {
+          options.onSuccess(response);
+        }).catch(options.onError);
+      },
+      prompt: () => getCurrentLocale() === 'cn'
+        ? '请先阅读附件中的内容，再基于它回答我的问题'
+        : 'please read the file as prompt then answer it',
+    },
     beforeUI: <div>Content above the input</div>,
     afterUI: <div>Content below the input</div>,
     prefix: <button>Tool button</button>,
@@ -297,6 +309,8 @@ const options = {
   },
 };
 ```
+
+When `longTextUpload` is enabled, `sender.maxLength` is used as the overlong text threshold. If typed or pasted content exceeds that threshold, WebUI automatically creates and uploads a txt attachment, then replaces the input content with `prompt`. `prompt` supports either a string or a `() => string` function for i18n. When an external language switch updates the `prompt` config, WebUI refreshes the input content only if it is still the auto-generated prompt; user-edited input is not overwritten. If `prompt` is omitted, it defaults to `please read the file as prompt then answer it`. When `customRequest` is omitted, `attachments.customRequest` is reused.
 
 ### Session Management
 
