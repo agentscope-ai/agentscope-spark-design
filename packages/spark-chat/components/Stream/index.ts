@@ -186,27 +186,54 @@ function Stream<Output = SSEOutput>(
   /** support async iterator */
   stream[Symbol.asyncIterator] = async function* () {
     const reader = this.getReader();
+    let abortHandler: (() => void) | undefined;
+    let rejectPendingRead: ((reason: DOMException) => void) | undefined;
 
     try {
-      while (true) {
-        let readPromise: Promise<ReadableStreamReadResult<Output>> = reader.read();
-
-        if (signal) {
-          readPromise = Promise.race([
-            readPromise,
-            new Promise<never>((_, reject) => {
-              if (signal.aborted) {
-                reject(new DOMException('The operation was aborted.', 'AbortError'));
-                return;
-              }
-              signal.addEventListener('abort', () => {
-                reject(new DOMException('The operation was aborted.', 'AbortError'));
-              }, { once: true });
-            }),
-          ]);
+      if (signal) {
+        if (signal.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
         }
 
-        const { done, value } = await readPromise;
+        abortHandler = () => {
+          rejectPendingRead?.(
+            new DOMException('The operation was aborted.', 'AbortError'),
+          );
+        };
+        signal.addEventListener('abort', abortHandler, { once: true });
+      }
+
+      const waitForRead = async (
+        readPromise: Promise<ReadableStreamReadResult<Output>>,
+      ) => {
+        try {
+          return await new Promise<ReadableStreamReadResult<Output>>(
+            (resolve, reject) => {
+              rejectPendingRead = reject;
+              readPromise.then(resolve, reject);
+              if (signal?.aborted) {
+                reject(
+                  new DOMException('The operation was aborted.', 'AbortError'),
+                );
+              }
+            },
+          );
+        } finally {
+          rejectPendingRead = undefined;
+        }
+      };
+
+      while (true) {
+        if (signal?.aborted) {
+          throw new DOMException('The operation was aborted.', 'AbortError');
+        }
+
+        const readPromise = reader.read();
+        const readResult = signal
+          ? await waitForRead(readPromise)
+          : await readPromise;
+
+        const { done, value } = readResult;
         if (done) break;
 
         if (!value) continue;
@@ -220,6 +247,9 @@ function Stream<Output = SSEOutput>(
           : value;
       }
     } finally {
+      if (signal && abortHandler) {
+        signal.removeEventListener('abort', abortHandler);
+      }
       reader.releaseLock();
     }
   };
