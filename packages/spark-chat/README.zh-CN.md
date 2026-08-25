@@ -1,6 +1,5 @@
 # Alibaba Cloud Spark Chat
 
-
 [![npm version](https://img.shields.io/npm/v/@ali/agentscope-ai-chat.svg)](https://www.npmjs.com/package/@ali/agentscope-ai-chat)
 [![license](https://img.shields.io/npm/l/@ali/agentscope-ai-chat.svg)](https://github.com/your-repo/spark-chat/blob/main/LICENSE)
 
@@ -54,11 +53,11 @@ agentscope-runtime-webui -p 8080 -u http://api.example.com -t your-token
 
 **CLI 参数说明：**
 
-| 参数 | 缩写 | 说明 | 默认值 |
-|------|------|------|--------|
-| `--port` | `-p` | 指定服务端口 | `3000` |
-| `--url` | `-u` | 指定后端 API 地址 | 无 |
-| `--token` | `-t` | 指定认证 token | 无 |
+| 参数      | 缩写 | 说明              | 默认值 |
+| --------- | ---- | ----------------- | ------ |
+| `--port`  | `-p` | 指定服务端口      | `3000` |
+| `--url`   | `-u` | 指定后端 API 地址 | 无     |
+| `--token` | `-t` | 指定认证 token    | 无     |
 
 ### 方式二：集成到项目
 
@@ -211,6 +210,7 @@ for await (const chunk of Stream({ readableStream: response.body })) {
 ## 📚 文档
 
 - [概述](./docs/documents/overview.zh-CN.md)
+- [AgentScope Runtime WebUI 使用与 1.2.0 升级指南](./docs/documents/agentscope-runtime-webui.zh-CN.md)
 - [ChatAnywhere 使用指南](./docs/documents/chatanywhere.zh-CN.md)
 - [百炼智能体接入](./docs/documents/bailian.zh-CN.md)
 - [自定义卡片](./docs/documents/customCard.zh-CN.md)

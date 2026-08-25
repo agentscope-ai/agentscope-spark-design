@@ -84,7 +84,10 @@ The core code in the scaffold is as follows:
 **`src/components/Chat/index.tsx`**
 
 ```tsx | pure
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIOptions } from '@agentscope-ai/chat';
+import {
+  AgentScopeRuntimeWebUI,
+  IAgentScopeRuntimeWebUIOptions,
+} from '@agentscope-ai/chat';
 import defaultConfig from './defaultConfig';
 
 export default function () {
@@ -119,15 +122,18 @@ const config: IAgentScopeRuntimeWebUIOptions = {
   },
   sender: {
     maxLength: 10000,
-    disclaimer: 'AI can also make mistakes, so please check carefully and use it with caution',
+    disclaimer:
+      'AI can also make mistakes, so please check carefully and use it with caution',
   },
   session: {
     multiple: false,
   },
   welcome: {
     greeting: 'Hello, how can I help you today?',
-    description: 'I am a helpful assistant that can help you with your questions.',
-    avatar: 'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
+    description:
+      'I am a helpful assistant that can help you with your questions.',
+    avatar:
+      'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
     prompts: [
       { value: 'Hello' },
       { value: 'How are you?' },
@@ -197,11 +203,26 @@ const options = {
     token: 'YOUR_API_TOKEN',
 
     // Option 2: Custom fetch function for full control over request behavior
-    fetch: async ({ input, signal }) => {
+    fetch: async ({
+      input,
+      session_id,
+      context,
+      biz_params,
+      mentions,
+      submission,
+      signal,
+    }) => {
       return fetch('https://your-api-url.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({
+          input,
+          session_id,
+          context,
+          biz_params,
+          mentions,
+          submission,
+        }),
         signal,
       });
     },
@@ -210,6 +231,10 @@ const options = {
   },
 };
 ```
+
+Starting in 1.2.0, WebUI creates a request snapshot when a submission begins. `session_id`, `context`, `biz_params`, `mentions`, and `signal` continue to come from that snapshot across asynchronous boundaries instead of being read again from the active session. A custom `fetch` should use the supplied `session_id` and `context` directly and must not read a global `activeSessionId` again after an `await`.
+
+Use `context` for generic business context scoped to one request. `biz_params` keeps the existing `user_prompt_params` contract. The default request and a custom `fetch` receive the same context fields.
 
 ### Theme Configuration
 
@@ -245,7 +270,8 @@ Configure the welcome page shown when users enter the chat via `welcome`.
 const options = {
   welcome: {
     greeting: 'Hello! How can I help you?',
-    description: 'I am an intelligent assistant that can answer your questions.',
+    description:
+      'I am an intelligent assistant that can answer your questions.',
     avatar: 'https://your-avatar.png',
     nick: 'Assistant',
     prompts: [
@@ -277,7 +303,8 @@ const options = {
   sender: {
     placeholder: 'Type your question...',
     maxLength: 5000,
-    disclaimer: 'AI-generated content may contain errors. Please verify carefully.',
+    disclaimer:
+      'AI-generated content may contain errors. Please verify carefully.',
     allowSpeech: true,
     suggestions: [
       { label: 'Draw a picture', value: 'Draw a sunset landscape' },
@@ -291,13 +318,16 @@ const options = {
       enabled: true,
       customRequest(options) {
         // Input over maxLength is passed here as a txt file
-        uploadTextFile(options.file).then((response) => {
-          options.onSuccess(response);
-        }).catch(options.onError);
+        uploadTextFile(options.file)
+          .then((response) => {
+            options.onSuccess(response);
+          })
+          .catch(options.onError);
       },
-      prompt: () => getCurrentLocale() === 'cn'
-        ? '请先阅读附件中的内容，再基于它回答我的问题'
-        : 'please read the file as prompt then answer it',
+      prompt: () =>
+        getCurrentLocale() === 'cn'
+          ? '请先阅读附件中的内容，再基于它回答我的问题'
+          : 'please read the file as prompt then answer it',
     },
     beforeUI: <div>Content above the input</div>,
     afterUI: <div>Content below the input</div>,
@@ -312,6 +342,77 @@ const options = {
 
 When `longTextUpload` is enabled, `sender.maxLength` is used as the overlong text threshold. If typed or pasted content exceeds that threshold, WebUI automatically creates and uploads a txt attachment, then replaces the input content with `prompt`. `prompt` supports either a string or a `() => string` function for i18n. When an external language switch updates the `prompt` config, WebUI refreshes the input content only if it is still the auto-generated prompt; user-edited input is not overwritten. If `prompt` is omitted, it defaults to `please read the file as prompt then answer it`. When `customRequest` is omitted, `attachments.customRequest` is reused.
 
+#### Built-in Input Queue
+
+The built-in input queue is disabled by default. When `sender.queue` is omitted, WebUI does not create queue storage, a cross-tab channel, or background queue tasks. Pass `true` to use the defaults:
+
+```tsx | pure
+const options = {
+  sender: {
+    queue: true,
+  },
+};
+```
+
+Pass an options object when the host needs to provide session identity and runtime state:
+
+```tsx | pure
+const options = {
+  sender: {
+    queue: {
+      maxSize: 50,
+      getSessionId: (sessionId) => sessionId,
+      getRequestContext: (sessionId) => ({
+        session_id: sessionId,
+        user_id: getCurrentUserId(),
+        agent_id: getCurrentAgentId(),
+        context: {
+          workspaceId: getCurrentWorkspaceId(),
+        },
+      }),
+      isSessionRunning: async ({ sessionId, requestContext }) => {
+        return queryRunningState(sessionId, requestContext);
+      },
+      shouldRestoreOnError: async ({ error }) => {
+        return !isRequestAccepted(error);
+      },
+    },
+  },
+};
+```
+
+Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks, `BroadcastChannel`, and versioned `localStorage` state coordinate sending across tabs for the same session. Host-specific semantics remain in the callbacks above.
+
+#### Host-managed Delayed Queues
+
+You do not need to enable the built-in queue. Save the complete `IAgentScopeRuntimeWebUIInputData` when enqueuing, especially `session_id` and `context`, and pass the same object back to `ref.input.submit` when it is ready:
+
+```tsx | pure
+const pendingInputs: IAgentScopeRuntimeWebUIInputData[] = [];
+
+const options = {
+  sender: {
+    beforeSubmit: async (data) => {
+      pendingInputs.push({
+        ...data,
+        session_id: activeSessionId,
+        context: {
+          workspaceId: activeWorkspaceId,
+        },
+      });
+      return { proceed: false, clear: true };
+    },
+  },
+};
+
+function flushNextInput() {
+  const data = pendingInputs.shift();
+  if (data) chatRef.current?.input.submit(data);
+}
+```
+
+`ref.input.submit` now preserves the complete submission instead of selecting only `query`, `fileList`, and `biz_params`. A host-managed asynchronous queue and `customFetch` should use the stored `session_id` instead of reading the global active session again when delivery resumes.
+
 ### Session Management
 
 Configure multi-session support and session persistence via `session`.
@@ -319,34 +420,53 @@ Configure multi-session support and session persistence via `session`.
 ```tsx | pure
 const options = {
   session: {
-    multiple: true,  // Enable multiple sessions
+    multiple: true, // Enable multiple sessions
+    currentSessionId: routeSessionId, // Optional: control the session from the host route
+    onCurrentSessionChange: setRouteSessionId,
     api: {
       // Implement session persistence interface
-      getSessionList: async () => { /* ... */ },
-      getSession: async (sessionId) => { /* ... */ },
-      createSession: async (session) => { /* ... */ },
-      updateSession: async (session) => { /* ... */ },
-      removeSession: async (session) => { /* ... */ },
+      getSessionList: async () => {
+        /* ... */
+      },
+      getSession: async (sessionId) => {
+        /* ... */
+      },
+      createSession: async (session) => {
+        /* ... */
+      },
+      updateSession: async (session) => {
+        /* ... */
+      },
+      removeSession: async (session) => {
+        /* ... */
+      },
     },
   },
 };
 ```
 
-When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. Implement the above interface to connect to your backend storage.
+When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. Implement the above interface to connect to your backend storage. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route.
 
 ### Ref Instance Methods
 
 Access the component instance via `ref` to control messages and input behavior externally.
 
 ```tsx | pure
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef } from '@agentscope-ai/chat';
+import {
+  AgentScopeRuntimeWebUI,
+  IAgentScopeRuntimeWebUIRef,
+} from '@agentscope-ai/chat';
 import { useRef } from 'react';
 
 export default function App() {
   const chatRef = useRef<IAgentScopeRuntimeWebUIRef>(null);
 
   const handleExternalSubmit = () => {
-    chatRef.current?.input.submit({ query: 'Hello' });
+    chatRef.current?.input.submit({
+      query: 'Hello',
+      session_id: activeSessionId,
+      context: { workspaceId: activeWorkspaceId },
+    });
   };
 
   const handleDisableInput = () => {
@@ -484,23 +604,29 @@ export default function Weather(props: { data: IToolMessage }) {
 
   if (!items.length) return null;
 
-  const todayItem = items.find((_, i) => {
-    const { weekday } = formatDate(items[i].date);
-    return weekday === 'Today';
-  }) || items[0];
+  const todayItem =
+    items.find((_, i) => {
+      const { weekday } = formatDate(items[i].date);
+      return weekday === 'Today';
+    }) || items[0];
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <span>📍 {items[0].location}</span>
-        <span>{todayItem.temperature}° {weatherLabels[todayItem.weather]}</span>
+        <span>
+          {todayItem.temperature}° {weatherLabels[todayItem.weather]}
+        </span>
       </div>
       <div className={styles.container}>
         {items.map((item) => {
           const { weekday, date } = formatDate(item.date);
           const isToday = weekday === 'Today';
           return (
-            <div key={item.date} className={cx(styles.card, isToday && styles.todayCard)}>
+            <div
+              key={item.date}
+              className={cx(styles.card, isToday && styles.todayCard)}
+            >
               <span>{weekday}</span>
               <span>{date}</span>
               <span>{weatherIcons[item.weather]}</span>
@@ -534,7 +660,15 @@ export default config;
 
 When the backend returns `plugin_call` / `mcp_call` type messages and `content[0].data.name` matches the configured key, the WebUI will use the corresponding custom component instead of the default tool call collapse panel for rendering.
 
+## Upgrading to 1.2.0
+
+- A custom `api.fetch` now receives a required `session_id` plus independent `context`, `mentions`, `submission`, and `signal` values. Use these snapshot arguments instead of reading the global active session after asynchronous work.
+- Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible with the existing protocol.
+- The built-in input queue is now opt-in and disabled by default. Existing host-managed queues do not need to migrate; they only need to preserve and resubmit the complete input data.
+- `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData`.
+- Built-in queue persistence uses schema v2. Unsent local v1 queue items are discarded during the upgrade, so drain or clear the old queue before upgrading.
 
 ## More Details
+
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat/components/AgentScopeRuntimeWebUI

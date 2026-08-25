@@ -84,7 +84,10 @@ bailian-high-code-webui/
 **`src/components/Chat/index.tsx`**
 
 ```tsx | pure
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIOptions } from '@agentscope-ai/chat';
+import {
+  AgentScopeRuntimeWebUI,
+  IAgentScopeRuntimeWebUIOptions,
+} from '@agentscope-ai/chat';
 import defaultConfig from './defaultConfig';
 
 export default function () {
@@ -119,15 +122,18 @@ const config: IAgentScopeRuntimeWebUIOptions = {
   },
   sender: {
     maxLength: 10000,
-    disclaimer: 'AI can also make mistakes, so please check carefully and use it with caution',
+    disclaimer:
+      'AI can also make mistakes, so please check carefully and use it with caution',
   },
   session: {
     multiple: false,
   },
   welcome: {
     greeting: 'Hello, how can I help you today?',
-    description: 'I am a helpful assistant that can help you with your questions.',
-    avatar: 'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
+    description:
+      'I am a helpful assistant that can help you with your questions.',
+    avatar:
+      'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
     prompts: [
       { value: 'Hello' },
       { value: 'How are you?' },
@@ -197,11 +203,26 @@ const options = {
     token: 'YOUR_API_TOKEN',
 
     // 方式二：自定义 fetch 函数，完全控制请求行为
-    fetch: async ({ input, signal }) => {
+    fetch: async ({
+      input,
+      session_id,
+      context,
+      biz_params,
+      mentions,
+      submission,
+      signal,
+    }) => {
       return fetch('https://your-api-url.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({
+          input,
+          session_id,
+          context,
+          biz_params,
+          mentions,
+          submission,
+        }),
         signal,
       });
     },
@@ -210,6 +231,10 @@ const options = {
   },
 };
 ```
+
+从 1.2.0 开始，WebUI 会在一次提交开始时创建请求快照。`session_id`、`context`、`biz_params`、`mentions` 和 `signal` 在后续异步流程中都来自这份快照，不会在 `await` 后重新读取当前会话。自定义 `fetch` 应直接使用参数中的 `session_id` 和 `context`，不要再次读取业务侧的全局 `activeSessionId`。
+
+`context` 用于承载与单次请求绑定的通用业务上下文；`biz_params` 继续保留已有的 `user_prompt_params` 协议。默认请求和自定义 `fetch` 都会收到相同的上下文字段。
 
 ### 主题配置
 
@@ -291,13 +316,16 @@ const options = {
       enabled: true,
       customRequest(options) {
         // 超过 maxLength 的输入会作为 txt 文件传入这里
-        uploadTextFile(options.file).then((response) => {
-          options.onSuccess(response);
-        }).catch(options.onError);
+        uploadTextFile(options.file)
+          .then((response) => {
+            options.onSuccess(response);
+          })
+          .catch(options.onError);
       },
-      prompt: () => getCurrentLocale() === 'cn'
-        ? '请先阅读附件中的内容，再基于它回答我的问题'
-        : 'please read the file as prompt then answer it',
+      prompt: () =>
+        getCurrentLocale() === 'cn'
+          ? '请先阅读附件中的内容，再基于它回答我的问题'
+          : 'please read the file as prompt then answer it',
     },
     beforeUI: <div>输入框上方内容</div>,
     afterUI: <div>输入框下方内容</div>,
@@ -312,6 +340,77 @@ const options = {
 
 开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。`prompt` 支持字符串，也支持 `() => string` 方法用于国际化。外部语言切换导致 `prompt` 配置更新时，如果输入框内容仍是自动生成的 prompt，WebUI 会同步刷新；如果用户已经手动编辑过输入框，则不会覆盖。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
 
+#### 内置输入队列
+
+内置输入队列默认关闭，不配置 `sender.queue` 时不会创建队列存储、跨标签页通道或后台队列任务。传入 `true` 可使用默认配置：
+
+```tsx | pure
+const options = {
+  sender: {
+    queue: true,
+  },
+};
+```
+
+需要对接宿主会话和运行状态时，可以传入完整配置：
+
+```tsx | pure
+const options = {
+  sender: {
+    queue: {
+      maxSize: 50,
+      getSessionId: (sessionId) => sessionId,
+      getRequestContext: (sessionId) => ({
+        session_id: sessionId,
+        user_id: getCurrentUserId(),
+        agent_id: getCurrentAgentId(),
+        context: {
+          workspaceId: getCurrentWorkspaceId(),
+        },
+      }),
+      isSessionRunning: async ({ sessionId, requestContext }) => {
+        return queryRunningState(sessionId, requestContext);
+      },
+      shouldRestoreOnError: async ({ error }) => {
+        return !isRequestAccepted(error);
+      },
+    },
+  },
+};
+```
+
+队列条目会保存入队时的 `session_id` 和 `context`，出队时不会重新绑定到当前页面会话。队列通过 Web Locks、`BroadcastChannel` 和带版本号的 `localStorage` 状态协调同一会话的多标签页发送；业务语义仍由宿主通过上述回调提供。
+
+#### 业务方自有延迟队列
+
+不需要启用内置队列。业务方应在入队时保存完整的 `IAgentScopeRuntimeWebUIInputData`，尤其是 `session_id` 和 `context`；恢复发送时将同一对象交回 `ref.input.submit`：
+
+```tsx | pure
+const pendingInputs: IAgentScopeRuntimeWebUIInputData[] = [];
+
+const options = {
+  sender: {
+    beforeSubmit: async (data) => {
+      pendingInputs.push({
+        ...data,
+        session_id: activeSessionId,
+        context: {
+          workspaceId: activeWorkspaceId,
+        },
+      });
+      return { proceed: false, clear: true };
+    },
+  },
+};
+
+function flushNextInput() {
+  const data = pendingInputs.shift();
+  if (data) chatRef.current?.input.submit(data);
+}
+```
+
+`ref.input.submit` 会完整保留提交数据，不再只提取 `query`、`fileList` 和 `biz_params`。业务方自己的异步队列及 `customFetch` 都应使用已保存的 `session_id`，不要在恢复发送后重新读取全局活动会话。
+
 ### 会话管理
 
 通过 `session` 配置多会话支持和会话持久化。
@@ -319,27 +418,42 @@ const options = {
 ```tsx | pure
 const options = {
   session: {
-    multiple: true,  // 开启多会话
+    multiple: true, // 开启多会话
+    currentSessionId: routeSessionId, // 可选：由外部路由控制当前会话
+    onCurrentSessionChange: setRouteSessionId,
     api: {
       // 实现会话持久化接口
-      getSessionList: async () => { /* ... */ },
-      getSession: async (sessionId) => { /* ... */ },
-      createSession: async (session) => { /* ... */ },
-      updateSession: async (session) => { /* ... */ },
-      removeSession: async (session) => { /* ... */ },
+      getSessionList: async () => {
+        /* ... */
+      },
+      getSession: async (sessionId) => {
+        /* ... */
+      },
+      createSession: async (session) => {
+        /* ... */
+      },
+      updateSession: async (session) => {
+        /* ... */
+      },
+      removeSession: async (session) => {
+        /* ... */
+      },
     },
   },
 };
 ```
 
-当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，实现上述接口即可。
+当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，实现上述接口即可。传入 `currentSessionId` 后，WebUI 会把它视为外部路由控制值；`onCurrentSessionChange` 用于把组件内的会话创建或切换同步回业务路由。
 
 ### Ref 实例方法
 
 通过 `ref` 获取组件实例，可在外部控制消息和输入行为。
 
 ```tsx | pure
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef } from '@agentscope-ai/chat';
+import {
+  AgentScopeRuntimeWebUI,
+  IAgentScopeRuntimeWebUIRef,
+} from '@agentscope-ai/chat';
 import { useRef } from 'react';
 
 export default function App() {
@@ -347,7 +461,11 @@ export default function App() {
 
   const handleExternalSubmit = () => {
     // 通过 ref 触发提交
-    chatRef.current?.input.submit({ query: '你好' });
+    chatRef.current?.input.submit({
+      query: '你好',
+      session_id: activeSessionId,
+      context: { workspaceId: activeWorkspaceId },
+    });
   };
 
   const handleDisableInput = () => {
@@ -486,23 +604,29 @@ export default function Weather(props: { data: IToolMessage }) {
 
   if (!items.length) return null;
 
-  const todayItem = items.find((_, i) => {
-    const { weekday } = formatDate(items[i].date);
-    return weekday === '今天';
-  }) || items[0];
+  const todayItem =
+    items.find((_, i) => {
+      const { weekday } = formatDate(items[i].date);
+      return weekday === '今天';
+    }) || items[0];
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <span>📍 {items[0].location}</span>
-        <span>{todayItem.temperature}° {weatherLabels[todayItem.weather]}</span>
+        <span>
+          {todayItem.temperature}° {weatherLabels[todayItem.weather]}
+        </span>
       </div>
       <div className={styles.container}>
         {items.map((item) => {
           const { weekday, date } = formatDate(item.date);
           const isToday = weekday === '今天';
           return (
-            <div key={item.date} className={cx(styles.card, isToday && styles.todayCard)}>
+            <div
+              key={item.date}
+              className={cx(styles.card, isToday && styles.todayCard)}
+            >
               <span>{weekday}</span>
               <span>{date}</span>
               <span>{weatherIcons[item.weather]}</span>
@@ -536,7 +660,15 @@ export default config;
 
 当后端返回 `plugin_call` / `mcp_call` 等类型的消息且 `content[0].data.name` 与配置的 key 匹配时，WebUI 会使用对应的自定义组件替代默认的工具调用折叠面板进行渲染。
 
+## 1.2.0 升级说明
+
+- 自定义 `api.fetch` 现在会收到必填的 `session_id`，以及独立的 `context`、`mentions`、`submission` 和 `signal`。请求实现应使用这些快照参数，不要在异步操作后读取全局活动会话。
+- 通用业务上下文应通过 `context` 传递；`biz_params.user_prompt_params` 继续兼容原协议。
+- 内置输入队列改为显式开启，默认不启用。现有业务方自有队列不需要迁移到内置队列，只需保存并回传完整输入数据。
+- `ref.input.submit` 会完整透传 `IAgentScopeRuntimeWebUIInputData`。
+- 内置队列持久化 schema 升级到 v2。升级前尚未发送的 v1 本地队列条目会被丢弃，建议业务方在升级前先清空或发送完旧队列。
 
 ## 更多细节
+
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat/components/AgentScopeRuntimeWebUI
