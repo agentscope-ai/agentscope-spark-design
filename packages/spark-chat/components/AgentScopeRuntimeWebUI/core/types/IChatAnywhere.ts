@@ -31,8 +31,14 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    */
   fetch?: (data: {
     input: any[];
+    session_id: string;
+    user_id?: string;
+    channel?: string;
+    agent_id?: string;
+    context?: IAgentScopeRuntimeWebUIRequestContext;
     biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
     mentions?: IAgentScopeRuntimeWebUISenderMentionData[];
+    submission?: IAgentScopeRuntimeWebUISubmissionContext;
     signal?: AbortSignal;
   }) => Promise<Response>;
 
@@ -81,6 +87,25 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
     size?: number;
   }) => void;
 }
+
+export interface IAgentScopeRuntimeWebUISubmissionContext {
+  /**
+   * @description 请求来源
+   * @descriptionEn Request submission source.
+   */
+  source: 'direct' | 'queue';
+  /**
+   * @description 输入队列条目 id，仅队列请求存在
+   * @descriptionEn Input queue item id, present only for queued requests.
+   */
+  queueItemId?: string;
+}
+
+/**
+ * @description 由宿主提供并随单次提交完整透传的请求上下文
+ * @descriptionEn Host-provided request context preserved for one submission
+ */
+export type IAgentScopeRuntimeWebUIRequestContext = Record<string, unknown>;
 
 /**
  * @description 主题配置选项
@@ -279,30 +304,15 @@ export interface IAgentScopeRuntimeWebUISenderActionInfo {
  * @descriptionEn Generic mention item used by the sender
  */
 export interface IAgentScopeRuntimeWebUISenderMentionItem {
-  /**
-   * @description 提交时使用的值
-   * @descriptionEn Value used when submitting the mention
-   */
+  /** 提交时使用的值 / Value used when submitting the mention */
   value: string;
-  /**
-   * @description 候选项和胶囊中展示的内容，默认使用 value
-   * @descriptionEn Content displayed in the option and capsule, defaults to value
-   */
+  /** 候选项和胶囊中展示的内容 / Display content */
   label?: React.ReactNode;
-  /**
-   * @description 候选项和胶囊中展示的图标
-   * @descriptionEn Icon displayed in the option and capsule
-   */
+  /** 候选项和胶囊中展示的图标 / Display icon */
   icon?: React.ReactNode;
-  /**
-   * @description 可选的业务类型，例如 file 或 folder
-   * @descriptionEn Optional business type, for example file or folder
-   */
+  /** 可选的业务类型，例如 file 或 folder / Optional business type */
   type?: string;
-  /**
-   * @description 是否禁用该候选项
-   * @descriptionEn Whether this option is disabled
-   */
+  /** 是否禁用该候选项 / Whether this option is disabled */
   disabled?: boolean;
 }
 
@@ -316,21 +326,18 @@ export interface IAgentScopeRuntimeWebUISenderMentionData {
 }
 
 export interface IAgentScopeRuntimeWebUISenderBeforeSubmitResult {
-  /**
-   * @description 是否继续由组件提交当前消息
-   * @descriptionEn Whether the component should continue submitting
-   */
+  /** 是否继续由组件提交当前消息 / Whether submission should continue */
   proceed: boolean;
-  /**
-   * @description 可选的最终提交文本
-   * @descriptionEn Optional final query override
-   */
+  /** 可选的最终提交文本 / Optional final query override */
   query?: string;
-  /**
-   * @description 即使中止提交也清空输入区，例如消息已转入宿主队列
-   * @descriptionEn Clear the sender even when submission is intercepted, for example after host-side queueing
-   */
+  /** 即使中止提交也清空输入区 / Clear input even when intercepted */
   clear?: boolean;
+  /** 显式请求会话 / Explicit request session */
+  session_id?: string;
+  /** 单次提交的业务上下文 / Business context for this submission */
+  context?: IAgentScopeRuntimeWebUIRequestContext;
+  /** 单次提交的业务参数 / Business parameters for this submission */
+  biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
 }
 
 /**
@@ -338,10 +345,6 @@ export interface IAgentScopeRuntimeWebUISenderBeforeSubmitResult {
  * @descriptionEn Sender mention configuration
  */
 export interface IAgentScopeRuntimeWebUISenderMentionsOptions {
-  /**
-   * @description 静态候选项或按需加载候选项的函数
-   * @descriptionEn Static items or a function that lazily loads items
-   */
   items:
     | IAgentScopeRuntimeWebUISenderMentionItem[]
     | ((context: {
@@ -349,53 +352,17 @@ export interface IAgentScopeRuntimeWebUISenderMentionsOptions {
       }) =>
         | IAgentScopeRuntimeWebUISenderMentionItem[]
         | Promise<IAgentScopeRuntimeWebUISenderMentionItem[]>);
-  /**
-   * @description 触发字符，默认为 @
-   * @descriptionEn Trigger character, defaults to @
-   */
   trigger?: string;
-  /**
-   * @description 最多展示的候选项数量，默认为 50
-   * @descriptionEn Maximum number of visible options, defaults to 50
-   */
   maxOptions?: number;
-  /**
-   * @description 无匹配候选项时展示的内容
-   * @descriptionEn Content displayed when no option matches
-   */
   emptyText?: React.ReactNode;
-  /**
-   * @description 候选项加载中展示的内容
-   * @descriptionEn Content displayed while options are loading
-   */
   loadingText?: React.ReactNode;
-  /**
-   * @description 胶囊展示位置，默认为 header；inline 模式会把格式化后的文本写回输入值
-   * @descriptionEn Capsule display mode. Defaults to header; inline mode writes formatted text back to the input value
-   */
   displayMode?: 'header' | 'inline';
-  /**
-   * @description inline 模式下生成提交文本的方法
-   * @descriptionEn Builds the submitted text inserted for an inline mention
-   */
   getInsertText?: (
     item: IAgentScopeRuntimeWebUISenderMentionItem,
     trigger: string,
   ) => string;
-  /**
-   * @description 是否缓存异步候选项，默认为 true；设为 false 时每次打开重新加载
-   * @descriptionEn Whether to cache lazy items. Defaults to true; false reloads whenever the menu opens
-   */
   cacheItems?: boolean;
-  /**
-   * @description 是否允许重复选择相同 value，默认为 false
-   * @descriptionEn Whether the same value can be selected more than once. Defaults to false
-   */
   allowDuplicates?: boolean;
-  /**
-   * @description 已选项变化回调
-   * @descriptionEn Callback fired when selected mentions change
-   */
   onChange?: (items: IAgentScopeRuntimeWebUISenderMentionItem[]) => void;
 }
 
@@ -481,6 +448,11 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
    */
   longTextUpload?: false | IAgentScopeRuntimeWebUILongTextUploadOptions;
   /**
+   * @description 输入队列配置，默认关闭。传 true 或配置对象时启用。
+   * @descriptionEn Input queue configuration. Disabled by default; pass true or an options object to enable it.
+   */
+  queue?: boolean | IAgentScopeRuntimeWebUIQueueOptions;
+  /**
    * @description 输入框前缀 UI，显示在输入框底部操作栏
    * @descriptionEn Prefix UI displayed in the bottom action bar of the input
    */
@@ -501,7 +473,7 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
   suggestions?: { label?: string | React.ReactNode; value: string }[];
   /**
    * @description 通用提及配置，例如通过 @ 选择文件或文件夹路径
-   * @descriptionEn Generic mention configuration, for example selecting file or folder paths with @
+   * @descriptionEn Generic mention configuration
    */
   mentions?: IAgentScopeRuntimeWebUISenderMentionsOptions;
 }
@@ -526,26 +498,167 @@ export interface IAgentScopeRuntimeWebUISenderAttachmentsOptions
  * @descriptionEn Upload text over sender.maxLength as a txt attachment automatically
  */
 export interface IAgentScopeRuntimeWebUILongTextUploadOptions {
-  /**
-   * @description 是否开启，默认为 true；设为 false 可关闭
-   * @descriptionEn Whether enabled, defaults to true; set false to disable
-   */
   enabled?: boolean;
-  /**
-   * @description 上传接口；不传时复用 attachments.customRequest
-   * @descriptionEn Upload request; falls back to attachments.customRequest when omitted
-   */
   customRequest?: UploadProps['customRequest'];
-  /**
-   * @description 超长文本转附件后替换输入框内容的 prompt；支持传方法用于国际化
-   * @descriptionEn Prompt used to replace input content after overlong text is uploaded; supports function form for i18n
-   */
   prompt?: string | (() => string);
-  /**
-   * @description 生成的 txt 附件文件名
-   * @descriptionEn Generated txt attachment file name
-   */
   fileName?: string;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueRequestContext {
+  session_id?: string;
+  user_id?: string;
+  channel?: string;
+  agent_id?: string;
+  context?: IAgentScopeRuntimeWebUIRequestContext;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueSessionContext {
+  /**
+   * @description 当前聊天会话 id，用于宿主查询后端运行状态
+   * @descriptionEn Current chat session id for host applications to query backend running state.
+   */
+  sessionId?: string;
+  /**
+   * @description 输入队列使用的稳定会话 id
+   * @descriptionEn Stable session id used by the input queue.
+   */
+  queueSessionId?: string;
+  /**
+   * @description 入队请求上下文
+   * @descriptionEn Request context used by queued inputs.
+   */
+  requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueErrorContext
+  extends IAgentScopeRuntimeWebUIQueueSessionContext {
+  /**
+   * @description 发送失败的原始队列输入
+   * @descriptionEn Original queued input whose submission failed.
+   */
+  data: IAgentScopeRuntimeWebUIInputData;
+  /**
+   * @description 发送或流消费期间抛出的错误
+   * @descriptionEn Error thrown while submitting or consuming the response stream.
+   */
+  error: unknown;
+}
+
+export type IAgentScopeRuntimeWebUIQueuedInputStatus =
+  | 'pending'
+  | 'submitting'
+  | 'failed';
+
+/**
+ * @description 输入队列条目
+ * @descriptionEn Input queue item
+ */
+export interface IAgentScopeRuntimeWebUIQueuedInputItem {
+  id: string;
+  data: IAgentScopeRuntimeWebUIInputData;
+  status: IAgentScopeRuntimeWebUIQueuedInputStatus;
+  retryCount: number;
+  errorMessage?: string;
+  submissionOwnerTabId?: string;
+  submissionStartedAt?: number;
+  createdAt: number;
+}
+
+/**
+ * @description 队列条目操作上下文
+ * @descriptionEn Queue item action context
+ */
+export interface IAgentScopeRuntimeWebUIQueueItemActionContext {
+  item: IAgentScopeRuntimeWebUIQueuedInputItem;
+  index: number;
+  isOwner: boolean;
+  remove: () => void;
+  updateQuery: (query: string) => void;
+  sendNow: () => void;
+  retry: () => void;
+}
+
+export type IAgentScopeRuntimeWebUIQueueItemActionValue<T> =
+  | T
+  | ((context: IAgentScopeRuntimeWebUIQueueItemActionContext) => T);
+
+/**
+ * @description 队列条目自定义操作。业务行为由宿主实现，SDK 仅负责展示和提供队列操作上下文。
+ * @descriptionEn Custom queue item action. The host owns the business behavior; the SDK only renders it and provides queue helpers.
+ */
+export interface IAgentScopeRuntimeWebUIQueueItemAction {
+  /** 唯一且稳定的操作标识 / Unique and stable action key */
+  key: string;
+  /** 按钮提示及无障碍名称 / Button tooltip and accessible name */
+  label: IAgentScopeRuntimeWebUIQueueItemActionValue<React.ReactNode>;
+  /** 按钮图标 / Button icon */
+  icon: IAgentScopeRuntimeWebUIQueueItemActionValue<React.ReactNode>;
+  /** 是否展示，默认为 true / Whether to render, defaults to true */
+  visible?: IAgentScopeRuntimeWebUIQueueItemActionValue<boolean>;
+  /** 是否禁用；submitting 状态始终禁用 / Whether disabled; submitting items are always disabled */
+  disabled?: IAgentScopeRuntimeWebUIQueueItemActionValue<boolean>;
+  /** 是否仅队列 owner 展示，默认为 true / Whether only the queue owner can see it, defaults to true */
+  ownerOnly?: boolean;
+  /** 是否使用危险操作样式 / Whether to use the danger style */
+  danger?: boolean;
+  /** 点击回调 / Click handler */
+  onClick: (
+    context: IAgentScopeRuntimeWebUIQueueItemActionContext,
+  ) => void | Promise<void>;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueOptions {
+  /**
+   * @description 是否启用输入队列。传 false 可关闭队列。
+   * @descriptionEn Whether to enable the input queue. Pass false to disable it.
+   */
+  enable?: boolean;
+  /**
+   * @description 队列最大条目数
+   * @descriptionEn Maximum number of queued inputs
+   */
+  maxSize?: number;
+  /**
+   * @description 队列条目自定义操作，展示在编辑与立即发送操作之间
+   * @descriptionEn Custom queue item actions rendered between edit and send-now
+   */
+  itemActions?: readonly IAgentScopeRuntimeWebUIQueueItemAction[];
+  /**
+   * @description 获取队列使用的会话 id
+   * @descriptionEn Resolve the session id used by the input queue
+   */
+  getSessionId?: (sessionId?: string) => string | undefined;
+  /**
+   * @description 获取入队请求上下文，用于会话/用户/渠道/智能体切换后仍能发送到原上下文
+   * @descriptionEn Resolve request context for queued inputs so they keep their original session/user/channel/agent after switching.
+   */
+  getRequestContext?: (
+    sessionId?: string,
+  ) => IAgentScopeRuntimeWebUIQueueRequestContext | undefined;
+  /**
+   * @description 判断当前会话是否仍在宿主后端运行。返回 true 时，SDK 会把新的输入加入队列并延后出队。
+   * @descriptionEn Whether the host backend is still running for the current session. When true, new input is queued and draining waits.
+   */
+  isSessionRunning?: (
+    context: IAgentScopeRuntimeWebUIQueueSessionContext,
+  ) => boolean | Promise<boolean>;
+  /**
+   * @description 判断发送失败后是否应把输入恢复到队列。宿主已确认请求被后端接受时可返回 false，避免切换会话或组件卸载后重复发送。
+   * @descriptionEn Whether a failed submission should be restored to the queue. Hosts may return false after confirming backend acceptance to prevent duplicate delivery after a session switch or component unmount.
+   */
+  shouldRestoreOnError?: (
+    context: IAgentScopeRuntimeWebUIQueueErrorContext,
+  ) => boolean | Promise<boolean>;
+  /**
+   * @description 队列满时的回调
+   * @descriptionEn Called when the queue reaches maxSize
+   */
+  onFull?: (maxSize: number) => void;
+  /**
+   * @description 当前会话还未准备好，无法加入输入队列时的回调
+   * @descriptionEn Called when the current session is not ready for input queueing
+   */
+  onSessionNotReady?: () => void;
 }
 
 /**
@@ -597,6 +710,11 @@ export interface IAgentScopeRuntimeWebUISessionOptions {
    */
   multiple?: boolean;
   /**
+   * @description 当前会话 ID。传入该字段后，会话状态会跟随外部路由；传 undefined 表示新建会话页。
+   * @descriptionEn Current session id. When provided, the session state follows the external route; undefined means the new-chat page.
+   */
+  currentSessionId?: string;
+  /**
    * @description 隐藏内置的会话列表面板，由外部自行实现
    * @descriptionEn Hide the built-in session list panel, allowing external custom implementation
    */
@@ -606,6 +724,11 @@ export interface IAgentScopeRuntimeWebUISessionOptions {
    * @descriptionEn Session API interface
    */
   api?: IAgentScopeRuntimeWebUISessionAPI;
+  /**
+   * @description 当前会话切换回调，可用于同步业务路由
+   * @descriptionEn Called when current session changes. Useful for syncing external routes.
+   */
+  onCurrentSessionChange?: (sessionId: string | undefined) => void;
 }
 
 /**
@@ -860,15 +983,60 @@ export interface IAgentScopeRuntimeWebUIInputData {
    */
   query: string;
   /**
+   * @description 队列文本字段，兼容后续完整消息体扩展
+   * @descriptionEn Queue text field for future full-message-body extensions
+   */
+  text?: string;
+  /**
    * @description 文件列表
    * @descriptionEn File list
    */
   fileList?: (UploadProps['fileList'][number] & { file_id?: string })[];
   /**
-   * @description 已选择的提及项
-   * @descriptionEn Selected mention items
+   * @description 队列附件引用
+   * @descriptionEn Queued attachment references
+   */
+  attachments?: (UploadProps['fileList'][number] & { file_id?: string })[];
+  /**
+   * @description 图片引用
+   * @descriptionEn Image references
+   */
+  images?: { url: string; thumbUrl?: string; name?: string }[];
+  /**
+   * @description 提及信息
+   * @descriptionEn Mention data
    */
   mentions?: IAgentScopeRuntimeWebUISenderMentionData[];
+  /**
+   * @description 引用消息
+   * @descriptionEn Quoted message
+   */
+  quote?: { messageId: string; text: string };
+  /**
+   * @description 请求所属会话
+   * @descriptionEn Session id for this request
+   */
+  session_id?: string;
+  /**
+   * @description 请求所属用户
+   * @descriptionEn User id for this request
+   */
+  user_id?: string;
+  /**
+   * @description 请求所属渠道
+   * @descriptionEn Channel for this request
+   */
+  channel?: string;
+  /**
+   * @description 请求所属智能体
+   * @descriptionEn Agent id for this request
+   */
+  agent_id?: string;
+  /**
+   * @description 随当前提交完整透传的业务上下文
+   * @descriptionEn Business context preserved for this submission
+   */
+  context?: IAgentScopeRuntimeWebUIRequestContext;
   /**
    * @description 业务参数
    * @descriptionEn Business parameters

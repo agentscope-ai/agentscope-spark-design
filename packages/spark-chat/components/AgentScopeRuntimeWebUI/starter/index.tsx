@@ -1,10 +1,96 @@
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef, ChatInput } from '@agentscope-ai/chat';
+import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef } from '@agentscope-ai/chat';
 import OptionsPanel from './OptionsPanel';
 import { useMemo, useRef } from 'react';
 import defaultConfig from './OptionsPanel/defaultConfig';
 import { useLocalStorageState } from 'ahooks';
-import { Flex } from 'antd';
+import { Button, Flex } from 'antd';
 import MessageImport from './MessageImport';
+
+const encoder = new TextEncoder();
+
+const sleep = (ms: number) => new Promise(resolve => {
+  setTimeout(resolve, ms);
+});
+
+function getLastUserText(input: any[] = []) {
+  const lastMessage = input[input.length - 1];
+  const content = lastMessage?.content || [];
+  return content
+    .filter((item: any) => item?.type === 'text')
+    .map((item: any) => item.text)
+    .join('\n');
+}
+
+async function createMockQueueResponse(data: {
+  input?: any[];
+  signal?: AbortSignal;
+}) {
+  const userText = getLastUserText(data.input);
+  const messageId = `queue-demo-${Date.now()}`;
+  const chunks = [
+    {
+      object: 'message',
+      id: messageId,
+      role: 'assistant',
+      type: 'message',
+      status: 'in_progress',
+      content: [],
+    },
+    {
+      object: 'content',
+      msg_id: messageId,
+      type: 'text',
+      status: 'in_progress',
+      delta: true,
+      text: `Received: ${userText || 'attachment message'}\n\n`,
+    },
+    {
+      object: 'content',
+      msg_id: messageId,
+      type: 'text',
+      status: 'in_progress',
+      delta: true,
+      text: 'This mock response is intentionally slow, ',
+    },
+    {
+      object: 'content',
+      msg_id: messageId,
+      type: 'text',
+      status: 'in_progress',
+      delta: true,
+      text: 'so later inputs can enter the queue.',
+    },
+    {
+      object: 'response',
+      id: messageId,
+      status: 'completed',
+      created_at: Math.floor(Date.now() / 1000),
+      output: [],
+    },
+  ];
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      for (const chunk of chunks) {
+        if (data.signal?.aborted) {
+          controller.close();
+          return;
+        }
+        await sleep(700);
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`),
+        );
+      }
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+    },
+  });
+}
 
 
 export default function () {
@@ -32,6 +118,16 @@ export default function () {
     };
 
     const rightHeader = <Flex gap={16}>
+      <Button size="small" onClick={() => {
+        chatRef.current?.input.submit({ query: 'Queue demo 1: slow response' });
+        window.setTimeout(() => {
+          chatRef.current?.input.submit({ query: 'Queue demo 2: queued while busy' });
+        }, 400);
+        window.setTimeout(() => {
+          chatRef.current?.input.submit({ query: 'Queue demo 3: sent after demo 2' });
+        }, 800);
+      }}>Queue demo</Button>
+
       <OptionsPanel value={optionsConfig} onChange={v => {
         setOptionsConfig(prev => ({
           ...prev,
@@ -52,17 +148,6 @@ export default function () {
       },
       sender: {
         ...optionsConfig.sender,
-        beforeUI: <ChatInput.BeforeUIContainer>
-          <Flex gap={6}>
-            {
-              optionsConfig.welcome.prompts.map(prompt => (
-                <a key={prompt.value} onClick={() => {
-                  chatRef.current?.input.submit({ query: prompt.value });
-                }}>{prompt.value}</a>
-              ))
-            }
-          </Flex>
-        </ChatInput.BeforeUIContainer>,
         attachments: optionsConfig.sender.attachments ? {
           customRequest: mockUploadRequest,
         } : undefined,
@@ -84,6 +169,7 @@ export default function () {
       },
       api: {
         ...optionsConfig.api,
+        ...(!optionsConfig.api.baseURL ? { fetch: createMockQueueResponse } : {}),
         cancel: (data) => {
           console.log('cancel', data);
         },

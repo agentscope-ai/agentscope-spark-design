@@ -36,9 +36,9 @@ function areHistoryRangesEqual(prev: HistoryRange, next: HistoryRange) {
 }
 
 /**
- * 模拟后端分页 Hook：
- * - history 消息（会话加载时的历史记录）按页展示，滚动触底时加载更多
- * - 当前会话新产生的消息（非 history）始终全量展示
+ * Simulated backend pagination:
+ * - History messages loaded with the session are revealed page by page.
+ * - New messages produced in the current session are always shown in full.
  */
 function useSimulatedMessagePagination(
   allMessages: MessageWithHistory[],
@@ -76,7 +76,7 @@ function useSimulatedMessagePagination(
   const visibleHistory = historyMessages.slice(historyRange.start, historyRange.end);
   const noMore = historyRange.end >= historyMessages.length;
 
-  // 新消息在前（最新），历史分页消息在后（较旧）
+  // Show new messages first, then paginated history messages.
   const visibleMessages = useMemo(
     () => [...newMessages, ...visibleHistory],
     [newMessages, visibleHistory],

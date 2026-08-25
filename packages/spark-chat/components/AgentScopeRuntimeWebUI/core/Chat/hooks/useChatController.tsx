@@ -1,4 +1,7 @@
-import { IAgentScopeRuntimeWebUIMessage, sleep } from '@agentscope-ai/chat';
+import {
+  sleep,
+  type IAgentScopeRuntimeWebUIMessage,
+} from '@agentscope-ai/chat';
 import { useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useContextSelector } from 'use-context-selector';
@@ -6,26 +9,55 @@ import { ChatAnywhereInputContext } from '../../Context/ChatAnywhereInputContext
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import { ChatAnywhereSessionsContext } from '../../Context/ChatAnywhereSessionsContext';
 import useChatAnywhereEventEmitter from '../../Context/useChatAnywhereEventEmitter';
-import { InputProps } from '../Input';
+import type { InputProps } from '../Input';
+import { registerInputQueueSubmission } from '../InputQueue/submission';
+import {
+  createChatSubmissionRequest,
+  patchChatMessageSnapshot,
+} from '../submission';
 import useChatMessageHandler from './useChatMessageHandler';
 import useChatRequest from './useChatRequest';
 import useChatSessionHandler from './useChatSessionHandler';
+import useInputQueueController, {
+  InputQueueSubmitError,
+  type QueueSubmitNow,
+} from './useInputQueueController';
 // import mockdata from '../../mock/mock.json'
 
+function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === 'assistant' && message.msgStatus === 'generating') {
+      return message;
+    }
+  }
+}
+
 /**
- * Chat controller hook — coordinates all chat-related operations.
+ * Chat controller hook - coordinates chat requests, SSE lifecycle, and session
+ * events. Input queue storage/ownership/draining is delegated to
+ * useInputQueueController.
  */
 export default function useChatController() {
   const setLoading = useContextSelector(
     ChatAnywhereInputContext,
     (v) => v.setLoading,
   );
+  const getLoading = useContextSelector(
+    ChatAnywhereInputContext,
+    (v) => v.getLoading,
+  );
   const currentSessionId = useContextSelector(
     ChatAnywhereSessionsContext,
     (v) => v.currentSessionId,
   );
+  const pendingRouteSessionIdRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.pendingRouteSessionIdRef,
+  );
   const apiOptions = useChatAnywhereOptions((v) => v.api);
   const apiOptionsRef = useRef(apiOptions);
+
   useEffect(() => {
     apiOptionsRef.current = apiOptions;
   }, [apiOptions]);
@@ -37,117 +69,305 @@ export default function useChatController() {
     /**
      * Unique identifier for the currently active SSE request. Incremented on
      * every new submit / cancel / session-switch. processSSEResponse checks its
-     * own requestId against this value before every write — a mismatch means
-     * the stream is stale and should stop writing (prevents cross-session
-     * leakage and ghost writes from cancelled runs, related to issue #4644).
+     * own requestId against this value before every write so stale streams stop
+     * writing into the wrong session.
      */
     activeRequestId: number;
     /**
      * Snapshot of the session id associated with the active request.
-     * Used to detect stale requests after a session switch.
      */
     activeSessionId?: string;
+    /**
+     * Queue storage key associated with the active request. Host apps may
+     * replace a local route id with a backend id while the request is still
+     * streaming, so queue ownership must follow both aliases.
+     */
+    activeQueueSessionId?: string;
   }>({ activeRequestId: 0 });
+  const currentSessionIdRef = useRef(currentSessionId);
+  const submitNowRef = useRef<QueueSubmitNow | null>(null);
+  const handleCancelRef = useRef<(() => void) | null>(null);
+  const handleReconnectRef = useRef<
+    ((sessionId: string) => Promise<void>) | null
+  >(null);
 
-  // Message handler
+  currentSessionIdRef.current = currentSessionId;
+
   const messageHandler = useChatMessageHandler({ currentQARef });
-
-  // Session handler
   const sessionHandler = useChatSessionHandler();
 
-  /**
-   * Finalize the current response and reset UI loading state.
-   */
-  const finishResponse = useCallback(
-    (status: 'finished' | 'interrupted' = 'finished') => {
-      if (!currentQARef.current.response) return;
+  const {
+    queueEnabled,
+    inputQueue,
+    inputQueuePaused,
+    inputQueueIsOwner,
+    handleSubmit,
+    enqueueQueuedInput,
+    syncMessagesToPeerTabs,
+    getChatSessionIdForQueue,
+    resolveQueueSessionId,
+    assignOwnerForSubmit,
+    markQueueSessionActive,
+    markQueueSessionIdle,
+    handleResponseFinished,
+    prepareReconnect,
+    handleReconnectSettledIdle,
+    handleSessionLoaded,
+    sameQueueSession,
+    clearDrainTimer,
+    removeQueuedInput,
+    clearQueuedInputs,
+    retryQueuedInput,
+    toggleQueuePaused,
+    reorderQueuedInput,
+    updateQueuedInputQuery,
+    sendQueuedInputNow,
+  } = useInputQueueController({
+    currentQARef,
+    currentSessionId,
+    currentSessionIdRef,
+    pendingRouteSessionIdRef,
+    setLoading,
+    getLoading,
+    getCurrentSessionId: sessionHandler.getCurrentSessionId,
+    submitNowRef,
+    handleCancelRef,
+    handleReconnectRef,
+  });
 
-      currentQARef.current.response.msgStatus = status;
-      setLoading(false);
-      ReactDOM.flushSync(() => {
-        messageHandler.updateMessage(currentQARef.current.response);
-      });
-
-      sessionHandler.syncSessionMessages(messageHandler.getMessages());
+  const updateMessageAndSync = useCallback(
+    (message: IAgentScopeRuntimeWebUIMessage) => {
+      messageHandler.updateMessage(message);
+      const sessionId =
+        currentQARef.current.activeSessionId ||
+        sessionHandler.getCurrentSessionId();
+      syncMessagesToPeerTabs(
+        sessionId,
+        patchChatMessageSnapshot(messageHandler.getMessages(), message),
+      );
     },
-    [setLoading, messageHandler, sessionHandler],
+    [messageHandler, sessionHandler, syncMessagesToPeerTabs],
   );
 
-  // API request handling
+  const finishResponse = useCallback(
+    (status: 'finished' | 'interrupted' = 'finished') => {
+      const response = currentQARef.current.response;
+      if (!response) return;
+
+      const activeSessionId = currentQARef.current.activeSessionId;
+      response.msgStatus = status;
+      setLoading(false);
+      ReactDOM.flushSync(() => {
+        messageHandler.updateMessage(response);
+      });
+
+      const nextMessages = patchChatMessageSnapshot(
+        messageHandler.getMessages(),
+        response,
+      );
+      syncMessagesToPeerTabs(activeSessionId, nextMessages);
+      sessionHandler.syncSessionMessages(nextMessages, activeSessionId);
+      handleResponseFinished(activeSessionId);
+    },
+    [
+      handleResponseFinished,
+      messageHandler,
+      sessionHandler,
+      setLoading,
+      syncMessagesToPeerTabs,
+    ],
+  );
+
   const { request, reconnect } = useChatRequest({
     currentQARef,
-    updateMessage: messageHandler.updateMessage,
-    getCurrentSessionId: sessionHandler.getCurrentSessionId,
+    updateMessage: updateMessageAndSync,
     onFinish: () => finishResponse('finished'),
   });
 
-  /**
-   * Handle user message submission.
-   */
-  const handleSubmit = useCallback<InputProps['onSubmit']>(
-    async (data) => {
-      // 0. Abort any previous in-flight SSE. We do NOT call the cancel API here
-      //    — the user is sending a new message, not explicitly cancelling.
-      //    Cancel is only invoked from handleCancel.
-      currentQARef.current.abortController?.abort();
-
-      // 1. Ensure session exists FIRST. Bumping activeRequestId before this can
-      //    race with the [currentSessionId] effect below: ensureSession may set
-      //    a new sessionId, that effect then bumps activeRequestId again, and
-      //    our own myRequestId becomes stale → the guard after sleep(100) bails
-      //    out and the request is silently dropped. Establishing the session
-      //    first guarantees the effect (if any) has flushed before we snapshot
-      //    myRequestId.
-      await sessionHandler.ensureSession(data.query);
-
-      const myRequestId = ++currentQARef.current.activeRequestId;
-      // Snapshot current session id for downstream SSE guard checks
-      currentQARef.current.activeSessionId =
-        sessionHandler.getCurrentSessionId();
-
-      // 2. Update session name (only for the first message)
-      const messages = messageHandler.getMessages();
-      if (sessionHandler.getCurrentSessionId()) {
-        await sessionHandler.updateSessionName(data.query, messages);
+  const submitNow = useCallback<QueueSubmitNow>(
+    async (
+      data: Parameters<InputProps['onSubmit']>[0],
+      options?: {
+        sessionId?: string;
+        queueSessionId?: string;
+        queueItemId?: string;
+        onRequestAccepted?: () => void | Promise<void>;
+        shouldRestoreOnError?: (error: unknown) => boolean | Promise<boolean>;
+      },
+    ) => {
+      const queuedSubmitSessionId = options?.queueSessionId
+        ? getChatSessionIdForQueue(options.queueSessionId, options.sessionId)
+        : undefined;
+      if (options?.queueSessionId && !queuedSubmitSessionId) {
+        throw new Error('input queue session switched');
       }
 
-      // 3. Create user request message
-      messageHandler.createRequestMessage(data);
-      setLoading(true);
-      await sleep(100);
+      currentQARef.current.abortController?.abort();
 
-      // If requestId changed during the sleep (session switch / cancel / new submit), bail out
-      if (myRequestId !== currentQARef.current.activeRequestId) return;
-
-      // 4. Create assistant response placeholder
-      messageHandler.createResponseMessage();
-
-      // 5. Gather history messages and fire the request
-      const historyMessages = messageHandler.getHistoryMessages();
-      await sessionHandler.syncSessionMessages(messageHandler.getMessages());
-
-      await request(
-        historyMessages,
-        data.biz_params,
-        myRequestId,
-        data.mentions,
+      const submitSessionId =
+        queuedSubmitSessionId ||
+        options?.sessionId ||
+        data.session_id ||
+        (await sessionHandler.ensureSession(data.query));
+      if (!submitSessionId) {
+        throw new Error('chat session is not ready');
+      }
+      const submissionData = createChatSubmissionRequest(
+        data,
+        data.session_id || submitSessionId,
       );
+      currentQARef.current.activeSessionId = submitSessionId;
+
+      const resolvedSubmitQueueSessionId =
+        resolveQueueSessionId(submitSessionId);
+      const submitQueueSessionId =
+        options?.queueSessionId || resolvedSubmitQueueSessionId;
+      currentQARef.current.activeQueueSessionId = submitQueueSessionId;
+      if (
+        options?.queueSessionId &&
+        resolvedSubmitQueueSessionId !== options.queueSessionId &&
+        submitSessionId !== options.queueSessionId
+      ) {
+        throw new Error('input queue session switched');
+      }
+
+      await assignOwnerForSubmit(submitQueueSessionId);
+      markQueueSessionActive(submitQueueSessionId);
+      const unregisterSubmission = registerInputQueueSubmission(
+        submitQueueSessionId,
+        () => handleCancelRef.current?.(),
+      );
+
+      const myRequestId = ++currentQARef.current.activeRequestId;
+      let requestMessage: IAgentScopeRuntimeWebUIMessage | undefined;
+      let responseMessage: IAgentScopeRuntimeWebUIMessage | undefined;
+      let requestAccepted = false;
+      try {
+        const messages = messageHandler.getMessages();
+        if (submitSessionId) {
+          await sessionHandler.updateSessionName(
+            data.query,
+            messages,
+            submitSessionId,
+          );
+        }
+
+        requestMessage = messageHandler.createRequestMessage(data);
+        const requestSignal = currentQARef.current.abortController?.signal;
+        syncMessagesToPeerTabs(submitSessionId, messageHandler.getMessages());
+        setLoading(true);
+        await sleep(100);
+
+        if (myRequestId !== currentQARef.current.activeRequestId) {
+          throw new Error('chat request aborted');
+        }
+
+        responseMessage = messageHandler.createResponseMessage();
+        syncMessagesToPeerTabs(
+          submitSessionId,
+          patchChatMessageSnapshot(
+            messageHandler.getMessages(),
+            responseMessage,
+          ),
+        );
+
+        const historyMessages = messageHandler.getHistoryMessages();
+        await sessionHandler.syncSessionMessages(
+          messageHandler.getMessages(),
+          submitSessionId,
+        );
+
+        const accepted = await request(historyMessages, submissionData, {
+          requestId: myRequestId,
+          sessionId: submitSessionId,
+          signal: requestSignal,
+          onAccepted: async () => {
+            requestAccepted = true;
+            await options?.onRequestAccepted?.();
+          },
+          queueItemId: options?.queueItemId,
+        });
+        if (!accepted) {
+          throw new Error('chat request aborted');
+        }
+      } catch (error) {
+        markQueueSessionIdle(submitQueueSessionId);
+        if (options?.queueSessionId) {
+          let shouldRestore = true;
+          try {
+            shouldRestore = requestAccepted
+              ? false
+              : (await options.shouldRestoreOnError?.(error)) !== false;
+          } catch (restoreCheckError) {
+            console.error(
+              'input queue restore check failed:',
+              restoreCheckError,
+            );
+          }
+
+          if (shouldRestore) {
+            if (responseMessage) {
+              messageHandler.removeMessageById(responseMessage.id);
+            }
+            if (requestMessage) {
+              messageHandler.removeMessageById(requestMessage.id);
+            }
+            if (currentQARef.current.request?.id === requestMessage?.id) {
+              currentQARef.current.request = undefined;
+            }
+            if (currentQARef.current.response?.id === responseMessage?.id) {
+              currentQARef.current.response = undefined;
+            }
+            const rolledBackMessages = messageHandler.getMessages();
+            syncMessagesToPeerTabs(submitSessionId, rolledBackMessages);
+            try {
+              await sessionHandler.syncSessionMessages(
+                rolledBackMessages,
+                submitSessionId,
+              );
+            } catch (rollbackError) {
+              console.error(
+                'input queue message rollback failed:',
+                rollbackError,
+              );
+            }
+          }
+          setLoading(false);
+          throw new InputQueueSubmitError(error, shouldRestore);
+        }
+        setLoading(false);
+        console.error(error);
+      } finally {
+        unregisterSubmission();
+      }
       // mockRequest(mockdata);
     },
-    [messageHandler, sessionHandler, request, setLoading],
+    [
+      assignOwnerForSubmit,
+      getChatSessionIdForQueue,
+      markQueueSessionActive,
+      markQueueSessionIdle,
+      messageHandler,
+      request,
+      resolveQueueSessionId,
+      sessionHandler,
+      setLoading,
+      syncMessagesToPeerTabs,
+    ],
   );
+
+  submitNowRef.current = submitNow;
 
   const handleApproval = useCallback(
     async ({ input }) => {
       currentQARef.current.abortController?.abort();
-      // Snapshot the current session id BEFORE bumping requestId, then bump.
-      // Order matches handleSubmit so a concurrent session-change effect cannot
-      // invalidate myRequestId between the bump and the sleep guard below.
-      currentQARef.current.activeSessionId =
-        sessionHandler.getCurrentSessionId();
+      const sessionId = sessionHandler.getCurrentSessionId();
+      if (!sessionId) return;
+      currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
 
       messageHandler.createApprovalMessage(input);
+      const requestSignal = currentQARef.current.abortController?.signal;
 
       setLoading(true);
       await sleep(100);
@@ -156,35 +376,32 @@ export default function useChatController() {
 
       messageHandler.createResponseMessage();
       const historyMessages = messageHandler.getHistoryMessages();
-      await sessionHandler.syncSessionMessages(messageHandler.getMessages());
+      await sessionHandler.syncSessionMessages(
+        messageHandler.getMessages(),
+        sessionId,
+      );
 
-      await request(historyMessages, undefined, myRequestId);
+      await request(
+        historyMessages,
+        createChatSubmissionRequest(undefined, sessionId),
+        {
+          requestId: myRequestId,
+          sessionId,
+          signal: requestSignal,
+        },
+      );
     },
-    [messageHandler, sessionHandler, request, setLoading],
+    [messageHandler, request, sessionHandler, setLoading],
   );
 
-  /**
-   * Handle cancel / stop.
-   * 1. Mark response as interrupted and reset UI (finishResponse).
-   * 2. Invoke the cancel API immediately — do NOT wait for the next SSE
-   *    chunk to deliver the cancellation (fixes "backend keeps running
-   *    after stop" issue).
-   * 3. Abort the SSE connection — its catch branch will see
-   *    msgStatus === 'interrupted' and call builder.cancel() to flip the
-   *    in-progress TEXT content to Canceled, so the trailing Markdown
-   *    cursor ("...") disappears.
-   *
-   * NOTE: we intentionally do NOT bump activeRequestId here. Doing so
-   * would make isStillActive() in processSSEResponse return false for
-   * this very cancel, which would short-circuit the catch branch before
-   * builder.cancel() runs and leave the trailing cursor blinking forever.
-   * Stale-chunk protection still holds: abort() breaks the SSE loop
-   * immediately, and the next submit / session switch will bump
-   * activeRequestId on its own.
-   */
   const handleCancel = useCallback(() => {
     finishResponse('interrupted');
-    const sessionId = sessionHandler.getCurrentSessionId();
+    // Invalidate the request even when cancellation happens before the
+    // assistant placeholder or AbortController has been created.
+    currentQARef.current.activeRequestId += 1;
+    const sessionId =
+      currentQARef.current.activeSessionId ||
+      sessionHandler.getCurrentSessionId();
     const cancelFn = apiOptionsRef.current.cancel;
     if (cancelFn && sessionId) {
       try {
@@ -196,83 +413,106 @@ export default function useChatController() {
     currentQARef.current.abortController?.abort();
   }, [finishResponse, sessionHandler]);
 
-  /**
-   * Handle regenerate (retry the last assistant response).
-   */
+  handleCancelRef.current = handleCancel;
+
   const handleRegenerate = useCallback(
     async (messageId: string) => {
       currentQARef.current.abortController?.abort();
-      currentQARef.current.activeSessionId =
-        sessionHandler.getCurrentSessionId();
+      const sessionId = sessionHandler.getCurrentSessionId();
+      if (!sessionId) return;
+      currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
 
       setLoading(true);
 
-      // 1. Remove old message
       messageHandler.removeMessageById(messageId);
-
-      // 2. Create new response placeholder
       currentQARef.current.abortController = new AbortController();
+      const requestSignal = currentQARef.current.abortController.signal;
       messageHandler.createResponseMessage();
 
-      // 3. Fire the request
       const historyMessages = messageHandler.getHistoryMessages();
-      await request(historyMessages, undefined, myRequestId);
+      await request(
+        historyMessages,
+        createChatSubmissionRequest(undefined, sessionId),
+        {
+          requestId: myRequestId,
+          sessionId,
+          signal: requestSignal,
+        },
+      );
     },
     [messageHandler, request, sessionHandler, setLoading],
   );
 
-  /**
-   * Handle SSE reconnection (when switching back to an unfinished conversation).
-   * If the reconnect API returns no body or the stream ends without a completion event,
-   * treat it as idle: remove the empty placeholder and reset loading.
-   */
   const handleReconnect = useCallback(
     async (sessionId: string) => {
+      if (!sessionId || sessionId !== currentSessionIdRef.current) return;
+
+      const { blockedByPeer, queueSessionId } = prepareReconnect(sessionId);
+      if (blockedByPeer) return;
+
       currentQARef.current.abortController?.abort();
       currentQARef.current.abortController = new AbortController();
       const myRequestId = ++currentQARef.current.activeRequestId;
       currentQARef.current.activeSessionId = sessionId;
+      markQueueSessionActive(queueSessionId);
       setLoading(true);
 
-      messageHandler.createResponseMessage();
+      const existingResponse = findGeneratingResponse(
+        messageHandler.getMessages(),
+      );
+      if (existingResponse) {
+        const activeResponse = {
+          ...existingResponse,
+          history: undefined,
+        } as IAgentScopeRuntimeWebUIMessage;
+        currentQARef.current.response = activeResponse;
+        messageHandler.updateMessage(activeResponse);
+      } else {
+        messageHandler.createResponseMessage();
+      }
 
       await reconnect(sessionId, myRequestId);
 
-      // If session was switched or a new request fired during reconnect, bail out
       if (myRequestId !== currentQARef.current.activeRequestId) return;
 
-      // If the response is still in 'generating' state after reconnect completes,
-      // onFinish() was never called (no response body, or stream closed without a completion event).
-      // Treat as idle: remove the empty placeholder and reset loading.
-      // HTTP errors and normal SSE completions both call onFinish() → msgStatus becomes 'finished',
-      // so they are correctly excluded from this cleanup.
       if (currentQARef.current.response?.msgStatus === 'generating') {
         setLoading(false);
         if (currentQARef.current.response?.id) {
           messageHandler.removeMessageById(currentQARef.current.response.id);
         }
         currentQARef.current.response = undefined;
+        handleReconnectSettledIdle(queueSessionId);
       }
     },
-    [messageHandler, reconnect, setLoading],
+    [
+      handleReconnectSettledIdle,
+      markQueueSessionActive,
+      messageHandler,
+      prepareReconnect,
+      reconnect,
+      setLoading,
+    ],
   );
 
-  // On session switch: abort current SSE (without notifying backend cancel)
-  // and reset state. Also increment activeRequestId so any residual SSE
-  // chunks from the old session are discarded, preventing cross-session leakage.
-  //
-  // IMPORTANT: only bump on a real session change. Running this on initial
-  // mount or when sessionId merely transitions from undefined → <same id>
-  // (e.g. after route navigate / refreshKey churn) would invalidate the
-  // myRequestId taken by an in-flight handleSubmit and silently drop the
-  // outgoing chat request — that was the regression that made existing
-  // sessions unable to send messages until a new chat was created.
+  handleReconnectRef.current = handleReconnect;
+
   useEffect(() => {
     const prevSessionId = currentQARef.current.activeSessionId;
-    if (!prevSessionId || prevSessionId === currentSessionId) {
-      // First mount, or no real switch: just sync the snapshot, do not bump.
-      currentQARef.current.activeSessionId = currentSessionId;
+    const equivalentQueueSession = sameQueueSession(
+      prevSessionId,
+      currentSessionId,
+    );
+    if (
+      !prevSessionId ||
+      prevSessionId === currentSessionId ||
+      equivalentQueueSession
+    ) {
+      if (!currentQARef.current.response) {
+        currentQARef.current.activeSessionId = currentSessionId;
+        currentQARef.current.activeQueueSessionId =
+          resolveQueueSessionId(currentSessionId);
+      }
       return;
     }
 
@@ -283,15 +523,21 @@ export default function useChatController() {
       abortController: undefined,
       activeRequestId: currentQARef.current.activeRequestId + 1,
       activeSessionId: currentSessionId,
+      activeQueueSessionId: resolveQueueSessionId(currentSessionId),
     };
 
     return () => {
+      clearDrainTimer();
       currentQARef.current.abortController?.abort();
       currentQARef.current.activeRequestId += 1;
     };
-  }, [currentSessionId]);
+  }, [
+    clearDrainTimer,
+    currentSessionId,
+    resolveQueueSessionId,
+    sameQueueSession,
+  ]);
 
-  // Listen for reconnect events
   useChatAnywhereEventEmitter(
     {
       type: 'handleReconnect',
@@ -302,13 +548,25 @@ export default function useChatController() {
     [handleReconnect],
   );
 
-  // Listen for regenerate events
-  useChatAnywhereEventEmitter({
-    type: 'handleReplace',
-    callback: async (data) => {
-      await handleRegenerate(data.detail.id);
+  useChatAnywhereEventEmitter(
+    {
+      type: 'handleSessionLoaded',
+      callback: (data) => {
+        handleSessionLoaded(data.detail?.session_id, data.detail?.generating);
+      },
     },
-  });
+    [handleSessionLoaded],
+  );
+
+  useChatAnywhereEventEmitter(
+    {
+      type: 'handleReplace',
+      callback: async (data) => {
+        await handleRegenerate(data.detail.id);
+      },
+    },
+    [handleRegenerate],
+  );
 
   useChatAnywhereEventEmitter(
     {
@@ -333,5 +591,17 @@ export default function useChatController() {
   return {
     handleSubmit,
     handleCancel,
+    inputQueueEnabled: queueEnabled,
+    inputQueue,
+    inputQueuePaused,
+    inputQueueIsOwner,
+    enqueueQueuedInput,
+    removeQueuedInput,
+    clearQueuedInputs,
+    retryQueuedInput,
+    toggleQueuePaused,
+    reorderQueuedInput,
+    updateQueuedInputQuery,
+    sendQueuedInputNow,
   };
 }

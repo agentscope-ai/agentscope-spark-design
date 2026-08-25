@@ -1,2 +1,24 @@
 @tailwind components;
 @tailwind utilities;
+
+.spark-doc-toc-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 320px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(20, 20, 20, 0.96);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: normal;
+  word-break: break-word;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  opacity: 0;
+  transform: translate(-100%, -50%);
+  pointer-events: none;
+}
+
+.spark-doc-toc-tooltip-visible {
+  opacity: 1;
+}

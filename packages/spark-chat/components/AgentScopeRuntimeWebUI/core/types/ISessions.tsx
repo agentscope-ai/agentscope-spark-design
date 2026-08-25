@@ -1,4 +1,5 @@
 import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
+import type { MutableRefObject } from "react";
 
 
 export interface IAgentScopeRuntimeWebUISession {
@@ -31,4 +32,7 @@ export interface IAgentScopeRuntimeWebUISessionsContext {
   currentSessionId: string | undefined;
   setCurrentSessionId: (sessionId: string | undefined) => void;
   getCurrentSessionId: () => string | undefined;
+  skipNextSessionLoadIdRef?: MutableRefObject<string | undefined>;
+  pendingRouteSessionIdRef?: MutableRefObject<string | undefined>;
+  isCurrentSessionControlled?: boolean;
 }

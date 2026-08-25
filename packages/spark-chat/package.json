@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/chat",
-  "version": "1.1.73",
+  "version": "1.2.0",
   "description": "a free and open-source chat framework for building excellent LLM-powered chat experiences",
   "license": "Apache-2.0",
   "sideEffects": [
@@ -32,10 +32,11 @@
     "lint:es": "eslint \"{src,test}/**/*.{js,jsx,ts,tsx}\"",
     "llms:build": "LLM=true dumi build",
     "prepare": "dumi setup",
+    "release": "node publish.js",
+    "release:beta": "node publish-beta.js",
     "src:build": "father build",
     "start": "npm run dev",
-    "release:beta": "node publish-beta.js",
-    "release": "node publish.js"
+    "test": "tsx components/AgentScopeRuntimeWebUI/core/Chat/InputQueue/__tests__/inputQueue.test.ts && tsx --test components/AgentScopeRuntimeWebUI/core/Chat/__tests__/submission.test.ts"
   },
   "commitlint": {
     "extends": [

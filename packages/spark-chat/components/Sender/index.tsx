@@ -55,7 +55,7 @@ type TextareaProps = GetProps<typeof Input.TextArea>;
 type SuggestionItems = Exclude<GetProp<typeof Suggestion, 'items'>, () => void>;
 
 export interface SenderInputProps extends TextareaProps {
-  /** Reports the selection offsets in the raw sender value. */
+  /** Reports selection offsets in the raw sender value. */
   onSelectionChange?: (start: number, end: number) => void;
 }
 
@@ -148,6 +148,12 @@ export interface SenderProps
    * @descriptionEn Whether to allow sending when input is empty
    */
   allowEmptySubmit?: boolean;
+
+  /**
+   * @description 是否允许在 loading 中继续触发发送
+   * @descriptionEn Whether to allow submitting while loading
+   */
+  allowSubmitWhenLoading?: boolean;
 
   /**
    * @description 是否启用用户focus时展开输入框组件
@@ -286,7 +292,6 @@ export interface SenderProps
    * @descriptionEn Callback function when user drops a file into the input
    */
   onDropFile?: (file: File) => void;
-  // prefixCls?: string;
   /**
    * @description 自定义发送器内部组件
    * @descriptionEn Custom sender internal components
@@ -361,6 +366,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     enableFocusExpand = false,
     sendDisabled = false,
     allowEmptySubmit = false,
+    allowSubmitWhenLoading = false,
     submitType = 'enter',
     onSubmit,
     loading,
@@ -528,7 +534,7 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
     ((!innerValue || !innerValue.trim()) && !allowEmptySubmit) || sendDisabled;
 
   const triggerSend = () => {
-    if (!isSendDisabled && onSubmit && !loading) {
+    if (!isSendDisabled && onSubmit && (!loading || allowSubmitWhenLoading)) {
       onSubmit(innerValue);
     }
   };
@@ -666,38 +672,41 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
   }, [props.prefix]);
   const count = Math.min(
     innerValue.length,
-    maxLength || Number.MAX_SAFE_INTEGER,
+    props.maxLength || Number.MAX_SAFE_INTEGER,
   );
   const actionInfo = React.useMemo<SenderActionInfo>(
     () => ({
       value: innerValue,
       count,
-      maxLength,
+      maxLength: props.maxLength,
       loading,
       disabled,
       sendDisabled: isSendDisabled,
     }),
-    [count, disabled, innerValue, isSendDisabled, loading, maxLength],
+    [count, disabled, innerValue, isSendDisabled, loading, props.maxLength],
   );
   const characterCountNode =
-    showCharacterCount ?? !!maxLength ? (
+    showCharacterCount ?? !!props.maxLength ? (
       <div className={`${actionListCls}-length`}>
         {characterCountRender
           ? characterCountRender(actionInfo)
-          : maxLength
-          ? `${count}/${maxLength}`
+          : props.maxLength
+          ? `${count}/${props.maxLength}`
           : count}
       </div>
     ) : null;
   const actionAffixNode =
     typeof actionAffix === 'function' ? actionAffix(actionInfo) : actionAffix;
 
+  const showSendButton =
+    !loading || (allowSubmitWhenLoading && !isSendDisabled);
+
   let actionNode: React.ReactNode = (
     <Flex className={`${actionListCls}-presets`}>
-      {loading ? (
-        <LoadingButton loading={loading} disabled={!!disabled} />
-      ) : (
+      {showSendButton ? (
         <SendButton disabled={!!disabled} />
+      ) : (
+        <LoadingButton loading={loading} disabled={!!disabled} />
       )}
     </Flex>
   );
@@ -744,7 +753,11 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
         style={styles.input}
         className={classnames(inputCls, classNames.input)}
         autoSize={autoSize}
-        value={shouldTruncateOnMaxLength ? innerValue.slice(0, maxLength) : innerValue}
+        value={
+          shouldTruncateOnMaxLength
+            ? innerValue.slice(0, maxLength)
+            : innerValue
+        }
         onChange={(event) => {
           let nextValue = (event.target as HTMLTextAreaElement).value;
           if (
@@ -843,7 +856,6 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
 
       <div
         ref={containerRef}
-        data-sender-root="true"
         className={mergedCls}
         style={style}
         onDragEnter={onInternalDragEnter}

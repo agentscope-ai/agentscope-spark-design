@@ -3,10 +3,10 @@ import { useMemo, useState, useCallback } from 'react';
 
 export type Locale = 'cn' | 'en';
 
-// 国际化文案定义
+// Localized copy used by the runtime web UI.
 const messages = {
   cn: {
-    // Approval 相关
+    // Approval
     'approval.title': '人工干预',
     'approval.pending': '请确认是否执行该操作',
     'approval.confirmed': '确认执行任务',
@@ -15,7 +15,7 @@ const messages = {
     'approval.confirm': '确认执行',
     'approval.taskRunning': '当前有正在执行的任务，无法发送新的任务',
     
-    // ApprovalCancelPopover 相关
+    // Approval cancel popover
     'cancelPopover.title': '取消原因',
     'cancelPopover.placeholder': '请输入原因，以便大模型做进一步规划',
     'cancelPopover.cancel': '取消',
@@ -25,7 +25,7 @@ const messages = {
     'cancelPopover.options.tooSlow': '等待时间久',
     'cancelPopover.options.wrongInput': '输入错误',
 
-    // 通用
+    // Common
     'common.save': '保存',
     'common.cancel': '取消',
     'common.confirm': '确认',
@@ -35,10 +35,24 @@ const messages = {
     'common.saveSuccess': '保存成功',
     'common.saveFailed': '保存失败',
 
-    // Actions 相关
+    // Queue
+    'queue.title': '待发送队列',
+    'queue.clear': '清空队列',
+    'queue.retry': '重试发送',
+    'queue.failed': '发送失败',
+    'queue.sending': '发送中',
+    'queue.attachmentOnly': '附件消息',
+    'queue.next': '下一条',
+    'queue.attachments': '附件',
+    'queue.pause': '暂停队列',
+    'queue.resume': '继续队列',
+    'queue.sendNow': '立即发送',
+    'queue.remoteOwner': '由原标签页发送，仅支持编辑和排序',
+
+    // Actions
     'actions.regenerate': '重新生成',
 
-    // MessageImport 相关
+    // Message import
     'messageImport.title': 'Sessions 数据导入',
     'messageImport.placeholder': '输入 JSON 数据以覆盖当前 sessions',
     'messageImport.saveToLocalStorage': '保存到 LocalStorage',
@@ -73,6 +87,20 @@ const messages = {
     'common.saveSuccess': 'Saved successfully',
     'common.saveFailed': 'Failed to save',
 
+    // Queue related
+    'queue.title': 'Queued inputs',
+    'queue.clear': 'Clear queue',
+    'queue.retry': 'Retry',
+    'queue.failed': 'Failed to send',
+    'queue.sending': 'Sending',
+    'queue.attachmentOnly': 'Attachment message',
+    'queue.next': 'Next',
+    'queue.attachments': 'Attachments',
+    'queue.pause': 'Pause queue',
+    'queue.resume': 'Resume queue',
+    'queue.sendNow': 'Send now',
+    'queue.remoteOwner': 'Sent by original tab. Edit and reorder only',
+
     // Actions related
     'actions.regenerate': 'Regenerate',
 
@@ -104,7 +132,7 @@ export function useChatAnywhereI18n<Selected>(selector: (value: I18nContextValue
   }
 }
 
-// 便捷 hook：直接获取翻译函数
+// Convenience hook for components that only need translation helpers.
 export function useTranslation() {
   const t = useChatAnywhereI18n((ctx) => ctx?.t);
   const locale = useChatAnywhereI18n((ctx) => ctx?.locale);
@@ -124,7 +152,7 @@ export function ChatAnywhereI18nContextProvider(props: ChatAnywhereI18nContextPr
   const t = useCallback((key: MessageKey, params?: Record<string, string | number>): string => {
     let message = messages[locale][key] || key;
     
-    // 支持参数替换，如 t('hello', { name: 'World' }) => "Hello, World"
+    // Replace simple placeholders, e.g. t('hello', { name: 'World' }).
     if (params) {
       Object.entries(params).forEach(([paramKey, value]) => {
         message = message.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(value));

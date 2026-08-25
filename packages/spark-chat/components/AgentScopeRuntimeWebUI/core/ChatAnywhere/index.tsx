@@ -1,6 +1,6 @@
 import Layout from '../Layout';
 import type { IAgentScopeRuntimeWebUIOptions } from '@agentscope-ai/chat';
-import { forwardRef, useMemo, useState } from 'react';
+import { forwardRef, useMemo } from 'react';
 import AgentScopeRuntimeRequestCard from '../AgentScopeRuntime/Request/Card';
 import AgentScopeRuntimeResponseCard from '../AgentScopeRuntime/Response/Card';
 import ComposedProvider from './ComposedProvider';

@@ -1,10 +1,13 @@
-import { uuid } from "@agentscope-ai/chat";
-import { useCallback } from "react";
-import ReactDOM from "react-dom";
-import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
-import { useChatAnywhereMessages } from "../../Context/ChatAnywhereMessagesContext";
-import AgentScopeRuntimeRequestBuilder from "../../AgentScopeRuntime/Request/Builder";
-import { InputProps } from "../Input";
+import { IAgentScopeRuntimeWebUIMessage, uuid } from '@agentscope-ai/chat';
+import { useCallback } from 'react';
+import ReactDOM from 'react-dom';
+import AgentScopeRuntimeRequestBuilder from '../../AgentScopeRuntime/Request/Builder';
+import { useChatAnywhereMessages } from '../../Context/ChatAnywhereMessagesContext';
+import { InputProps } from '../Input';
+import {
+  createChatRequestMessage,
+  createChatResponseMessage,
+} from '../submission';
 
 interface UseChatMessageHandlerOptions {
   currentQARef: React.MutableRefObject<{
@@ -17,63 +20,59 @@ interface UseChatMessageHandlerOptions {
 /**
  * 处理消息创建和更新的 Hook
  */
-export default function useChatMessageHandler(options: UseChatMessageHandlerOptions) {
+export default function useChatMessageHandler(
+  options: UseChatMessageHandlerOptions,
+) {
   const { currentQARef } = options;
-  const { updateMessage, getMessages, removeMessage } = useChatAnywhereMessages();
+  const { updateMessage, getMessages, removeMessage } =
+    useChatAnywhereMessages();
 
   /**
    * 创建用户请求消息
    */
-  const createRequestMessage = useCallback((data: Parameters<InputProps['onSubmit']>[0]) => {
+  const createRequestMessage = useCallback(
+    (data: Parameters<InputProps['onSubmit']>[0]) => {
+      currentQARef.current.abortController = new AbortController();
+      currentQARef.current.request = createChatRequestMessage(data);
 
-    currentQARef.current.abortController = new AbortController();
-    currentQARef.current.request = {
-      id: uuid(),
-      role: 'user',
-      cards: [{
-        code: 'AgentScopeRuntimeRequestCard',
-        data: new AgentScopeRuntimeRequestBuilder().handle(data),
-      }]
-    };
+      ReactDOM.flushSync(() => {
+        updateMessage(currentQARef.current.request!);
+      });
 
-    ReactDOM.flushSync(() => {
-      updateMessage(currentQARef.current.request!);
-    });
+      return currentQARef.current.request;
+    },
+    [currentQARef, updateMessage],
+  );
 
-    return currentQARef.current.request;
-  }, [currentQARef, updateMessage]);
+  const createApprovalMessage = useCallback(
+    (data) => {
+      currentQARef.current.abortController = new AbortController();
 
+      currentQARef.current.request = {
+        id: uuid(),
+        role: 'user',
+        cards: [
+          {
+            code: 'AgentScopeRuntimeRequestCard',
+            data: new AgentScopeRuntimeRequestBuilder().handleApproval(data),
+          },
+        ],
+      };
 
-  const createApprovalMessage = useCallback((data) => {
-    currentQARef.current.abortController = new AbortController();
+      ReactDOM.flushSync(() => {
+        updateMessage(currentQARef.current.request!);
+      });
 
-    currentQARef.current.request = {
-      id: uuid(),
-      role: 'user',
-      cards: [{
-        code: 'AgentScopeRuntimeRequestCard',
-        data: new AgentScopeRuntimeRequestBuilder().handleApproval(data),
-      }]
-    };
-
-    ReactDOM.flushSync(() => {
-      updateMessage(currentQARef.current.request!);
-    });
-
-    return currentQARef.current.request;
-
-  }, [currentQARef, updateMessage]);
+      return currentQARef.current.request;
+    },
+    [currentQARef, updateMessage],
+  );
 
   /**
    * 创建助手响应消息
    */
   const createResponseMessage = useCallback(() => {
-    currentQARef.current.response = {
-      id: uuid(),
-      role: 'assistant',
-      cards: [],
-      msgStatus: 'generating',
-    };
+    currentQARef.current.response = createChatResponseMessage();
 
     updateMessage(currentQARef.current.response);
 
@@ -90,11 +89,14 @@ export default function useChatMessageHandler(options: UseChatMessageHandlerOpti
   /**
    * 移除指定消息
    */
-  const removeMessageById = useCallback((id: string) => {
-    ReactDOM.flushSync(() => {
-      removeMessage({ id });
-    });
-  }, [removeMessage]);
+  const removeMessageById = useCallback(
+    (id: string) => {
+      ReactDOM.flushSync(() => {
+        removeMessage({ id });
+      });
+    },
+    [removeMessage],
+  );
 
   return {
     createRequestMessage,
@@ -106,4 +108,3 @@ export default function useChatMessageHandler(options: UseChatMessageHandlerOpti
     getMessages,
   };
 }
-

@@ -10,7 +10,11 @@ import {
   AgentScopeRuntimeRunStatus,
 } from '../../AgentScopeRuntime/types';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
-import { IAgentScopeRuntimeWebUIInputData } from '../../types';
+import {
+  type ChatSubmissionRequestData,
+  fetchChatSubmission,
+  isRuntimeResponseFinished,
+} from '../submission';
 
 interface UseChatRequestOptions {
   currentQARef: React.MutableRefObject<{
@@ -23,16 +27,22 @@ interface UseChatRequestOptions {
     activeSessionId?: string;
   }>;
   updateMessage: (message: IAgentScopeRuntimeWebUIMessage) => void;
-  getCurrentSessionId: () => string;
   onFinish: () => void;
+}
+
+interface ChatRequestLifecycleOptions {
+  requestId: number;
+  sessionId: string;
+  signal?: AbortSignal;
+  onAccepted?: (response: Response) => void | Promise<void>;
+  queueItemId?: string;
 }
 
 /**
  * Hook for handling API requests and streaming SSE responses.
  */
 export default function useChatRequest(options: UseChatRequestOptions) {
-  const { currentQARef, updateMessage, getCurrentSessionId, onFinish } =
-    options;
+  const { currentQARef, updateMessage, onFinish } = options;
   const apiOptions = useChatAnywhereOptions((v) => v.api);
 
   // Keep apiOptions in a ref to avoid stale closure issues
@@ -66,7 +76,12 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   }, []);
 
   const processSSEResponse = useCallback(
-    async (response: Response, myRequestId: number, mySessionId?: string) => {
+    async (
+      response: Response,
+      myRequestId: number,
+      mySessionId: string,
+      abortSignal?: AbortSignal,
+    ) => {
       const agentScopeRuntimeResponseBuilder =
         new AgentScopeRuntimeResponseBuilder({
           id: '',
@@ -116,11 +131,14 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         } catch {
           // Ignore JSON parse errors — still call onFinish to reset loading state
         }
-        if (isStillActive()) onFinish();
-        return;
+        if (isStillActive()) {
+          onFinish();
+          return true;
+        }
+        return false;
       }
 
-      const abortSignal = currentQARef.current.abortController?.signal;
+      let sawFinishedChunk = false;
 
       try {
         for await (const chunk of Stream({
@@ -129,7 +147,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         })) {
           // Primary guard: if this SSE is no longer active, stop immediately
           // to prevent ghost writes into a different session/request.
-          if (!isStillActive()) break;
+          if (!isStillActive()) return false;
 
           if (currentQARef.current.response?.msgStatus === 'interrupted') {
             currentQARef.current.abortController?.abort();
@@ -144,21 +162,24 @@ export default function useChatRequest(options: UseChatRequestOptions) {
               ];
               updateMessage(currentQARef.current.response);
             }
-            break;
+            return false;
           }
 
           const responseParser =
             apiOptionsRef.current.responseParser || JSON.parse;
           const chunkData = responseParser(chunk.data);
+          if (chunkData === null || chunkData === undefined) continue;
           const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
+          const finished = isRuntimeResponseFinished(res);
 
           if (
+            !finished &&
             res.status !== AgentScopeRuntimeRunStatus.Failed &&
             !res.output?.some((msg) => msg.content?.length)
           )
             continue;
 
-          if (!isStillActive()) break;
+          if (!isStillActive()) return false;
 
           if (currentQARef.current.response) {
             currentQARef.current.response.cards = [
@@ -168,10 +189,8 @@ export default function useChatRequest(options: UseChatRequestOptions) {
               },
             ];
 
-            if (
-              res.status === AgentScopeRuntimeRunStatus.Completed ||
-              res.status === AgentScopeRuntimeRunStatus.Failed
-            ) {
+            if (finished) {
+              sawFinishedChunk = true;
               onFinish();
             } else {
               updateMessage(currentQARef.current.response);
@@ -179,9 +198,9 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           }
         }
       } catch (error) {
-        if (!isStillActive()) {
+        if (!isStillActive() || abortSignal?.aborted) {
           // Request is no longer active; do not write cards or fire cancel.
-          return;
+          return false;
         }
         if (currentQARef.current.response?.msgStatus === 'interrupted') {
           // Cancel was already sent by handleCancel; don't repeat it here.
@@ -194,60 +213,69 @@ export default function useChatRequest(options: UseChatRequestOptions) {
             ];
             updateMessage(currentQARef.current.response);
           }
+          return false;
         } else {
           console.error(error);
+          onFinish();
         }
+        return true;
       }
+
+      if (!sawFinishedChunk && isStillActive()) {
+        onFinish();
+      }
+      return sawFinishedChunk || isStillActive();
     },
-    [getCurrentSessionId, currentQARef, updateMessage, onFinish],
+    [currentQARef, updateMessage, onFinish],
   );
 
   const request = useCallback(
     async (
       historyMessages: any[],
-      biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'],
-      myRequestId?: number,
-      mentions?: IAgentScopeRuntimeWebUIInputData['mentions'],
+      data: ChatSubmissionRequestData,
+      lifecycle: ChatRequestLifecycleOptions,
     ) => {
       const currentApiOptions = apiOptionsRef.current;
-      const { enableHistoryMessages = false } = currentApiOptions;
-      const abortSignal = currentQARef.current.abortController?.signal;
-      const requestId = myRequestId ?? currentQARef.current.activeRequestId;
-      const sessionId =
-        currentQARef.current.activeSessionId ?? getCurrentSessionId();
-      let response;
+      const { requestId, sessionId, signal } = lifecycle;
+      let response: Response | undefined;
       try {
-        response = currentApiOptions.fetch
-          ? await currentApiOptions.fetch({
-              input: historyMessages,
-              biz_params,
-              mentions,
-              signal: abortSignal,
-            })
-          : await fetch(currentApiOptions.baseURL, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${currentApiOptions.token || ''}`,
-              },
-              body: JSON.stringify({
-                input: enableHistoryMessages
-                  ? historyMessages
-                  : historyMessages.slice(-1),
-                session_id: getCurrentSessionId(),
-                stream: true,
-                biz_params,
-                mentions,
-              }),
-              signal: abortSignal,
-            });
-      } catch (error) {}
-
-      if (response && response.body) {
-        await processSSEResponse(response, requestId, sessionId);
+        response = await fetchChatSubmission({
+          apiOptions: currentApiOptions,
+          historyMessages,
+          data,
+          signal,
+          submission: lifecycle.queueItemId
+            ? { source: 'queue', queueItemId: lifecycle.queueItemId }
+            : { source: 'direct' },
+        });
+      } catch (error) {
+        if (signal?.aborted) return false;
+        throw error;
       }
+
+      if (!response) return false;
+
+      if (!response.ok) {
+        await processSSEResponse(response, requestId, sessionId, signal);
+        throw new Error(`chat request failed (${response.status})`);
+      }
+
+      await lifecycle.onAccepted?.(response);
+
+      if (response.body) {
+        return processSSEResponse(response, requestId, sessionId, signal);
+      }
+
+      if (
+        currentQARef.current.activeRequestId === requestId &&
+        (!sessionId || currentQARef.current.activeSessionId === sessionId)
+      ) {
+        onFinish();
+        return true;
+      }
+      return false;
     },
-    [getCurrentSessionId, currentQARef, processSSEResponse],
+    [currentQARef, onFinish, processSSEResponse],
   );
 
   const reconnect = useCallback(

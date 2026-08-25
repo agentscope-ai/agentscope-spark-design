@@ -103,6 +103,127 @@ export default defineConfig({
     f.parentNode.insertBefore(j, f);
   })(window, document, 'script', 'aplus_queue');
 `,
+    `
+  (function() {
+    var tooltip;
+    var currentLink;
+
+    function syncTocTooltip() {
+      var links = document.querySelectorAll('.dumi-default-toc a');
+
+      links.forEach(function(link) {
+        var text = (link.getAttribute('title') || link.textContent || '').trim();
+
+        if (text) {
+          link.setAttribute('title', text);
+        }
+      });
+    }
+
+    function getTocLink(target) {
+      return target && target.closest && target.closest('.dumi-default-toc a');
+    }
+
+    function ensureTooltip() {
+      if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.className = 'spark-doc-toc-tooltip';
+        tooltip.setAttribute('role', 'tooltip');
+        document.body.appendChild(tooltip);
+      }
+
+      return tooltip;
+    }
+
+    function updateTooltipPosition(link) {
+      if (!tooltip || !link) return;
+
+      var rect = link.getBoundingClientRect();
+      var tooltipWidth = tooltip.offsetWidth || 320;
+      var top = rect.top + rect.height / 2;
+      var left = Math.max(tooltipWidth + 8, rect.left - 8);
+
+      tooltip.style.top = top + 'px';
+      tooltip.style.left = left + 'px';
+    }
+
+    function showTooltip(link) {
+      var text = (link.getAttribute('title') || link.textContent || '').trim();
+
+      if (!text || link.scrollWidth <= link.clientWidth + 1) return;
+
+      currentLink = link;
+      ensureTooltip().textContent = text;
+      updateTooltipPosition(link);
+      tooltip.classList.add('spark-doc-toc-tooltip-visible');
+    }
+
+    function hideTooltip() {
+      currentLink = null;
+
+      if (tooltip) {
+        tooltip.classList.remove('spark-doc-toc-tooltip-visible');
+      }
+    }
+
+    function bindTooltipEvents() {
+      document.addEventListener('mouseover', function(event) {
+        var link = getTocLink(event.target);
+
+        if (link) {
+          showTooltip(link);
+        }
+      });
+      document.addEventListener('mouseout', function(event) {
+        if (getTocLink(event.target)) {
+          hideTooltip();
+        }
+      });
+      document.addEventListener('focusin', function(event) {
+        var link = getTocLink(event.target);
+
+        if (link) {
+          showTooltip(link);
+        }
+      });
+      document.addEventListener('focusout', function(event) {
+        if (getTocLink(event.target)) {
+          hideTooltip();
+        }
+      });
+      window.addEventListener('scroll', function() {
+        if (currentLink) {
+          updateTooltipPosition(currentLink);
+        }
+      }, true);
+      window.addEventListener('resize', function() {
+        if (currentLink) {
+          updateTooltipPosition(currentLink);
+        }
+      });
+    }
+
+    function startObserve() {
+      syncTocTooltip();
+      bindTooltipEvents();
+
+      var observer = new MutationObserver(function() {
+        syncTocTooltip();
+
+        if (currentLink && !document.body.contains(currentLink)) {
+          hideTooltip();
+        }
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startObserve);
+    } else {
+      startObserve();
+    }
+  })();
+`,
     'https://g.alicdn.com/aes/??tracker/3.3.13/index.js,tracker-plugin-pv/3.0.6/index.js',
   ],
   hash: false,

@@ -26,7 +26,7 @@ export default function Tools(props: {
   isLast?: boolean;
 }) {
   const { t } = useTranslation();
-  const actionsOptionsList = useChatAnywhereOptions(v => v.actions?.list) || [
+  const defaultActions = [
     {
       icon: <SparkCopyLine />,
       onClick: () => {
@@ -34,6 +34,10 @@ export default function Tools(props: {
       }
     }
   ];
+  const configuredActions = useChatAnywhereOptions(v => v.actions?.list);
+  const actionsOptionsList = Array.isArray(configuredActions)
+    ? configuredActions
+    : defaultActions;
 
   const replace = useChatAnywhereOptions(v => v.actions?.replace) ?? true;
   const rightOption = useChatAnywhereOptions(v => v.actions?.right);
@@ -84,4 +88,3 @@ export default function Tools(props: {
     right={rightNode}
   />
 }
-
