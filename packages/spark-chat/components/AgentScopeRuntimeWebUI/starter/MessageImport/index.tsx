@@ -1,18 +1,24 @@
-import { SparkFileCodeLine } from "@agentscope-ai/icons";
-import { IconButton, Drawer, Input, Button, message } from "@agentscope-ai/design";
-import { useState, useEffect } from "react";
-import { useTranslation } from "../../core/Context/ChatAnywhereI18nContext";
+import {
+  Button,
+  Drawer,
+  IconButton,
+  Input,
+  message,
+} from '@agentscope-ai/design';
+import { SparkFileCodeLine } from '@agentscope-ai/icons';
+import { useEffect, useState } from 'react';
+import { useTranslation } from '../../core/Context/ChatAnywhereI18nContext';
 
-const STORAGE_KEY = "agent-scope-runtime-webui-sessions";
+const STORAGE_KEY = 'agent-scope-runtime-webui-sessions';
 
-export default function (props) {
+export default function MessageImport() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [sessionValue, setSessionValue] = useState("");
+  const [sessionValue, setSessionValue] = useState('');
 
   useEffect(() => {
     if (open) {
-      const storedValue = localStorage.getItem(STORAGE_KEY) || "";
+      const storedValue = localStorage.getItem(STORAGE_KEY) || '';
       setSessionValue(storedValue);
     }
   }, [open]);
@@ -27,26 +33,36 @@ export default function (props) {
     }
   };
 
-  return <>
-    <IconButton onClick={() => setOpen(true)} icon={<SparkFileCodeLine />} bordered={false} />
-    <Drawer
-      destroyOnHidden
-      open={open}
-      onClose={() => setOpen(false)}
-      title={t?.('messageImport.title') || 'Sessions 数据导入'}
-      styles={{ body: { padding: 16 }, header: { padding: 8 } }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <Input.TextArea
-          value={sessionValue}
-          onChange={(e) => setSessionValue(e.target.value)}
-          placeholder={t?.('messageImport.placeholder') || '输入 JSON 数据以覆盖当前 sessions'}
-          rows={10}
-          style={{ fontFamily: "monospace" }}
-        />
-        <Button type="primary" onClick={handleSave}>
-          {t?.('messageImport.saveToLocalStorage') || '保存到 LocalStorage'}
-        </Button>
-      </div>
-    </Drawer>
-  </>
+  return (
+    <>
+      <IconButton
+        onClick={() => setOpen(true)}
+        icon={<SparkFileCodeLine />}
+        bordered={false}
+      />
+      <Drawer
+        destroyOnHidden
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t?.('messageImport.title') || 'Sessions 数据导入'}
+        styles={{ body: { padding: 16 }, header: { padding: 8 } }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Input.TextArea
+            value={sessionValue}
+            onChange={(e) => setSessionValue(e.target.value)}
+            placeholder={
+              t?.('messageImport.placeholder') ||
+              '输入 JSON 数据以覆盖当前 sessions'
+            }
+            rows={10}
+            style={{ fontFamily: 'monospace' }}
+          />
+          <Button type="primary" onClick={handleSave}>
+            {t?.('messageImport.saveToLocalStorage') || '保存到 LocalStorage'}
+          </Button>
+        </div>
+      </Drawer>
+    </>
+  );
 }

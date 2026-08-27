@@ -222,7 +222,10 @@ async function consumeResponse(
       },
     ];
     if (finished) {
-      responseMessage.msgStatus = 'finished';
+      responseMessage.msgStatus =
+        parsed.status === AgentScopeRuntimeRunStatus.Canceled
+          ? 'interrupted'
+          : 'finished';
     }
     nextMessages = patchChatMessageSnapshot(nextMessages, responseMessage);
     await persistMessages(options, nextMessages);
@@ -342,18 +345,39 @@ async function sendQueuedItem(
   const messages = [...(session?.messages || [])];
   let requestAccepted = false;
   let interrupted = false;
+  let cancelRequested = false;
   let responseMessage: IAgentScopeRuntimeWebUIMessage | undefined;
   let submittedMessages: IAgentScopeRuntimeWebUIMessage[] | undefined;
   const abortController = new AbortController();
   const unregisterSubmission = registerInputQueueSubmission(
     options.queueSessionId,
     () => {
-      interrupted = true;
-      abortController.abort();
+      if (cancelRequested) return;
+      cancelRequested = true;
+      const abort = () => {
+        if (interrupted) return;
+        interrupted = true;
+        abortController.abort();
+      };
+      const cancel = options.apiOptions.cancel;
+      if (!cancel) {
+        abort();
+        return;
+      }
       try {
-        options.apiOptions.cancel?.({ session_id: options.chatSessionId });
+        void Promise.resolve(
+          cancel({
+            session_id: options.chatSessionId,
+            signal: abortController.signal,
+            abort,
+          }),
+        ).catch((error) => {
+          console.error('background input queue cancel failed:', error);
+          abort();
+        });
       } catch (error) {
         console.error('background input queue cancel failed:', error);
+        abort();
       }
     },
   );

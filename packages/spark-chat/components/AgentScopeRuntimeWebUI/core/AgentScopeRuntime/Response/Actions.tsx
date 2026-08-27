@@ -50,12 +50,12 @@ export default function Tools(props: {
       const res = { ...i } as any;
 
       if (i.render) {
-        res.children = React.createElement(i.render, { data: props });
+        res.children = React.createElement(i.render, { data: props.data });
       }
       return {
         ...res,
         onClick() {
-          i.onClick?.(props);
+          i.onClick?.({ data: props.data });
         },
       };
     }),
@@ -67,7 +67,11 @@ export default function Tools(props: {
             </Tooltip>
           ),
           onClick: () => {
-            dispatch('handleReplace', { id: props.messageId });
+            void dispatch('handleReplace', { id: props.messageId }).catch(
+              (error) => {
+                console.error('regenerate response failed:', error);
+              },
+            );
           },
         }
       : null,

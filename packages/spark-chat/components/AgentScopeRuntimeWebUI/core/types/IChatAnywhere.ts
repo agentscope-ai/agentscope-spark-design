@@ -43,10 +43,16 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
   }) => Promise<Response>;
 
   /**
-   * @description 取消当前会话生成
-   * @descriptionEn Cancel current session generation
+   * @description 自定义取消当前会话生成。提供该回调时 SDK 默认保留原 SSE；如需立即终止本地流，请调用 abort。
+   * @descriptionEn Custom cancellation for the current session. When provided, the SDK keeps the original SSE open by default; call abort to terminate the local stream immediately.
    */
-  cancel?: (data: { session_id: string }) => void;
+  cancel?: (data: {
+    session_id: string;
+    /** 当前请求的信号，可用于判断本地流是否已终止 / Signal for the active request */
+    signal?: AbortSignal;
+    /** 立即终止本地 SSE 并将运行态标记为 canceled / Abort the local SSE and mark running states as canceled */
+    abort: () => void;
+  }) => void | Promise<void>;
 
   /**
    * @description 重连会话流式响应
@@ -552,6 +558,12 @@ export interface IAgentScopeRuntimeWebUIQueuedInputItem {
   submissionOwnerTabId?: string;
   submissionStartedAt?: number;
   createdAt: number;
+}
+
+export interface IAgentScopeRuntimeWebUIQueueEnqueueResult {
+  ok: boolean;
+  item?: IAgentScopeRuntimeWebUIQueuedInputItem;
+  reason?: 'full' | 'session-not-ready';
 }
 
 /**

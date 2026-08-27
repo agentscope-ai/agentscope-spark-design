@@ -1,5 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
-import { useProviderContext } from '@agentscope-ai/chat';
 import { IconButton } from '@agentscope-ai/design';
 import {
   SparkClearLine,
@@ -12,6 +10,8 @@ import {
   SparkSendLine,
 } from '@agentscope-ai/icons';
 import { Tooltip } from 'antd';
+import { useEffect, useRef, useState } from 'react';
+import { useProviderContext } from '../../../../Provider';
 import { useTranslation } from '../../Context/ChatAnywhereI18nContext';
 import type {
   IAgentScopeRuntimeWebUIQueueItemAction,
@@ -64,7 +64,7 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
   const tr = (key: Parameters<typeof t>[0]) => t?.(key) || key;
 
   useEffect(() => {
-    const editingItem = items.find(item => item.id === editingId);
+    const editingItem = items.find((item) => item.id === editingId);
     if (editingId && (!editingItem || editingItem.status === 'submitting')) {
       setEditingId(undefined);
       setDraftQuery('');
@@ -124,16 +124,31 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
     setDragOverId(undefined);
   };
 
-  const getFileName = (file: NonNullable<QueuedInputItem['data']['fileList']>[number]) => {
-    return file.name || file.response?.name || file.response?.url || file.url || tr('queue.attachmentOnly');
+  const getFileName = (
+    file: NonNullable<QueuedInputItem['data']['fileList']>[number],
+  ) => {
+    return (
+      file.name ||
+      file.response?.name ||
+      file.response?.url ||
+      file.url ||
+      tr('queue.attachmentOnly')
+    );
   };
 
-  const getFileUrl = (file: NonNullable<QueuedInputItem['data']['fileList']>[number]) => {
+  const getFileUrl = (
+    file: NonNullable<QueuedInputItem['data']['fileList']>[number],
+  ) => {
     return file.thumbUrl || file.url || file.response?.url;
   };
 
-  const isImageFile = (file: NonNullable<QueuedInputItem['data']['fileList']>[number]) => {
-    return file.type?.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(getFileName(file));
+  const isImageFile = (
+    file: NonNullable<QueuedInputItem['data']['fileList']>[number],
+  ) => {
+    return (
+      file.type?.startsWith('image/') ||
+      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(getFileName(file))
+    );
   };
 
   if (!items.length) return null;
@@ -145,30 +160,34 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
           <span className={`${prefixCls}-pulse`} />
           <span>{tr('queue.title')}</span>
           {!isOwner ? (
-            <span className={`${prefixCls}-owner`}>{tr('queue.remoteOwner')}</span>
+            <span className={`${prefixCls}-owner`}>
+              {tr('queue.remoteOwner')}
+            </span>
           ) : null}
           <span className={`${prefixCls}-count`}>{items.length}</span>
         </div>
-        {isOwner ? <div className={`${prefixCls}-header-actions`}>
-          <Tooltip title={paused ? tr('queue.resume') : tr('queue.pause')}>
-            <IconButton
-              size="small"
-              bordered={false}
-              className={`${prefixCls}-clear`}
-              icon={paused ? <SparkPlayLine /> : <SparkPauseLine />}
-              onClick={onTogglePaused}
-            />
-          </Tooltip>
-          <Tooltip title={tr('queue.clear')}>
-            <IconButton
-              size="small"
-              bordered={false}
-              className={`${prefixCls}-clear`}
-              icon={<SparkClearLine />}
-              onClick={onClear}
-            />
-          </Tooltip>
-        </div> : null}
+        {isOwner ? (
+          <div className={`${prefixCls}-header-actions`}>
+            <Tooltip title={paused ? tr('queue.resume') : tr('queue.pause')}>
+              <IconButton
+                size="small"
+                bordered={false}
+                className={`${prefixCls}-clear`}
+                icon={paused ? <SparkPlayLine /> : <SparkPauseLine />}
+                onClick={onTogglePaused}
+              />
+            </Tooltip>
+            <Tooltip title={tr('queue.clear')}>
+              <IconButton
+                size="small"
+                bordered={false}
+                className={`${prefixCls}-clear`}
+                icon={<SparkClearLine />}
+                onClick={onClear}
+              />
+            </Tooltip>
+          </div>
+        ) : null}
       </div>
       <div className={`${prefixCls}-list`} ref={listRef}>
         {items.map((item, index) => {
@@ -178,10 +197,10 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
           const statusText = submitting
             ? tr('queue.sending')
             : failed
-              ? tr('queue.failed')
-              : index === 0
-                ? tr('queue.next')
-                : `${index + 1}`;
+            ? tr('queue.failed')
+            : index === 0
+            ? tr('queue.next')
+            : `${index + 1}`;
           const queryText = item.data.query || tr('queue.attachmentOnly');
           const itemClassName = [
             `${prefixCls}-item`,
@@ -213,7 +232,9 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                 dragOverId === item.id && draggingId !== item.id
                   ? `${prefixCls}-item-drag-over`
                   : '',
-              ].filter(Boolean).join(' ')}
+              ]
+                .filter(Boolean)
+                .join(' ')}
               draggable={!submitting}
               key={item.id}
               onDragStart={(event) => {
@@ -227,12 +248,7 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                 event.dataTransfer.setData('text/plain', item.id);
               }}
               onDragOver={(event) => {
-                if (
-                  submitting ||
-                  !draggingId ||
-                  draggingId === item.id
-                )
-                  return;
+                if (submitting || !draggingId || draggingId === item.id) return;
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'move';
                 setDragOverId(item.id);
@@ -242,7 +258,8 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
               }}
               onDrop={(event) => {
                 event.preventDefault();
-                const sourceId = draggingId || event.dataTransfer.getData('text/plain');
+                const sourceId =
+                  draggingId || event.dataTransfer.getData('text/plain');
                 clearDragState();
                 if (sourceId && sourceId !== item.id) {
                   onReorder(sourceId, item.id);
@@ -281,22 +298,34 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                 )}
                 {files.length ? (
                   <span className={`${prefixCls}-files`}>
-                    {files.slice(0, 2).map(file => {
+                    {files.slice(0, 2).map((file) => {
                       const name = getFileName(file);
                       const url = getFileUrl(file);
                       return (
-                        <span className={`${prefixCls}-file`} key={file.uid || name} title={name}>
+                        <span
+                          className={`${prefixCls}-file`}
+                          key={file.uid || name}
+                          title={name}
+                        >
                           {isImageFile(file) && url ? (
-                            <img alt="" className={`${prefixCls}-file-thumb`} src={url} />
+                            <img
+                              alt=""
+                              className={`${prefixCls}-file-thumb`}
+                              src={url}
+                            />
                           ) : (
                             <span className={`${prefixCls}-file-icon`}>#</span>
                           )}
-                          <span className={`${prefixCls}-file-name`}>{name}</span>
+                          <span className={`${prefixCls}-file-name`}>
+                            {name}
+                          </span>
                         </span>
                       );
                     })}
                     {files.length > 2 ? (
-                      <span className={`${prefixCls}-file-more`}>+{files.length - 2}</span>
+                      <span className={`${prefixCls}-file-more`}>
+                        +{files.length - 2}
+                      </span>
                     ) : null}
                   </span>
                 ) : null}
@@ -317,20 +346,24 @@ export default function InputQueuePanel(props: InputQueuePanelProps) {
                     />
                   </Tooltip>
                 ) : null}
-                {resolvedItemActions.map(({ action, label, icon, disabled }) => (
-                  <Tooltip key={action.key} title={label}>
-                    <IconButton
-                      aria-label={typeof label === 'string' ? label : undefined}
-                      size="small"
-                      bordered={false}
-                      danger={action.danger}
-                      data-queue-action-key={action.key}
-                      disabled={disabled}
-                      icon={icon}
-                      onClick={() => action.onClick(actionContext)}
-                    />
-                  </Tooltip>
-                ))}
+                {resolvedItemActions.map(
+                  ({ action, label, icon, disabled }) => (
+                    <Tooltip key={action.key} title={label}>
+                      <IconButton
+                        aria-label={
+                          typeof label === 'string' ? label : undefined
+                        }
+                        size="small"
+                        bordered={false}
+                        danger={action.danger}
+                        data-queue-action-key={action.key}
+                        disabled={disabled}
+                        icon={icon}
+                        onClick={() => action.onClick(actionContext)}
+                      />
+                    </Tooltip>
+                  ),
+                )}
                 {isOwner && !submitting ? (
                   <Tooltip title={tr('queue.sendNow')}>
                     <IconButton

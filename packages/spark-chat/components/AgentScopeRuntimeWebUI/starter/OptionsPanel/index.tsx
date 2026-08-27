@@ -1,8 +1,7 @@
-import { SparkFileCodeLine, SparkSettingLine } from "@agentscope-ai/icons";
-import { IconButton, Drawer } from "@agentscope-ai/design";
-import { useState } from "react";
-import OptionsEditor from "./OptionsEditor";
-import { Flex } from "antd";
+import { Drawer, IconButton } from '@agentscope-ai/design';
+import { SparkSettingLine } from '@agentscope-ai/icons';
+import { useState } from 'react';
+import OptionsEditor from './OptionsEditor';
 
 interface OptionsPanelProps {
   value?: any;
@@ -12,17 +11,27 @@ interface OptionsPanelProps {
 export default function OptionsPanel(props: OptionsPanelProps) {
   const [open, setOpen] = useState(false);
 
-  return <>
-    <IconButton onClick={() => setOpen(true)} icon={<SparkSettingLine />} bordered={false} />
-    <Drawer
-      destroyOnHidden
-      open={open}
-      onClose={() => setOpen(false)}
-      styles={{ body: { padding: 0 }, header: { padding: 8 } }}>
-      <OptionsEditor value={props.value} onChange={v => {
-        setOpen(false);
-        props.onChange(v);
-      }} />
-    </Drawer>
-  </>
+  return (
+    <>
+      <IconButton
+        onClick={() => setOpen(true)}
+        icon={<SparkSettingLine />}
+        bordered={false}
+      />
+      <Drawer
+        destroyOnHidden
+        open={open}
+        onClose={() => setOpen(false)}
+        styles={{ body: { padding: 0 }, header: { padding: 8 } }}
+      >
+        <OptionsEditor
+          value={props.value}
+          onChange={(v) => {
+            setOpen(false);
+            props.onChange(v);
+          }}
+        />
+      </Drawer>
+    </>
+  );
 }

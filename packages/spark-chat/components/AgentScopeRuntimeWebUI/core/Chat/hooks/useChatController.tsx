@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useContextSelector } from 'use-context-selector';
 import sleep from '../../../../Util/sleep';
+import AgentScopeRuntimeResponseBuilder from '../../AgentScopeRuntime/Response/Builder';
 import type { IAgentScopeRuntimeMessage } from '../../AgentScopeRuntime/types';
 import { ChatAnywhereInputContext } from '../../Context/ChatAnywhereInputContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
@@ -14,6 +15,10 @@ import {
   createChatSubmissionRequest,
   patchChatMessageSnapshot,
 } from '../submission';
+import {
+  type ChatControllerCurrentQA,
+  findGeneratingResponse,
+} from './runtimeState';
 import useChatMessageHandler from './useChatMessageHandler';
 import useChatRequest from './useChatRequest';
 import useChatSessionHandler from './useChatSessionHandler';
@@ -22,15 +27,6 @@ import useInputQueueController, {
   type QueueSubmitNow,
 } from './useInputQueueController';
 // import mockdata from '../../mock/mock.json'
-
-function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (message.role === 'assistant' && message.msgStatus === 'generating') {
-      return message;
-    }
-  }
-}
 
 /**
  * Chat controller hook - coordinates chat requests, SSE lifecycle, and session
@@ -65,28 +61,7 @@ export default function useChatController() {
     apiOptionsRef.current = apiOptions;
   }, [apiOptions]);
 
-  const currentQARef = useRef<{
-    request?: IAgentScopeRuntimeWebUIMessage;
-    response?: IAgentScopeRuntimeWebUIMessage;
-    abortController?: AbortController;
-    /**
-     * Unique identifier for the currently active SSE request. Incremented on
-     * every new submit / cancel / session-switch. processSSEResponse checks its
-     * own requestId against this value before every write so stale streams stop
-     * writing into the wrong session.
-     */
-    activeRequestId: number;
-    /**
-     * Snapshot of the session id associated with the active request.
-     */
-    activeSessionId?: string;
-    /**
-     * Queue storage key associated with the active request. Host apps may
-     * replace a local route id with a backend id while the request is still
-     * streaming, so queue ownership must follow both aliases.
-     */
-    activeQueueSessionId?: string;
-  }>({ activeRequestId: 0 });
+  const currentQARef = useRef<ChatControllerCurrentQA>({ activeRequestId: 0 });
   const currentSessionIdRef = useRef(currentSessionId);
   const submitNowRef = useRef<QueueSubmitNow | null>(null);
   const handleCancelRef = useRef<(() => void) | null>(null);
@@ -161,17 +136,38 @@ export default function useChatController() {
     ) => {
       if (currentQARef.current.activeRequestId !== requestId) return;
       const response = currentQARef.current.response;
-      if (!response) return;
-
-      response.msgStatus = status;
       setSessionLoading(sessionId, false);
+      currentQARef.current.cancelRequestedRequestId = undefined;
+      if (!response) {
+        handleResponseFinished(sessionId);
+        return;
+      }
+
+      const nextResponse = {
+        ...response,
+        msgStatus: status,
+        cards:
+          status === 'interrupted'
+            ? (response.cards || []).map((card) =>
+                card.code === 'AgentScopeRuntimeResponseCard'
+                  ? {
+                      ...card,
+                      data: AgentScopeRuntimeResponseBuilder.cancelResponse(
+                        card.data,
+                      ),
+                    }
+                  : card,
+              )
+            : response.cards,
+      } as IAgentScopeRuntimeWebUIMessage;
+      currentQARef.current.response = nextResponse;
       ReactDOM.flushSync(() => {
-        messageHandler.updateMessage(response, sessionId);
+        messageHandler.updateMessage(nextResponse, sessionId);
       });
 
       const nextMessages = patchChatMessageSnapshot(
         messageHandler.getSessionMessages(sessionId),
-        response,
+        nextResponse,
       );
       syncMessagesToPeerTabs(sessionId, nextMessages);
       sessionHandler.syncSessionMessages(nextMessages, sessionId);
@@ -189,8 +185,8 @@ export default function useChatController() {
   const { request, reconnect } = useChatRequest({
     currentQARef,
     updateMessage: updateMessageAndSync,
-    onFinish: (sessionId, requestId) =>
-      finishResponse(sessionId, requestId, 'finished'),
+    onFinish: (sessionId, requestId, status) =>
+      finishResponse(sessionId, requestId, status),
   });
 
   const submitNow = useCallback<QueueSubmitNow>(
@@ -213,17 +209,21 @@ export default function useChatController() {
 
       currentQARef.current.abortController?.abort();
       const myRequestId = ++currentQARef.current.activeRequestId;
+      currentQARef.current.cancelRequestedRequestId = undefined;
       const assertActive = () => {
         if (myRequestId !== currentQARef.current.activeRequestId) {
           throw new Error('chat request aborted');
         }
       };
 
-      const submitSessionId =
+      const sessionIdSnapshot =
         queuedSubmitSessionId ||
         options?.sessionId ||
         data.session_id ||
-        (await sessionHandler.ensureSession(data.query));
+        sessionHandler.getCurrentSessionId();
+      currentQARef.current.activeSessionId = sessionIdSnapshot;
+      const submitSessionId =
+        sessionIdSnapshot || (await sessionHandler.ensureSession(data.query));
       assertActive();
       if (!submitSessionId) {
         throw new Error('chat session is not ready');
@@ -361,6 +361,7 @@ export default function useChatController() {
         }
         setSessionLoading(submitSessionId, false);
         console.error(error);
+        throw error;
       } finally {
         unregisterSubmission();
       }
@@ -389,6 +390,7 @@ export default function useChatController() {
       if (!sessionId) return;
       currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
+      currentQARef.current.cancelRequestedRequestId = undefined;
 
       messageHandler.createApprovalMessage(input, sessionId);
       const requestSignal = currentQARef.current.abortController?.signal;
@@ -429,24 +431,47 @@ export default function useChatController() {
     [messageHandler, request, sessionHandler, setSessionLoading],
   );
 
+  const abortActiveRequest = useCallback(
+    (requestId: number, sessionId?: string) => {
+      if (currentQARef.current.activeRequestId !== requestId) return;
+      if (sessionId) finishResponse(sessionId, requestId, 'interrupted');
+      currentQARef.current.activeRequestId += 1;
+      currentQARef.current.cancelRequestedRequestId = undefined;
+      currentQARef.current.abortController?.abort();
+    },
+    [finishResponse],
+  );
+
   const handleCancel = useCallback(() => {
     const requestId = currentQARef.current.activeRequestId;
     const sessionId = currentQARef.current.activeSessionId;
-    if (sessionId) finishResponse(sessionId, requestId, 'interrupted');
-    // Invalidate the request even when cancellation happens before the
-    // assistant placeholder or AbortController has been created.
-    currentQARef.current.activeRequestId += 1;
-    const cancelSessionId = sessionId || sessionHandler.getCurrentSessionId();
+    if (currentQARef.current.cancelRequestedRequestId === requestId) return;
+    currentQARef.current.cancelRequestedRequestId = requestId;
+
+    const cancelSessionId = sessionId;
     const cancelFn = apiOptionsRef.current.cancel;
     if (cancelFn && cancelSessionId) {
+      const abort = () => abortActiveRequest(requestId, sessionId);
       try {
-        cancelFn({ session_id: cancelSessionId });
-      } catch (e) {
-        console.error('cancel api failed:', e);
+        void Promise.resolve(
+          cancelFn({
+            session_id: cancelSessionId,
+            signal: currentQARef.current.abortController?.signal,
+            abort,
+          }),
+        ).catch((error) => {
+          console.error('cancel api failed:', error);
+          abort();
+        });
+      } catch (error) {
+        console.error('cancel api failed:', error);
+        abort();
       }
+      return;
     }
-    currentQARef.current.abortController?.abort();
-  }, [finishResponse, sessionHandler]);
+
+    abortActiveRequest(requestId, sessionId);
+  }, [abortActiveRequest]);
 
   handleCancelRef.current = handleCancel;
 
@@ -489,6 +514,7 @@ export default function useChatController() {
       currentQARef.current.abortController?.abort();
       currentQARef.current.abortController = new AbortController();
       const myRequestId = ++currentQARef.current.activeRequestId;
+      currentQARef.current.cancelRequestedRequestId = undefined;
       currentQARef.current.activeSessionId = sessionId;
       markQueueSessionActive(queueSessionId);
       setSessionLoading(sessionId, true);
@@ -562,6 +588,7 @@ export default function useChatController() {
       activeRequestId: currentQARef.current.activeRequestId + 1,
       activeSessionId: currentSessionId,
       activeQueueSessionId: resolveQueueSessionId(currentSessionId),
+      cancelRequestedRequestId: undefined,
     };
   }, [currentSessionId, resolveQueueSessionId, sameQueueSession]);
 
@@ -577,35 +604,33 @@ export default function useChatController() {
   useChatAnywhereEventEmitter({
     type: 'handleReconnect',
     callback: async (data) => {
-      await handleReconnect(data.detail.session_id);
+      await handleReconnect(data.session_id);
     },
   });
 
   useChatAnywhereEventEmitter({
     type: 'handleSessionLoaded',
     callback: (data) => {
-      handleSessionLoaded(data.detail?.session_id, data.detail?.generating);
+      handleSessionLoaded(data.session_id, data.generating);
     },
   });
 
   useChatAnywhereEventEmitter({
     type: 'handleReplace',
     callback: async (data) => {
-      await handleRegenerate(data.detail.id);
+      await handleRegenerate(data.id);
     },
   });
 
   useChatAnywhereEventEmitter({
     type: 'handleSubmit',
-    callback: async (data) => {
-      await handleSubmit(data.detail);
-    },
+    callback: handleSubmit,
   });
 
   useChatAnywhereEventEmitter({
     type: 'handleApproval',
     callback: async (data) => {
-      await handleApproval(data.detail);
+      await handleApproval(data);
     },
   });
 

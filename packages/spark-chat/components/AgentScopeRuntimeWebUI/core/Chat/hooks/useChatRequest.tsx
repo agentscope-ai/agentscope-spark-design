@@ -22,12 +22,17 @@ interface UseChatRequestOptions {
     activeRequestId: number;
     /** Session id snapshot for the active request. */
     activeSessionId?: string;
+    cancelRequestedRequestId?: number;
   }>;
   updateMessage: (
     message: IAgentScopeRuntimeWebUIMessage,
     sessionId: string,
   ) => void;
-  onFinish: (sessionId: string, requestId: number) => void;
+  onFinish: (
+    sessionId: string,
+    requestId: number,
+    status?: 'finished' | 'interrupted',
+  ) => void;
 }
 
 interface ChatRequestLifecycleOptions {
@@ -168,7 +173,13 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
             if (finished) {
               sawFinishedChunk = true;
-              onFinish(mySessionId, myRequestId);
+              onFinish(
+                mySessionId,
+                myRequestId,
+                res.status === AgentScopeRuntimeRunStatus.Canceled
+                  ? 'interrupted'
+                  : 'finished',
+              );
             } else {
               updateMessage(currentQARef.current.response, mySessionId);
             }

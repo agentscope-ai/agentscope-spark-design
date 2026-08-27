@@ -2,10 +2,12 @@ import { Button } from '@agentscope-ai/design';
 import { Flex } from 'antd';
 import { createStyles } from 'antd-style';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useContextSelector } from 'use-context-selector';
 import { v4 as uuid } from 'uuid';
 import StatusCard from '../../../../StatusCard';
 import { useTranslation } from '../../Context/ChatAnywhereI18nContext';
 import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
+import { ChatAnywhereMessagesContext } from '../../Context/ChatAnywhereMessagesContext';
 import { useChatAnywhereCommandDispatcher } from '../../Context/useChatAnywhereEventEmitter';
 import {
   AgentScopeRuntimeContentType,
@@ -16,6 +18,7 @@ import {
   IDataContent,
 } from '../types';
 import ApprovalCancelPopover from './ApprovalCancelPopover';
+import { getApprovalStatus, type ApprovalStatus } from './approvalState';
 
 const useStyles = createStyles(({ css, token }) => ({
   desc: css`
@@ -34,9 +37,21 @@ export default function Approval({
   const setDisabled = useChatAnywhereInput((value) => value.setDisabled);
   const { styles } = useStyles();
   const { t } = useTranslation();
-  const [status, setStatus] = useState<'pending' | 'confirmed' | 'canceled'>(
-    'pending',
+  const messages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (value) => value.messages,
   );
+  const [optimisticStatus, setOptimisticStatus] = useState<ApprovalStatus>();
+  const approvalContent = data.content?.find(
+    (content): content is IDataContent<{ id?: string }> =>
+      content.type === AgentScopeRuntimeContentType.DATA,
+  );
+  const approvalRequestId = approvalContent?.data?.id;
+  const persistedStatus = useMemo(
+    () => getApprovalStatus(messages, approvalRequestId),
+    [approvalRequestId, messages],
+  );
+  const status = optimisticStatus || persistedStatus;
   const title = t?.('approval.title') || '人工干预';
 
   const description = useMemo(() => {
@@ -49,16 +64,12 @@ export default function Approval({
 
   const handleConfirm = useCallback(
     (status: 'confirmed' | 'canceled', reason?: string) => {
-      setStatus(status);
+      setOptimisticStatus(status);
       setLoading(false);
       setDisabled(false);
 
       const request = data;
-      const approvalContent = request.content?.find(
-        (content): content is IDataContent<{ id?: string }> =>
-          content.type === AgentScopeRuntimeContentType.DATA,
-      );
-      const id = approvalContent?.data?.id;
+      const id = approvalRequestId;
       const response: IAgentScopeRuntimeMessage = {
         id: uuid(),
         type: AgentScopeRuntimeMessageType.MCP_APPROVAL_RESPONSE,
@@ -78,11 +89,14 @@ export default function Approval({
         ],
       };
 
-      dispatch('handleApproval', {
+      void dispatch('handleApproval', {
         input: [request, response],
+      }).catch((error) => {
+        console.error('approval submission failed:', error);
+        setOptimisticStatus(undefined);
       });
     },
-    [data, dispatch, setDisabled, setLoading],
+    [approvalRequestId, data, dispatch, setDisabled, setLoading],
   );
 
   const actions = useMemo(() => {
@@ -106,12 +120,16 @@ export default function Approval({
   }, [handleConfirm, status, t]);
 
   useEffect(() => {
-    if (status === 'pending') {
-      setLoading(
-        t?.('approval.taskRunning') || '当前有正在执行的任务，无法发送新的任务',
-      );
-      setDisabled(true);
-    }
+    if (status !== 'pending') return;
+    setLoading(
+      t?.('approval.taskRunning') || '当前有正在执行的任务，无法发送新的任务',
+    );
+    setDisabled(true);
+
+    return () => {
+      setLoading(false);
+      setDisabled(false);
+    };
   }, [setDisabled, setLoading, status, t]);
 
   return (

@@ -1,8 +1,3 @@
-import type {
-  IAgentScopeRuntimeWebUISenderMentionItem,
-  IAgentScopeRuntimeWebUISenderMentionsOptions,
-} from '@agentscope-ai/chat';
-import { Sender, useProviderContext } from '@agentscope-ai/chat';
 import { Popover } from 'antd';
 import React, {
   useCallback,
@@ -12,6 +7,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useProviderContext } from '../../../../Provider';
+import Sender from '../../../../Sender';
+import type {
+  IAgentScopeRuntimeWebUISenderMentionItem,
+  IAgentScopeRuntimeWebUISenderMentionsOptions,
+} from '../../types';
 import {
   findMentionRange,
   remapSelectedMentions,

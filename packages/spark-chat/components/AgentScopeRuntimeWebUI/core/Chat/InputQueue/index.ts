@@ -3,6 +3,7 @@ import type {
   IAgentScopeRuntimeWebUIInputData,
   IAgentScopeRuntimeWebUIQueuedInputItem,
   IAgentScopeRuntimeWebUIQueuedInputStatus,
+  IAgentScopeRuntimeWebUIQueueEnqueueResult,
   IAgentScopeRuntimeWebUIQueueRequestContext,
 } from '../../types';
 
@@ -36,11 +37,7 @@ export interface EnqueueQueuedInputResult {
   reason?: 'full';
 }
 
-export interface QueueEnqueueResult {
-  ok: boolean;
-  item?: QueuedInputItem;
-  reason?: 'full' | 'session-not-ready';
-}
+export type QueueEnqueueResult = IAgentScopeRuntimeWebUIQueueEnqueueResult;
 
 export const MAX_INPUT_QUEUE_SIZE = 50;
 export const INPUT_QUEUE_OWNER_TTL = 10_000;

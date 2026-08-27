@@ -1,14 +1,13 @@
-import { useProviderContext } from '@agentscope-ai/chat';
-import Style from './styles';
 import cls from 'classnames';
-import { useChatAnywhereOptions } from '../Context/ChatAnywhereOptionsContext';
-import { forwardRef, useContext } from 'react';
+import React, { forwardRef, useContext } from 'react';
+import { useProviderContext } from '../../../Provider';
 import Chat from '../Chat';
-import Sessions from '../Sessions';
 import { ChatAnyWhereLayoutContext } from '../Context/ChatAnywhereLayoutContext';
+import { useChatAnywhereOptions } from '../Context/ChatAnywhereOptionsContext';
 import Header from '../Header';
-import React from 'react';
 import Ref from '../Ref';
+import Sessions from '../Sessions';
+import Style from './styles';
 
 interface IProps {
   className?: string;
@@ -19,36 +18,45 @@ interface IProps {
 function Layout(props: IProps, ref: React.Ref<any>) {
   const { className } = props;
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-layout');
-  const narrowMode = useChatAnywhereOptions(v => v.theme.narrowMode);
-  const background = useChatAnywhereOptions(v => v.theme.background);
-  const rightHeader = useChatAnywhereOptions(v => v.theme.rightHeader);
-  const { session } = useChatAnywhereOptions(v => ({ session: v.session }));
+  const narrowMode = useChatAnywhereOptions((v) => v.theme.narrowMode);
+  const background = useChatAnywhereOptions((v) => v.theme.background);
+  const rightHeader = useChatAnywhereOptions((v) => v.theme.rightHeader);
+  const { session } = useChatAnywhereOptions((v) => ({ session: v.session }));
   const { collapsed } = useContext(ChatAnyWhereLayoutContext);
-  const showLeft = !narrowMode && session && session.multiple && !session.hideBuiltInSessionList;
+  const showLeft =
+    !narrowMode &&
+    session &&
+    session.multiple &&
+    !session.hideBuiltInSessionList;
 
-  return <>
-    <Style />
-    <div className={cls(`${prefixCls}`, className)}>
-      {
-        showLeft && <div className={cls(`${prefixCls}-left`, {
-          [`${prefixCls}-left-collapsed`]: collapsed,
-        })}>
-          <Sessions />
+  return (
+    <>
+      <Style />
+      <div className={cls(`${prefixCls}`, className)}>
+        {showLeft && (
+          <div
+            className={cls(`${prefixCls}-left`, {
+              [`${prefixCls}-left-collapsed`]: collapsed,
+            })}
+          >
+            <Sessions />
+          </div>
+        )}
+        <div
+          className={cls(`${prefixCls}-right`, {
+            [`${prefixCls}-right-has-header`]: !!rightHeader,
+          })}
+          style={{
+            background: background,
+          }}
+        >
+          {!!rightHeader && <Header />}
+          <Chat />
         </div>
-      }
-      <div className={cls(`${prefixCls}-right`, {
-        [`${prefixCls}-right-has-header`]: !!rightHeader,
-      })} style={{
-        background: background,
-      }}>
-        {
-          !!rightHeader && <Header />
-        }
-        <Chat />
       </div>
-    </div>
-    <Ref ref={ref} />
-  </>;
+      <Ref ref={ref} />
+    </>
+  );
 }
 
 export default forwardRef(Layout);

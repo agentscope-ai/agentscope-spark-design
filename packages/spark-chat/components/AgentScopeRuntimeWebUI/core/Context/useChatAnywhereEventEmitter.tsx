@@ -6,7 +6,10 @@ import React, {
   useRef,
 } from 'react';
 import type { IAgentScopeRuntimeMessage } from '../AgentScopeRuntime/types';
-import type { IAgentScopeRuntimeWebUIInputData } from '../types';
+import type {
+  IAgentScopeRuntimeWebUIInputData,
+  IAgentScopeRuntimeWebUIQueueEnqueueResult,
+} from '../types';
 
 export interface ChatAnywhereCommandMap {
   handleReconnect: { session_id: string };
@@ -18,8 +21,18 @@ export interface ChatAnywhereCommandMap {
 
 type ChatAnywhereCommandType = keyof ChatAnywhereCommandMap;
 
+interface ChatAnywhereCommandResultMap {
+  handleReconnect: void;
+  handleSessionLoaded: void;
+  handleReplace: void;
+  handleSubmit: void | IAgentScopeRuntimeWebUIQueueEnqueueResult;
+  handleApproval: void;
+}
+
+type ChatAnywhereCommandHandler = (data: unknown) => unknown | Promise<unknown>;
+
 interface ChatAnywhereCommandBus {
-  target: EventTarget;
+  handlers: Map<ChatAnywhereCommandType, Set<ChatAnywhereCommandHandler>>;
 }
 
 const ChatAnywhereCommandContext = createContext<ChatAnywhereCommandBus | null>(
@@ -31,7 +44,7 @@ export function ChatAnywhereCommandProvider(props: {
 }) {
   const busRef = useRef<ChatAnywhereCommandBus>();
   if (!busRef.current) {
-    busRef.current = { target: new EventTarget() };
+    busRef.current = { handlers: new Map() };
   }
 
   return (
@@ -56,27 +69,24 @@ export default function useChatAnywhereEventEmitter<
 >(props: {
   type: Type;
   callback: (
-    event: CustomEvent<ChatAnywhereCommandMap[Type]>,
-  ) => void | Promise<void>;
+    data: ChatAnywhereCommandMap[Type],
+  ) =>
+    | ChatAnywhereCommandResultMap[Type]
+    | Promise<ChatAnywhereCommandResultMap[Type]>;
 }) {
   const bus = useChatAnywhereCommandBus();
   const callbackRef = useRef(props.callback);
   callbackRef.current = props.callback;
 
   useEffect(() => {
-    const listener: EventListener = (event) => {
-      void Promise.resolve(
-        callbackRef.current(event as CustomEvent<ChatAnywhereCommandMap[Type]>),
-      ).catch((error) => {
-        console.error(
-          `AgentScopeRuntimeWebUI command ${props.type} failed:`,
-          error,
-        );
-      });
-    };
-    bus.target.addEventListener(props.type, listener);
+    const listener: ChatAnywhereCommandHandler = (data) =>
+      callbackRef.current(data as ChatAnywhereCommandMap[Type]);
+    const listeners = bus.handlers.get(props.type) || new Set();
+    listeners.add(listener);
+    bus.handlers.set(props.type, listeners);
     return () => {
-      bus.target.removeEventListener(props.type, listener);
+      listeners.delete(listener);
+      if (listeners.size === 0) bus.handlers.delete(props.type);
     };
   }, [bus, props.type]);
 }
@@ -85,11 +95,18 @@ export function useChatAnywhereCommandDispatcher() {
   const bus = useChatAnywhereCommandBus();
 
   return useCallback(
-    <Type extends ChatAnywhereCommandType>(
+    async <Type extends ChatAnywhereCommandType>(
       type: Type,
       data: ChatAnywhereCommandMap[Type],
-    ) => {
-      bus.target.dispatchEvent(new CustomEvent(type, { detail: data }));
+    ): Promise<ChatAnywhereCommandResultMap[Type]> => {
+      const handlers = Array.from(bus.handlers.get(type) || []);
+      if (handlers.length === 0) {
+        return undefined as ChatAnywhereCommandResultMap[Type];
+      }
+      const results = await Promise.all(
+        handlers.map((handler) => handler(data)),
+      );
+      return results[0] as ChatAnywhereCommandResultMap[Type];
     },
     [bus],
   );

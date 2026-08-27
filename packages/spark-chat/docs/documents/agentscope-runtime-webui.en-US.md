@@ -238,6 +238,27 @@ Starting in 1.2.0, WebUI creates a request snapshot when a submission begins. `s
 
 Use `context` for generic business context scoped to one request. `biz_params` still supports `user_prompt_params` and may contain additional JSON fields. The default request and a custom `fetch` receive the same context fields. `responseParser` receives one SSE `data` string per call and defaults to `JSON.parse`.
 
+### Custom stop and cancellation events
+
+By default, Stop immediately terminates the browser SSE and marks running response, tool-call, and content states as `canceled`. If the backend emits cancellation progress or a terminal status on the original SSE, configure `api.cancel`:
+
+```tsx | pure
+const options = {
+  api: {
+    fetch: customFetch,
+    cancel: async ({ session_id, signal, abort }) => {
+      await fetch(`/api/sessions/${session_id}/cancel`, { method: 'POST' });
+
+      // Do not call abort: keep the original SSE open for backend cancel events.
+      // Call abort() explicitly when the host wants to close the local stream now.
+      if (signal?.aborted) return;
+    },
+  },
+};
+```
+
+When `api.cancel` is provided, the SDK does not automatically abort the original SSE. The backend should send a terminal `status: "canceled"` event on that stream; the SDK then ends loading and persists the response as interrupted. If `api.cancel` throws or rejects, the SDK falls back to local `abort()`. The host may also call the supplied `abort()` after a timeout or after confirming that no more server events will arrive.
+
 ### Theme Configuration
 
 Customize the WebUI appearance via `theme`.
@@ -669,7 +690,8 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 - A custom `api.fetch` now receives a required `session_id` plus independent `context`, `mentions`, `submission`, and `signal` values. Use these snapshot arguments instead of reading the global active session after asynchronous work.
 - Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible and additional JSON fields are supported.
 - The built-in input queue is now opt-in and disabled by default. Existing host-managed queues do not need to migrate; they only need to preserve and resubmit the complete input data.
-- `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData`.
+- `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData` and returns an awaitable Promise, so a host-managed delayed queue can wait for the submission or enqueue result.
+- `api.cancel` can take ownership of Stop. When configured, it keeps the original SSE open for backend cancellation events by default; call the supplied `abort()` to terminate the local stream immediately. Without it, Stop still aborts locally.
 - `responseParser` now correctly receives one SSE `data` string. Update custom parsers that previously declared a `Response` parameter.
 - A custom `session.api` must now implement all five session methods. Omitting it still uses the built-in implementation.
 - `sender.onSubmit` and `sender.onCancel` were removed from the types because runtime never invoked them. Use `beforeSubmit` for interception and `ref.input.submit` for external submission.

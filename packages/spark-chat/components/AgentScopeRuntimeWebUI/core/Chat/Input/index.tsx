@@ -177,9 +177,13 @@ export default function Input(props: InputProps) {
         clearInput();
       }
     } else {
-      const result = await props.onSubmit(data);
-      if (result && !result.ok) return;
-      clearInput();
+      try {
+        const result = await props.onSubmit(data);
+        if (result && !result.ok) return;
+        clearInput();
+      } catch (error) {
+        console.error('chat submission failed:', error);
+      }
     }
   }, [clearInput, loading, prepareSubmissionData, props.onSubmit, props.queue]);
 

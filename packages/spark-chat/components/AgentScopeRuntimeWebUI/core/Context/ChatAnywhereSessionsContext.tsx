@@ -30,11 +30,14 @@ export function ChatAnywhereSessionsContextProvider(props: {
   children: React.ReactNode | React.ReactNode[];
 }) {
   const options = useChatAnywhereOptions((v) => v.session);
+  const isCurrentSessionControlled = hasOwn.call(options, 'currentSessionId');
   const [sessions, setSessions, getSessions] = useGetState<
     IAgentScopeRuntimeWebUISession[]
   >([]);
   const [currentSessionId, setCurrentSessionId, getCurrentSessionId] =
-    useGetState<string | undefined>(undefined);
+    useGetState<string | undefined>(
+      isCurrentSessionControlled ? options.currentSessionId : undefined,
+    );
   const skipNextSessionLoadIdRef = React.useRef<string | undefined>(undefined);
   // In controlled mode, createSession can resolve before the external route
   // passes the new currentSessionId back in.
@@ -42,28 +45,27 @@ export function ChatAnywhereSessionsContextProvider(props: {
   const previousControlledSessionIdRef = React.useRef<string | undefined>(
     options.currentSessionId,
   );
-  const isCurrentSessionControlled = hasOwn.call(options, 'currentSessionId');
-  const initialSessionOptionsRef = React.useRef({
-    api: options.api,
-    currentSessionId: options.currentSessionId,
+  const wasCurrentSessionControlledRef = React.useRef(
     isCurrentSessionControlled,
-  });
+  );
+  const isCurrentSessionControlledRef = React.useRef(
+    isCurrentSessionControlled,
+  );
+  isCurrentSessionControlledRef.current = isCurrentSessionControlled;
+  const initialSessionApiRef = React.useRef(options.api);
 
   React.useEffect(() => {
     let cancelled = false;
-    const initialOptions = initialSessionOptionsRef.current;
-    void initialOptions.api
+    void initialSessionApiRef.current
       .getSessionList()
       .then((sessionList) => {
         if (cancelled) return;
         setSessions(sessionList);
         // In controlled mode the route owns the active session. This keeps
         // /chat as an empty page instead of selecting the first history item.
-        setCurrentSessionId(
-          initialOptions.isCurrentSessionControlled
-            ? initialOptions.currentSessionId
-            : sessionList[0]?.id,
-        );
+        if (!isCurrentSessionControlledRef.current) {
+          setCurrentSessionId(sessionList[0]?.id);
+        }
       })
       .catch((error) => {
         console.error('get session list failed:', error);
@@ -75,8 +77,14 @@ export function ChatAnywhereSessionsContextProvider(props: {
   }, [setCurrentSessionId, setSessions]);
 
   React.useEffect(() => {
+    const controlModeChanged =
+      wasCurrentSessionControlledRef.current !== isCurrentSessionControlled;
+    wasCurrentSessionControlledRef.current = isCurrentSessionControlled;
     if (!isCurrentSessionControlled) return;
-    if (previousControlledSessionIdRef.current === options.currentSessionId)
+    if (
+      !controlModeChanged &&
+      previousControlledSessionIdRef.current === options.currentSessionId
+    )
       return;
 
     previousControlledSessionIdRef.current = options.currentSessionId;
@@ -171,7 +179,7 @@ export const useChatAnywhereSessionLoader = () => {
         undefined,
         getSessions(),
       );
-      dispatch('handleSessionLoaded', {
+      await dispatch('handleSessionLoaded', {
         session_id: currentSessionId,
         generating: false,
       });
@@ -206,7 +214,7 @@ export const useChatAnywhereSessionLoader = () => {
     } catch (error) {
       if (isLatestLoad()) {
         console.error('get session failed:', error);
-        dispatch('handleSessionLoaded', {
+        await dispatch('handleSessionLoaded', {
           session_id: currentSessionId,
           generating: false,
         });
@@ -230,13 +238,13 @@ export const useChatAnywhereSessionLoader = () => {
       })),
     );
 
-    dispatch('handleSessionLoaded', {
+    await dispatch('handleSessionLoaded', {
       session_id: currentSessionId,
       generating: !!session?.generating,
     });
 
     if (session?.generating) {
-      dispatch('handleReconnect', { session_id: currentSessionId });
+      await dispatch('handleReconnect', { session_id: currentSessionId });
     }
   }, [
     currentSessionId,

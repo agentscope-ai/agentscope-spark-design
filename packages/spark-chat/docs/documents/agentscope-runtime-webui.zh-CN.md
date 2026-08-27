@@ -238,6 +238,27 @@ const options = {
 
 `context` 用于承载与单次请求绑定的通用业务上下文；`biz_params` 仍支持已有的 `user_prompt_params`，同时允许扩展其他 JSON 字段。默认请求和自定义 `fetch` 都会收到相同的上下文字段。`responseParser` 每次接收一个 SSE `data` 字符串，默认实现是 `JSON.parse`。
 
+### 自定义停止与取消事件
+
+默认情况下，点击停止会立即终止浏览器中的 SSE，并把响应、工具调用及其内容中的运行态统一标记为 `canceled`。如果后端支持在原 SSE 中返回取消过程或最终状态，可以配置 `api.cancel`：
+
+```tsx | pure
+const options = {
+  api: {
+    fetch: customFetch,
+    cancel: async ({ session_id, signal, abort }) => {
+      await fetch(`/api/sessions/${session_id}/cancel`, { method: 'POST' });
+
+      // 不调用 abort：保留原 SSE，继续接收后端发出的 cancel 事件。
+      // 如果业务希望立即关闭本地连接，则显式调用 abort()。
+      if (signal?.aborted) return;
+    },
+  },
+};
+```
+
+提供 `api.cancel` 后，SDK 不会自动中断原 SSE。后端应通过该流返回 `status: "canceled"` 的终态；SDK 收到后会结束 loading，并持久化为 interrupted。`api.cancel` 抛错或 Promise reject 时，SDK 会自动调用本地 `abort()` 兜底。业务方也可以在超时或确认后端不再发送事件时主动调用传入的 `abort()`。
+
 ### 主题配置
 
 通过 `theme` 自定义 WebUI 的外观。
@@ -669,7 +690,8 @@ export default config;
 - 自定义 `api.fetch` 现在会收到必填的 `session_id`，以及独立的 `context`、`mentions`、`submission` 和 `signal`。请求实现应使用这些快照参数，不要在异步操作后读取全局活动会话。
 - 通用业务上下文应通过 `context` 传递；`biz_params.user_prompt_params` 继续兼容原协议，也可扩展其他 JSON 字段。
 - 内置输入队列改为显式开启，默认不启用。现有业务方自有队列不需要迁移到内置队列，只需保存并回传完整输入数据。
-- `ref.input.submit` 会完整透传 `IAgentScopeRuntimeWebUIInputData`。
+- `ref.input.submit` 会完整透传 `IAgentScopeRuntimeWebUIInputData`，并返回可等待的 Promise；外部延迟队列可以等待本次提交或入队结果。
+- `api.cancel` 可接管停止行为。配置后默认保留原 SSE 以接收后端取消事件；调用参数中的 `abort()` 可立即终止本地流。未配置时仍采用立即本地终止。
 - `responseParser` 的入参类型修正为单个 SSE `data` 字符串；自定义解析器需要相应调整。
 - 自定义 `session.api` 现在必须完整实现五个会话方法；不传时继续使用内置实现。
 - `sender.onSubmit`、`sender.onCancel` 从类型中移除；这两个字段此前未被运行时调用。提交前拦截请使用 `beforeSubmit`，外部提交请使用 `ref.input.submit`。

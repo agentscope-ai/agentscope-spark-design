@@ -21,9 +21,8 @@ function Ref(_, ref) {
         messages,
         input: {
           setDisabled,
-          submit: (data: IAgentScopeRuntimeWebUIInputData) => {
-            dispatch('handleSubmit', data);
-          },
+          submit: (data: IAgentScopeRuntimeWebUIInputData) =>
+            dispatch('handleSubmit', data),
         },
       };
     },

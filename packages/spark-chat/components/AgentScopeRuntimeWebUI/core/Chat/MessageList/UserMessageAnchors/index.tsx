@@ -1,6 +1,11 @@
 import { Popover, Tooltip } from '@agentscope-ai/design';
 import cls from 'classnames';
-import { ChevronDown, ChevronUp, List as ListIcon, LocateFixed } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  List as ListIcon,
+  LocateFixed,
+} from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   areAnchorPositionsEqual,
@@ -11,10 +16,10 @@ import {
   getMessageElementMapInScrollContainer,
   getScrollVisibleTopOffset,
   getTargetTopOffset,
-  getUserMessageAnchorBadgeText,
   getUserMessageAnchor,
-  getUserMessageAnchorMinGap,
+  getUserMessageAnchorBadgeText,
   getUserMessageAnchorMinCount,
+  getUserMessageAnchorMinGap,
   scrollTargetIntoContainerTop,
 } from './helpers';
 import type { UserMessageAnchor, UserMessageAnchorsProps } from './types';
@@ -55,7 +60,10 @@ async function waitForMessageElement(scrollEl: HTMLElement, messageId: string) {
 function isScrollAtBoundaryForOffset(scrollEl: HTMLElement, offset: number) {
   if (Math.abs(offset) <= TARGET_TOP_TOLERANCE) return false;
 
-  const maxScrollDistance = Math.max(scrollEl.scrollHeight - scrollEl.clientHeight, 0);
+  const maxScrollDistance = Math.max(
+    scrollEl.scrollHeight - scrollEl.clientHeight,
+    0,
+  );
   const isDescOrder = scrollEl.className.includes('bubble-list-order-desc');
 
   if (isDescOrder) {
@@ -104,7 +112,8 @@ async function scrollTargetIntoContainerTopAndSettle(
 
     stableFrames = 0;
     const elapsed = window.performance.now() - startTime;
-    const offsetSettled = previousOffset !== undefined && Math.abs(offset - previousOffset) < 0.5;
+    const offsetSettled =
+      previousOffset !== undefined && Math.abs(offset - previousOffset) < 0.5;
     if (elapsed > TARGET_TOP_CORRECTION_DELAY && offsetSettled) {
       scrollTargetIntoContainerTop(scrollEl, target, 'auto', topOffset);
     }
@@ -113,18 +122,28 @@ async function scrollTargetIntoContainerTopAndSettle(
 
   if (!isCurrent()) return target;
   target = getMessageElementInScrollContainer(scrollEl, messageId) || target;
-  scrollTargetIntoContainerTop(scrollEl, target, 'auto', getScrollVisibleTopOffset(scrollEl));
+  scrollTargetIntoContainerTop(
+    scrollEl,
+    target,
+    'auto',
+    getScrollVisibleTopOffset(scrollEl),
+  );
   await waitForNextFrame();
   return target;
 }
 
 function getAnchorAttachmentText(anchor: UserMessageAnchor) {
-  const countByType = anchor.attachments.reduce<Record<string, number>>((result, attachment) => {
-    result[attachment.type] = (result[attachment.type] || 0) + 1;
-    return result;
-  }, {});
+  const countByType = anchor.attachments.reduce<Record<string, number>>(
+    (result, attachment) => {
+      result[attachment.type] = (result[attachment.type] || 0) + 1;
+      return result;
+    },
+    {},
+  );
 
-  return Object.entries(countByType).map(([type, count]) => `${type}：${count}`).join(' · ');
+  return Object.entries(countByType)
+    .map(([type, count]) => `${type}：${count}`)
+    .join(' · ');
 }
 
 function UserMessageAnchorTooltip(props: {
@@ -140,22 +159,35 @@ function UserMessageAnchorTooltip(props: {
 
     return (
       <div className={`${prefixCls}-anchor-tooltip`}>
-        <div className={`${prefixCls}-anchor-tooltip-text`}>{anchors.length} user messages</div>
+        <div className={`${prefixCls}-anchor-tooltip-text`}>
+          {anchors.length} user messages
+        </div>
         <div className={`${prefixCls}-anchor-tooltip-attachments`}>
           {previewAnchors.map((anchor) => {
             const attachmentText = getAnchorAttachmentText(anchor);
 
             return (
-              <div className={`${prefixCls}-anchor-tooltip-attachment`} key={anchor.id}>
+              <div
+                className={`${prefixCls}-anchor-tooltip-attachment`}
+                key={anchor.id}
+              >
                 <span className={`${prefixCls}-anchor-tooltip-attachment-name`}>
-                  {[getAnchorTimeText(anchor.createdAt), anchor.preview, attachmentText].filter(Boolean).join(' · ')}
+                  {[
+                    getAnchorTimeText(anchor.createdAt),
+                    anchor.preview,
+                    attachmentText,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </span>
               </div>
             );
           })}
           {anchors.length > previewAnchors.length ? (
             <div className={`${prefixCls}-anchor-tooltip-attachment`}>
-              <span className={`${prefixCls}-anchor-tooltip-attachment-type`}>More</span>
+              <span className={`${prefixCls}-anchor-tooltip-attachment-type`}>
+                More
+              </span>
               <span className={`${prefixCls}-anchor-tooltip-attachment-name`}>
                 {anchors.length - previewAnchors.length} more messages
               </span>
@@ -169,9 +201,13 @@ function UserMessageAnchorTooltip(props: {
   return (
     <div className={`${prefixCls}-anchor-tooltip`}>
       {firstAnchor.createdAt ? (
-        <div className={`${prefixCls}-anchor-tooltip-time`}>{getAnchorTimeText(firstAnchor.createdAt)}</div>
+        <div className={`${prefixCls}-anchor-tooltip-time`}>
+          {getAnchorTimeText(firstAnchor.createdAt)}
+        </div>
       ) : null}
-      <div className={`${prefixCls}-anchor-tooltip-text`}>{firstAnchor.preview}</div>
+      <div className={`${prefixCls}-anchor-tooltip-text`}>
+        {firstAnchor.preview}
+      </div>
       {firstAnchor.attachments.length ? (
         <div className={`${prefixCls}-anchor-tooltip-attachments`}>
           <div className={`${prefixCls}-anchor-tooltip-attachment`}>
@@ -192,22 +228,27 @@ function UserMessageAnchorDirectory(props: {
   prefixCls: string;
   onAnchorClick: (messageId: string) => void;
 }) {
-  const { anchors, activeAnchorId, openVersion, prefixCls, onAnchorClick } = props;
+  const { anchors, activeAnchorId, openVersion, prefixCls, onAnchorClick } =
+    props;
   const activeItemRef = React.useRef<HTMLButtonElement | null>(null);
   const listRef = React.useRef<HTMLDivElement | null>(null);
 
-  const scrollActiveItemIntoView = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    const activeItem = activeItemRef.current;
-    const list = listRef.current;
-    if (!activeItem || !list) return;
+  const scrollActiveItemIntoView = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      const activeItem = activeItemRef.current;
+      const list = listRef.current;
+      if (!activeItem || !list) return;
 
-    const itemOffsetTop = activeItem.offsetTop;
-    const nextScrollTop = itemOffsetTop - (list.clientHeight - activeItem.offsetHeight) / 2;
-    list.scrollTo({
-      top: Math.max(0, nextScrollTop),
-      behavior,
-    });
-  }, []);
+      const itemOffsetTop = activeItem.offsetTop;
+      const nextScrollTop =
+        itemOffsetTop - (list.clientHeight - activeItem.offsetHeight) / 2;
+      list.scrollTo({
+        top: Math.max(0, nextScrollTop),
+        behavior,
+      });
+    },
+    [],
+  );
 
   React.useEffect(() => {
     if (!openVersion) return;
@@ -252,13 +293,19 @@ function UserMessageAnchorDirectory(props: {
               type="button"
             >
               <span className={`${prefixCls}-anchor-directory-main`}>
-                <span className={`${prefixCls}-anchor-directory-message`}>{anchor.preview}</span>
+                <span className={`${prefixCls}-anchor-directory-message`}>
+                  {anchor.preview}
+                </span>
                 {timeText ? (
-                  <span className={`${prefixCls}-anchor-directory-time`}>{timeText}</span>
+                  <span className={`${prefixCls}-anchor-directory-time`}>
+                    {timeText}
+                  </span>
                 ) : null}
               </span>
               {attachmentText ? (
-                <span className={`${prefixCls}-anchor-directory-attachments`}>{attachmentText}</span>
+                <span className={`${prefixCls}-anchor-directory-attachments`}>
+                  {attachmentText}
+                </span>
               ) : null}
             </button>
           );
@@ -285,7 +332,9 @@ function getAnchorGroups(
     if (lastGroup && Math.abs(top - lastGroup.lastTop) < minGapPercent) {
       lastGroup.anchors.push(anchor);
       lastGroup.lastTop = top;
-      lastGroup.top = (lastGroup.top * (lastGroup.anchors.length - 1) + top) / lastGroup.anchors.length;
+      lastGroup.top =
+        (lastGroup.top * (lastGroup.anchors.length - 1) + top) /
+        lastGroup.anchors.length;
       if (anchor.id === activeAnchorId) {
         lastGroup.active = true;
         lastGroup.targetAnchor = anchor;
@@ -304,13 +353,16 @@ function getAnchorGroups(
   });
 
   return groups.map((group) => {
-    const id = group.anchors.length > 1
-      ? `${group.anchors[0].id}-${group.anchors[group.anchors.length - 1].id}`
-      : group.id;
+    const id =
+      group.anchors.length > 1
+        ? `${group.anchors[0].id}-${group.anchors[group.anchors.length - 1].id}`
+        : group.id;
     let targetAnchor = group.targetAnchor;
 
     if (group.anchors.length > 1) {
-      const middleAnchor = group.anchors[Math.floor((group.anchors.length - 1) / 2)] || group.targetAnchor;
+      const middleAnchor =
+        group.anchors[Math.floor((group.anchors.length - 1) / 2)] ||
+        group.targetAnchor;
       targetAnchor = group.active ? group.targetAnchor : middleAnchor;
     }
 
@@ -340,14 +392,24 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
   const anchorTrackRef = React.useRef<HTMLElement | null>(null);
   const activeAnchorLockRef = React.useRef<string | undefined>();
   const frameRef = React.useRef<number | undefined>();
+  const highlightFrameRef = React.useRef<number | undefined>();
+  const highlightTimeoutRef = React.useRef<number | undefined>();
   const scrollSequenceRef = React.useRef(0);
-  const [anchorPositions, setAnchorPositions] = useState<Record<string, number>>({});
+  const [anchorPositions, setAnchorPositions] = useState<
+    Record<string, number>
+  >({});
   const [activeAnchorId, setActiveAnchorId] = useState<string | undefined>();
   const [anchorRight, setAnchorRight] = useState<number | undefined>();
   const [directoryOpenVersion, setDirectoryOpenVersion] = useState(0);
   const [trackHeight, setTrackHeight] = useState(0);
-  const normalizedMinGap = useMemo(() => getUserMessageAnchorMinGap(minGap), [minGap]);
-  const normalizedMinCount = useMemo(() => getUserMessageAnchorMinCount(minCount), [minCount]);
+  const normalizedMinGap = useMemo(
+    () => getUserMessageAnchorMinGap(minGap),
+    [minGap],
+  );
+  const normalizedMinCount = useMemo(
+    () => getUserMessageAnchorMinCount(minCount),
+    [minCount],
+  );
 
   const anchors = useMemo<UserMessageAnchor[]>(() => {
     if (!enabled) return [];
@@ -366,63 +428,101 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
       return result;
     }, []);
   }, [enabled, items]);
-  const anchorIdsKey = useMemo(() => anchors.map((anchor) => anchor.id).join('|'), [anchors]);
-  const visible = enabled && anchors.length > 0 && anchors.length >= normalizedMinCount;
+  const anchorIdsKey = useMemo(
+    () => anchors.map((anchor) => anchor.id).join('|'),
+    [anchors],
+  );
+  const visible =
+    enabled && anchors.length > 0 && anchors.length >= normalizedMinCount;
 
   const measureAnchors = useCallback(() => {
     const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
-    const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
+    const scrollEl = root?.querySelector(
+      `.${scrollContainerClassName}`,
+    ) as HTMLElement | null;
     if (!scrollEl) return;
 
     const rootRect = root?.getBoundingClientRect();
     const scrollRect = scrollEl.getBoundingClientRect();
     if (rootRect) {
-      const trackWidth = variant === 'navigator' ? NAVIGATOR_TRACK_WIDTH : ANCHOR_TRACK_WIDTH;
-      const nextAnchorRight = Math.round(Math.max(
-        12,
-        rootRect.right - scrollRect.right - ANCHOR_CONTENT_GAP - trackWidth,
-      ));
-      setAnchorRight((prev) => prev === nextAnchorRight ? prev : nextAnchorRight);
+      const trackWidth =
+        variant === 'navigator' ? NAVIGATOR_TRACK_WIDTH : ANCHOR_TRACK_WIDTH;
+      const nextAnchorRight = Math.round(
+        Math.max(
+          12,
+          rootRect.right - scrollRect.right - ANCHOR_CONTENT_GAP - trackWidth,
+        ),
+      );
+      setAnchorRight((prev) =>
+        prev === nextAnchorRight ? prev : nextAnchorRight,
+      );
     }
 
     const lockedAnchorId = activeAnchorLockRef.current;
-    const lockedAnchorExists = !!lockedAnchorId && anchors.some((anchor) => anchor.id === lockedAnchorId);
+    const lockedAnchorExists =
+      !!lockedAnchorId &&
+      anchors.some((anchor) => anchor.id === lockedAnchorId);
     if (lockedAnchorId && !lockedAnchorExists) {
       activeAnchorLockRef.current = undefined;
     }
 
     const visibleTopOffset = getScrollVisibleTopOffset(scrollEl);
+    const targetMap = getMessageElementMapInScrollContainer(scrollEl);
+    const targetRects = new Map<string, DOMRect>();
+    targetMap.forEach((target, id) => {
+      targetRects.set(id, target.getBoundingClientRect());
+    });
     const nextActiveAnchorId = lockedAnchorExists
       ? lockedAnchorId
-      : getActiveAnchorId(scrollEl, anchors, visibleTopOffset);
-    setActiveAnchorId((prev) => prev === nextActiveAnchorId ? prev : nextActiveAnchorId);
+      : getActiveAnchorId(
+          scrollEl,
+          anchors,
+          visibleTopOffset,
+          targetMap,
+          targetRects,
+        );
+    setActiveAnchorId((prev) =>
+      prev === nextActiveAnchorId ? prev : nextActiveAnchorId,
+    );
 
     if (variant === 'navigator') {
-      setAnchorPositions((prev) => Object.keys(prev).length ? {} : prev);
-      setTrackHeight((prev) => prev === 0 ? prev : 0);
+      setAnchorPositions((prev) => (Object.keys(prev).length ? {} : prev));
+      setTrackHeight((prev) => (prev === 0 ? prev : 0));
       return;
     }
 
     const nextTrackHeight = anchorTrackRef.current?.clientHeight || 0;
-    setTrackHeight((prev) => Math.abs(prev - nextTrackHeight) < 1 ? prev : nextTrackHeight);
+    setTrackHeight((prev) =>
+      Math.abs(prev - nextTrackHeight) < 1 ? prev : nextTrackHeight,
+    );
 
-    const targetMap = getMessageElementMapInScrollContainer(scrollEl);
     const scrollHeight = Math.max(scrollEl.scrollHeight, 1);
-    const maxScrollTop = Math.max(scrollEl.scrollHeight - scrollEl.clientHeight, 0);
+    const maxScrollTop = Math.max(
+      scrollEl.scrollHeight - scrollEl.clientHeight,
+      0,
+    );
     const visualScrollTop = maxScrollTop + scrollEl.scrollTop;
-    const nextPositions = anchors.reduce<Record<string, number>>((result, anchor) => {
-      const target = targetMap.get(anchor.id);
-      if (!target) {
-        result[anchor.id] = anchor.orderPercent;
-        return result;
-      }
+    const nextPositions = anchors.reduce<Record<string, number>>(
+      (result, anchor) => {
+        const target = targetMap.get(anchor.id);
+        if (!target) {
+          result[anchor.id] = anchor.orderPercent;
+          return result;
+        }
 
-      const targetRect = target.getBoundingClientRect();
-      const viewportCenter = targetRect.top - scrollRect.top + targetRect.height / 2;
-      const visualCenter = visualScrollTop + viewportCenter;
-      result[anchor.id] = clamp((visualCenter / scrollHeight) * 100, 0, 100);
-      return result;
-    }, {});
+        const targetRect = targetRects.get(anchor.id);
+        if (!targetRect) {
+          result[anchor.id] = anchor.orderPercent;
+          return result;
+        }
+        const viewportCenter =
+          targetRect.top - scrollRect.top + targetRect.height / 2;
+        const visualCenter = visualScrollTop + viewportCenter;
+        result[anchor.id] = clamp((visualCenter / scrollHeight) * 100, 0, 100);
+        return result;
+      },
+      {},
+    );
 
     setAnchorPositions((prev) => {
       if (areAnchorPositionsEqual(prev, nextPositions)) return prev;
@@ -452,34 +552,43 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     cancelPendingAnchorPositionUpdate();
     if (!visible) {
       activeAnchorLockRef.current = undefined;
-      setAnchorPositions((prev) => Object.keys(prev).length ? {} : prev);
-      setActiveAnchorId((prev) => prev === undefined ? prev : undefined);
+      setAnchorPositions((prev) => (Object.keys(prev).length ? {} : prev));
+      setActiveAnchorId((prev) => (prev === undefined ? prev : undefined));
       return;
     }
 
     measureAnchors();
 
     const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
-    const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
-    const resizeObserver = typeof ResizeObserver !== 'undefined'
-      ? new ResizeObserver(updateAnchors)
-      : undefined;
+    const scrollEl = root?.querySelector(
+      `.${scrollContainerClassName}`,
+    ) as HTMLElement | null;
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(updateAnchors)
+        : undefined;
 
     if (scrollEl) resizeObserver?.observe(scrollEl);
-    if (variant !== 'navigator') {
-      const targetMap = scrollEl ? getMessageElementMapInScrollContainer(scrollEl) : new Map<string, HTMLElement>();
-      const scrollChildren = Array.from(scrollEl?.children || [])
-        .filter((target): target is HTMLElement => target instanceof HTMLElement);
-      scrollChildren.forEach((target) => resizeObserver?.observe(target));
-      targetMap.forEach((target) => resizeObserver?.observe(target));
-    }
+    if (anchorTrackRef.current) resizeObserver?.observe(anchorTrackRef.current);
+    const mutationObserver =
+      scrollEl && typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(updateAnchors)
+        : undefined;
+    mutationObserver?.observe(scrollEl!, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
     scrollEl?.addEventListener('scroll', updateAnchors, { passive: true });
+    scrollEl?.addEventListener('load', updateAnchors, true);
     window.addEventListener('resize', updateAnchors);
 
     return () => {
       cancelPendingAnchorPositionUpdate();
       resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
       scrollEl?.removeEventListener('scroll', updateAnchors);
+      scrollEl?.removeEventListener('load', updateAnchors, true);
       window.removeEventListener('resize', updateAnchors);
     };
   }, [
@@ -494,89 +603,123 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     visible,
   ]);
 
-  const handleAnchorClick = useCallback(async (messageId: string) => {
-    const scrollSequence = scrollSequenceRef.current + 1;
-    scrollSequenceRef.current = scrollSequence;
-    activeAnchorLockRef.current = messageId;
-    setActiveAnchorId(messageId);
+  const handleAnchorClick = useCallback(
+    async (messageId: string) => {
+      const scrollSequence = scrollSequenceRef.current + 1;
+      scrollSequenceRef.current = scrollSequence;
+      activeAnchorLockRef.current = messageId;
+      setActiveAnchorId(messageId);
 
-    try {
-      await onEnsureMessageVisible(messageId);
-    } catch {
-      if (scrollSequenceRef.current === scrollSequence) {
-        activeAnchorLockRef.current = undefined;
-        measureAnchors();
-      }
-      return;
-    }
-    cancelPendingAnchorPositionUpdate();
-
-    const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
-    const scrollEl = root?.querySelector(`.${scrollContainerClassName}`) as HTMLElement | null;
-    if (!scrollEl) {
-      if (scrollSequenceRef.current === scrollSequence) {
-        activeAnchorLockRef.current = undefined;
-      }
-      return;
-    }
-
-    const target = await waitForMessageElement(scrollEl, messageId);
-    if (!target) {
-      if (scrollSequenceRef.current === scrollSequence) {
-        activeAnchorLockRef.current = undefined;
-        measureAnchors();
-      }
-      return;
-    }
-
-    await waitForNextFrame();
-    if (scrollSequenceRef.current !== scrollSequence) return;
-
-    const targetAtTop = await scrollTargetIntoContainerTopAndSettle(
-      scrollEl,
-      messageId,
-      target,
-      () => scrollSequenceRef.current === scrollSequence,
-    );
-    if (scrollSequenceRef.current !== scrollSequence) return;
-
-    setActiveAnchorId(messageId);
-    cancelPendingAnchorPositionUpdate();
-    targetAtTop.classList.remove(`${prefixCls}-anchor-target-active`);
-    window.requestAnimationFrame(() => {
-      targetAtTop.classList.add(`${prefixCls}-anchor-target-active`);
-      window.setTimeout(() => {
-        targetAtTop.classList.remove(`${prefixCls}-anchor-target-active`);
+      try {
+        await onEnsureMessageVisible(messageId);
+      } catch {
         if (scrollSequenceRef.current === scrollSequence) {
           activeAnchorLockRef.current = undefined;
           measureAnchors();
         }
-      }, TARGET_ACTIVE_DURATION);
-    });
-  }, [
-    cancelPendingAnchorPositionUpdate,
-    measureAnchors,
-    onEnsureMessageVisible,
-    prefixCls,
-    scrollContainerClassName,
-  ]);
+        return;
+      }
+      cancelPendingAnchorPositionUpdate();
+
+      const root = anchorTrackRef.current?.closest(`.${prefixCls}`);
+      const scrollEl = root?.querySelector(
+        `.${scrollContainerClassName}`,
+      ) as HTMLElement | null;
+      if (!scrollEl) {
+        if (scrollSequenceRef.current === scrollSequence) {
+          activeAnchorLockRef.current = undefined;
+        }
+        return;
+      }
+
+      const target = await waitForMessageElement(scrollEl, messageId);
+      if (!target) {
+        if (scrollSequenceRef.current === scrollSequence) {
+          activeAnchorLockRef.current = undefined;
+          measureAnchors();
+        }
+        return;
+      }
+
+      await waitForNextFrame();
+      if (scrollSequenceRef.current !== scrollSequence) return;
+
+      const targetAtTop = await scrollTargetIntoContainerTopAndSettle(
+        scrollEl,
+        messageId,
+        target,
+        () => scrollSequenceRef.current === scrollSequence,
+      );
+      if (scrollSequenceRef.current !== scrollSequence) return;
+
+      setActiveAnchorId(messageId);
+      cancelPendingAnchorPositionUpdate();
+      targetAtTop.classList.remove(`${prefixCls}-anchor-target-active`);
+      if (highlightFrameRef.current) {
+        window.cancelAnimationFrame(highlightFrameRef.current);
+      }
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+      highlightFrameRef.current = window.requestAnimationFrame(() => {
+        highlightFrameRef.current = undefined;
+        targetAtTop.classList.add(`${prefixCls}-anchor-target-active`);
+        highlightTimeoutRef.current = window.setTimeout(() => {
+          highlightTimeoutRef.current = undefined;
+          targetAtTop.classList.remove(`${prefixCls}-anchor-target-active`);
+          if (scrollSequenceRef.current === scrollSequence) {
+            activeAnchorLockRef.current = undefined;
+            measureAnchors();
+          }
+        }, TARGET_ACTIVE_DURATION);
+      });
+    },
+    [
+      cancelPendingAnchorPositionUpdate,
+      measureAnchors,
+      onEnsureMessageVisible,
+      prefixCls,
+      scrollContainerClassName,
+    ],
+  );
+
+  React.useEffect(
+    () => () => {
+      scrollSequenceRef.current += 1;
+      if (highlightFrameRef.current) {
+        window.cancelAnimationFrame(highlightFrameRef.current);
+      }
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   if (!visible) return null;
 
   const activeAnchorIndex = activeAnchorId
     ? anchors.findIndex((anchor) => anchor.id === activeAnchorId)
     : anchors.length - 1;
-  const normalizedActiveAnchorIndex = activeAnchorIndex >= 0 ? activeAnchorIndex : anchors.length - 1;
-  const previousAnchor = normalizedActiveAnchorIndex > 0 ? anchors[normalizedActiveAnchorIndex - 1] : undefined;
-  const nextAnchor = normalizedActiveAnchorIndex < anchors.length - 1
-    ? anchors[normalizedActiveAnchorIndex + 1]
-    : undefined;
+  const normalizedActiveAnchorIndex =
+    activeAnchorIndex >= 0 ? activeAnchorIndex : anchors.length - 1;
+  const previousAnchor =
+    normalizedActiveAnchorIndex > 0
+      ? anchors[normalizedActiveAnchorIndex - 1]
+      : undefined;
+  const nextAnchor =
+    normalizedActiveAnchorIndex < anchors.length - 1
+      ? anchors[normalizedActiveAnchorIndex + 1]
+      : undefined;
 
   if (variant === 'navigator') {
     return (
       <nav
         aria-label="User message navigation"
-        className={cls(`${prefixCls}-anchors`, `${prefixCls}-anchors-navigator`)}
+        className={cls(
+          `${prefixCls}-anchors`,
+          `${prefixCls}-anchors-navigator`,
+        )}
         ref={anchorTrackRef}
         style={anchorRight === undefined ? undefined : { right: anchorRight }}
       >
@@ -590,7 +733,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
           <ChevronUp size={18} />
         </button>
         <Popover
-          content={(
+          content={
             <UserMessageAnchorDirectory
               activeAnchorId={activeAnchorId}
               anchors={anchors}
@@ -598,7 +741,7 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
               openVersion={directoryOpenVersion}
               prefixCls={prefixCls}
             />
-          )}
+          }
           onOpenChange={(open) => {
             if (open) setDirectoryOpenVersion((prev) => prev + 1);
           }}
@@ -610,9 +753,13 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
           <button
             aria-current={activeAnchorId ? 'location' : undefined}
             aria-label="Open user message directory"
-            className={cls(`${prefixCls}-anchor-nav-button`, `${prefixCls}-anchor-nav-button-menu`, {
-              [`${prefixCls}-anchor-nav-button-active`]: !!activeAnchorId,
-            })}
+            className={cls(
+              `${prefixCls}-anchor-nav-button`,
+              `${prefixCls}-anchor-nav-button-menu`,
+              {
+                [`${prefixCls}-anchor-nav-button-active`]: !!activeAnchorId,
+              },
+            )}
             type="button"
           >
             <ListIcon size={18} />
@@ -634,7 +781,13 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
     );
   }
 
-  const anchorGroups = getAnchorGroups(anchors, anchorPositions, activeAnchorId, normalizedMinGap, trackHeight);
+  const anchorGroups = getAnchorGroups(
+    anchors,
+    anchorPositions,
+    activeAnchorId,
+    normalizedMinGap,
+    trackHeight,
+  );
 
   return (
     <nav
@@ -648,12 +801,19 @@ export default function UserMessageAnchors(props: UserMessageAnchorsProps) {
           <Tooltip
             key={group.id}
             placement="left"
-            title={<UserMessageAnchorTooltip anchors={group.anchors} prefixCls={prefixCls} />}
+            title={
+              <UserMessageAnchorTooltip
+                anchors={group.anchors}
+                prefixCls={prefixCls}
+              />
+            }
           >
             <button
-              aria-label={group.anchors.length > 1
-                ? `Scroll to ${group.anchors.length} grouped user messages`
-                : `Scroll to user message: ${group.targetAnchor.preview}`}
+              aria-label={
+                group.anchors.length > 1
+                  ? `Scroll to ${group.anchors.length} grouped user messages`
+                  : `Scroll to user message: ${group.targetAnchor.preview}`
+              }
               aria-current={group.active ? 'location' : undefined}
               className={cls(`${prefixCls}-anchor`, {
                 [`${prefixCls}-anchor-active`]: group.active,

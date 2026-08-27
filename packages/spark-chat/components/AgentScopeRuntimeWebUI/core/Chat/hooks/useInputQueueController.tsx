@@ -21,7 +21,6 @@ import {
   canSubmitDirectly,
   createEmptyInputQueueState,
   createInputQueueTabId,
-  createSendNowCommand,
   enqueueInputQueueState,
   getInputQueueStorageKey,
   getInputQueueTabId,
@@ -37,12 +36,9 @@ import {
   normalizeInputQueueState,
   recoverInterruptedQueuedInputs,
   removeQueuedInput,
-  reorderQueuedInput,
   resetInputQueueTabId,
   restoreQueuedInputAfterSubmitError,
-  retryQueuedInput,
   shouldClaimInputQueueOwner,
-  updateQueuedInputQuery,
   type InputQueueState,
   type QueuedInputItem,
   type QueueEnqueueResult,
@@ -63,15 +59,11 @@ import {
   withInputQueueSendLock,
 } from '../InputQueue/storage';
 import { cancelInputQueueSubmission } from '../InputQueue/submission';
-
-export type ChatControllerCurrentQARef = MutableRefObject<{
-  request?: IAgentScopeRuntimeWebUIMessage;
-  response?: IAgentScopeRuntimeWebUIMessage;
-  abortController?: AbortController;
-  activeRequestId: number;
-  activeSessionId?: string;
-  activeQueueSessionId?: string;
-}>;
+import {
+  findGeneratingResponse,
+  type ChatControllerCurrentQARef,
+} from './runtimeState';
+import useInputQueueActions from './useInputQueueActions';
 
 export type QueueSubmitNow = (
   data: Parameters<InputProps['onSubmit']>[0],
@@ -110,15 +102,6 @@ export interface UseInputQueueControllerOptions {
   handleReconnectRef: MutableRefObject<
     ((sessionId: string) => Promise<void>) | null
   >;
-}
-
-function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const item = messages[index];
-    if (item.role === 'assistant' && item.msgStatus === 'generating') {
-      return item;
-    }
-  }
 }
 
 function isQueueSessionSwitchedError(error: unknown) {
@@ -1682,6 +1665,13 @@ export default function useInputQueueController(
     queueEnabled && inputQueueSessionId === currentQueueSessionId
       ? inputQueueState
       : createEmptyInputQueueState();
+  const queueActions = useInputQueueActions({
+    canExecuteQueue,
+    getActiveQueueSessionId,
+    scheduleDrainQueue,
+    tabIdRef,
+    updateQueueState,
+  });
 
   return {
     queueEnabled,
@@ -1703,73 +1693,6 @@ export default function useInputQueueController(
     handleSessionLoaded,
     sameQueueSession,
     clearDrainTimer,
-    removeQueuedInput: (id: string) => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        items:
-          state.items.find((item) => item.id === id)?.status === 'submitting'
-            ? state.items
-            : removeQueuedInput(state.items, id),
-        updatedAt: Date.now(),
-      }));
-    },
-    clearQueuedInputs: () => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        items: state.items.filter((item) => item.status === 'submitting'),
-        command: undefined,
-        updatedAt: Date.now(),
-      }));
-    },
-    retryQueuedInput: (id: string) => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        items: retryQueuedInput(state.items, id),
-        updatedAt: Date.now(),
-      }));
-      scheduleDrainQueue(sessionId);
-    },
-    toggleQueuePaused: () => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        paused: canExecuteQueue(state) ? !state.paused : state.paused,
-        updatedAt: Date.now(),
-      }));
-      scheduleDrainQueue(sessionId);
-    },
-    reorderQueuedInput: (sourceId: string, targetId: string) => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        items: reorderQueuedInput(state.items, sourceId, targetId),
-        updatedAt: Date.now(),
-      }));
-    },
-    updateQueuedInputQuery: (id: string, query: string) => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        items: updateQueuedInputQuery(state.items, id, query),
-        updatedAt: Date.now(),
-      }));
-    },
-    sendQueuedInputNow: (id: string) => {
-      const sessionId = getActiveQueueSessionId();
-      void updateQueueState(sessionId, (state) => ({
-        ...state,
-        command:
-          canExecuteQueue(state) &&
-          state.items.some(
-            (item) => item.id === id && item.status === 'pending',
-          )
-            ? createSendNowCommand(id, tabIdRef.current)
-            : state.command,
-        updatedAt: Date.now(),
-      }));
-    },
+    ...queueActions,
   };
 }

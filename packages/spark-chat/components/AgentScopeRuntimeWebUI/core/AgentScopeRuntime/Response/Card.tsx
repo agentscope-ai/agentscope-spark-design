@@ -1,6 +1,6 @@
-import { Bubble } from '@agentscope-ai/chat';
 import { Avatar, Flex } from 'antd';
 import React, { useMemo } from 'react';
+import Bubble from '../../../../Bubble';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import {
   AgentScopeRuntimeMessageType,
@@ -68,6 +68,10 @@ function DefaultResponseRender(props: {
           case AgentScopeRuntimeMessageType.PLUGIN_CALL_OUTPUT:
           case AgentScopeRuntimeMessageType.TOOL_CALL:
           case AgentScopeRuntimeMessageType.TOOL_CALL_OUTPUT:
+          case AgentScopeRuntimeMessageType.FUNCTION_CALL:
+          case AgentScopeRuntimeMessageType.FUNCTION_CALL_OUTPUT:
+          case AgentScopeRuntimeMessageType.COMPONENT_CALL:
+          case AgentScopeRuntimeMessageType.COMPONENT_CALL_OUTPUT:
           case AgentScopeRuntimeMessageType.MCP_CALL:
           case AgentScopeRuntimeMessageType.MCP_CALL_OUTPUT:
             return <Tool key={item.id} data={item} />;
@@ -114,14 +118,6 @@ export default function AgentScopeRuntimeResponseCard(props: {
     />
   );
 
-  const main = responseOptions?.render
-    ? responseOptions.render({
-        data: props.data,
-        isLast: props.isLast,
-        fallback,
-      })
-    : fallback();
-
   const prependList = sortByOrder(responseOptions?.prepend ?? []);
   const appendList = sortByOrder(responseOptions?.append ?? []);
 
@@ -132,6 +128,14 @@ export default function AgentScopeRuntimeResponseCard(props: {
   ) {
     return fallback();
   }
+
+  const main = responseOptions?.render
+    ? responseOptions.render({
+        data: props.data,
+        isLast: props.isLast,
+        fallback,
+      })
+    : fallback();
 
   return (
     <>

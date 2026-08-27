@@ -1,4 +1,4 @@
-import type { IAgentScopeRuntimeWebUISenderMentionItem } from '@agentscope-ai/chat';
+import type { IAgentScopeRuntimeWebUISenderMentionItem } from '../../types';
 
 export interface MentionRange {
   start: number;

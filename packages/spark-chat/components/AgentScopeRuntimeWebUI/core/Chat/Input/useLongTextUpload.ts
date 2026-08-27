@@ -1,9 +1,9 @@
+import type { ChangeEvent, ClipboardEvent, ClipboardEventHandler } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   IAgentScopeRuntimeWebUILongTextUploadOptions,
   IAgentScopeRuntimeWebUISenderAttachmentsOptions,
-} from '@agentscope-ai/chat';
-import type { ChangeEvent, ClipboardEvent, ClipboardEventHandler } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+} from '../../types';
 import type { AttachmentUploadFile } from './useAttachments';
 
 const DEFAULT_LONG_TEXT_UPLOAD_PROMPT =
@@ -132,7 +132,6 @@ export default function useLongTextUpload({
 
       uploadingRef.current = true;
       setUploading(true);
-      setPromptContent(resolveLongTextUploadPrompt(config.prompt));
 
       try {
         const fileName = getLongTextFileName(config.fileName);
@@ -142,16 +141,27 @@ export default function useLongTextUpload({
           fileName,
           fileType: LONG_TEXT_FILE_TYPE,
         });
+        setPromptContent(resolveLongTextUploadPrompt(config.prompt));
         return true;
       } catch (error) {
         console.error('long text upload rejected:', error);
+        resetPromptState();
+        onContentChange(text);
         return false;
       } finally {
         uploadingRef.current = false;
         setUploading(false);
       }
     },
-    [config, enabled, setPromptContent, uploadFile, uploadRequest],
+    [
+      config,
+      enabled,
+      resetPromptState,
+      setPromptContent,
+      onContentChange,
+      uploadFile,
+      uploadRequest,
+    ],
   );
 
   const handleContentChange = useCallback(
