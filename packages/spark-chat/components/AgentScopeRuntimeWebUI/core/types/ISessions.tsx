@@ -1,6 +1,5 @@
-import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
-import type { MutableRefObject } from "react";
-
+import type { MutableRefObject } from 'react';
+import type { IAgentScopeRuntimeWebUIMessage } from './IMessages';
 
 export interface IAgentScopeRuntimeWebUISession {
   /**

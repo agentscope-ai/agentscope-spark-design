@@ -47,6 +47,22 @@ export interface IAgentScopeRuntimeWebUIMessage<T = string | any> {
 
 export interface IAgentScopeRuntimeWebUIMessagesContext {
   messages: IAgentScopeRuntimeWebUIMessage[];
-  setMessages: (messages: IAgentScopeRuntimeWebUIMessage[]) => void;
+  setMessages: (
+    messages:
+      | IAgentScopeRuntimeWebUIMessage[]
+      | ((
+          previous: IAgentScopeRuntimeWebUIMessage[],
+        ) => IAgentScopeRuntimeWebUIMessage[]),
+  ) => void;
   getMessages: () => IAgentScopeRuntimeWebUIMessage[];
+  setSessionMessages: (
+    sessionId: string,
+    messages:
+      | IAgentScopeRuntimeWebUIMessage[]
+      | ((
+          previous: IAgentScopeRuntimeWebUIMessage[],
+        ) => IAgentScopeRuntimeWebUIMessage[]),
+  ) => void;
+  getSessionMessages: (sessionId: string) => IAgentScopeRuntimeWebUIMessage[];
+  clearSessionMessages: (sessionId: string) => void;
 }

@@ -1,4 +1,4 @@
-import { Stream } from '@agentscope-ai/chat';
+import Stream from '../../../../Stream';
 import AgentScopeRuntimeRequestBuilder from '../../AgentScopeRuntime/Request/Builder';
 import AgentScopeRuntimeResponseBuilder from '../../AgentScopeRuntime/Response/Builder';
 import {
@@ -107,7 +107,7 @@ async function isHostSessionRunning(
     }));
   } catch (error) {
     console.error('background input queue running check failed:', error);
-    return false;
+    return true;
   }
 }
 
@@ -115,7 +115,6 @@ async function waitUntilSessionIdle(
   options: InputQueueBackgroundRunnerOptions,
 ) {
   const { chatSessionId, sessionApi } = options;
-  if (!sessionApi.getSession) return undefined;
 
   let lastSession: IAgentScopeRuntimeWebUISession | undefined;
   while (activeRunners.has(options.queueSessionId)) {
@@ -140,7 +139,7 @@ async function persistMessages(
   options: InputQueueBackgroundRunnerOptions,
   messages: IAgentScopeRuntimeWebUIMessage[],
 ) {
-  await options.sessionApi.updateSession?.({
+  await options.sessionApi.updateSession({
     id: options.chatSessionId,
     messages,
   });
@@ -339,7 +338,7 @@ async function sendQueuedItem(
       interrupted: boolean;
     }
 > {
-  const session = await options.sessionApi.getSession?.(options.chatSessionId);
+  const session = await options.sessionApi.getSession(options.chatSessionId);
   const messages = [...(session?.messages || [])];
   let requestAccepted = false;
   let interrupted = false;

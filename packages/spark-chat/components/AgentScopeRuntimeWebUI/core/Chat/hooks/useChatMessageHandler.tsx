@@ -1,8 +1,10 @@
-import { IAgentScopeRuntimeWebUIMessage, uuid } from '@agentscope-ai/chat';
 import { useCallback } from 'react';
 import ReactDOM from 'react-dom';
+import { v4 as uuid } from 'uuid';
 import AgentScopeRuntimeRequestBuilder from '../../AgentScopeRuntime/Request/Builder';
+import type { IAgentScopeRuntimeMessage } from '../../AgentScopeRuntime/types';
 import { useChatAnywhereMessages } from '../../Context/ChatAnywhereMessagesContext';
+import type { IAgentScopeRuntimeWebUIMessage } from '../../types';
 import { InputProps } from '../Input';
 import {
   createChatRequestMessage,
@@ -24,19 +26,19 @@ export default function useChatMessageHandler(
   options: UseChatMessageHandlerOptions,
 ) {
   const { currentQARef } = options;
-  const { updateMessage, getMessages, removeMessage } =
+  const { updateMessage, getSessionMessages, removeMessage } =
     useChatAnywhereMessages();
 
   /**
    * 创建用户请求消息
    */
   const createRequestMessage = useCallback(
-    (data: Parameters<InputProps['onSubmit']>[0]) => {
+    (data: Parameters<InputProps['onSubmit']>[0], sessionId: string) => {
       currentQARef.current.abortController = new AbortController();
       currentQARef.current.request = createChatRequestMessage(data);
 
       ReactDOM.flushSync(() => {
-        updateMessage(currentQARef.current.request!);
+        updateMessage(currentQARef.current.request!, sessionId);
       });
 
       return currentQARef.current.request;
@@ -45,7 +47,7 @@ export default function useChatMessageHandler(
   );
 
   const createApprovalMessage = useCallback(
-    (data) => {
+    (data: IAgentScopeRuntimeMessage[], sessionId: string) => {
       currentQARef.current.abortController = new AbortController();
 
       currentQARef.current.request = {
@@ -60,7 +62,7 @@ export default function useChatMessageHandler(
       };
 
       ReactDOM.flushSync(() => {
-        updateMessage(currentQARef.current.request!);
+        updateMessage(currentQARef.current.request!, sessionId);
       });
 
       return currentQARef.current.request;
@@ -71,28 +73,35 @@ export default function useChatMessageHandler(
   /**
    * 创建助手响应消息
    */
-  const createResponseMessage = useCallback(() => {
-    currentQARef.current.response = createChatResponseMessage();
+  const createResponseMessage = useCallback(
+    (sessionId: string) => {
+      currentQARef.current.response = createChatResponseMessage();
 
-    updateMessage(currentQARef.current.response);
+      updateMessage(currentQARef.current.response, sessionId);
 
-    return currentQARef.current.response;
-  }, [currentQARef, updateMessage]);
+      return currentQARef.current.response;
+    },
+    [currentQARef, updateMessage],
+  );
 
   /**
    * 获取历史消息（用于 API 请求）
    */
-  const getHistoryMessages = useCallback(() => {
-    return AgentScopeRuntimeRequestBuilder.getHistoryMessages(getMessages());
-  }, [getMessages]);
+  const getHistoryMessages = useCallback(
+    (sessionId: string) =>
+      AgentScopeRuntimeRequestBuilder.getHistoryMessages(
+        getSessionMessages(sessionId),
+      ),
+    [getSessionMessages],
+  );
 
   /**
    * 移除指定消息
    */
   const removeMessageById = useCallback(
-    (id: string) => {
+    (id: string, sessionId: string) => {
       ReactDOM.flushSync(() => {
-        removeMessage({ id });
+        removeMessage({ id }, sessionId);
       });
     },
     [removeMessage],
@@ -105,6 +114,6 @@ export default function useChatMessageHandler(
     getHistoryMessages,
     updateMessage,
     removeMessageById,
-    getMessages,
+    getSessionMessages,
   };
 }

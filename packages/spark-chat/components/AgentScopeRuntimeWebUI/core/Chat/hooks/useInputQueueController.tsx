@@ -1,4 +1,3 @@
-import type { IAgentScopeRuntimeWebUIMessage } from '@agentscope-ai/chat';
 import { message } from 'antd';
 import {
   useCallback,
@@ -11,7 +10,10 @@ import {
 import { useContextSelector } from 'use-context-selector';
 import { ChatAnywhereMessagesContext } from '../../Context/ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
-import type { IAgentScopeRuntimeWebUIQueueRequestContext } from '../../types';
+import type {
+  IAgentScopeRuntimeWebUIMessage,
+  IAgentScopeRuntimeWebUIQueueRequestContext,
+} from '../../types';
 import type { InputProps } from '../Input';
 import {
   assignInputQueueOwner,
@@ -45,10 +47,6 @@ import {
   type QueuedInputItem,
   type QueueEnqueueResult,
 } from '../InputQueue';
-import {
-  isInputQueueBackgroundRunnerActive,
-  startInputQueueBackgroundRunner,
-} from '../InputQueue/background';
 import {
   areInputQueueSessionsEquivalent,
   getInputQueueChatSessionIdForQueue,
@@ -103,8 +101,9 @@ export interface UseInputQueueControllerOptions {
   currentSessionId?: string;
   currentSessionIdRef: MutableRefObject<string | undefined>;
   pendingRouteSessionIdRef?: MutableRefObject<string | undefined>;
-  setLoading: (value: boolean | string) => void;
   getLoading: () => boolean | string;
+  setSessionLoading: (sessionId: string, value: boolean | string) => void;
+  getSessionLoading: (sessionId: string) => boolean | string;
   getCurrentSessionId: () => string | undefined;
   submitNowRef: MutableRefObject<QueueSubmitNow | null>;
   handleCancelRef: MutableRefObject<(() => void) | null>;
@@ -146,23 +145,24 @@ export default function useInputQueueController(
     currentSessionId,
     currentSessionIdRef,
     pendingRouteSessionIdRef,
-    setLoading,
     getLoading,
+    setSessionLoading,
+    getSessionLoading,
     getCurrentSessionId,
     submitNowRef,
     handleCancelRef,
     handleReconnectRef,
   } = options;
-  const setMessages = useContextSelector(
+  const setSessionMessages = useContextSelector(
     ChatAnywhereMessagesContext,
-    (v) => v.setMessages,
+    (v) => v.setSessionMessages,
   );
-  const getMessages = useContextSelector(
+  const getSessionMessages = useContextSelector(
     ChatAnywhereMessagesContext,
-    (v) => v.getMessages,
+    (v) => v.getSessionMessages,
   );
   const apiOptions = useChatAnywhereOptions((v) => v.api);
-  const sessionApiOptions = useChatAnywhereOptions((v) => v.session?.api);
+  const sessionApiOptions = useChatAnywhereOptions((v) => v.session.api);
   const queueOptions = useChatAnywhereOptions((v) => v.sender?.queue);
   const queueConfig = useMemo(
     () =>
@@ -172,6 +172,7 @@ export default function useInputQueueController(
   const queueEnabled = isInputQueueEnabled(queueOptions);
   const queueMaxSize = queueConfig.maxSize ?? MAX_INPUT_QUEUE_SIZE;
   const getQueueSessionId = queueConfig.getSessionId;
+  const queueScope = queueConfig.scope || apiOptions.baseURL || 'default';
   const getQueueRequestContext = queueConfig.getRequestContext;
   const isQueueSessionRunning = queueConfig.isSessionRunning;
   const shouldRestoreOnError = queueConfig.shouldRestoreOnError;
@@ -225,7 +226,7 @@ export default function useInputQueueController(
       preferredSessionId?: string,
     ) => string | undefined;
     readQueueState?: (sessionId?: string) => InputQueueState;
-    getMessages?: () => IAgentScopeRuntimeWebUIMessage[];
+    getMessages?: (sessionId: string) => IAgentScopeRuntimeWebUIMessage[];
     getRequestContext?: (
       sessionId?: string,
     ) => IAgentScopeRuntimeWebUIQueueRequestContext | undefined;
@@ -271,9 +272,10 @@ export default function useInputQueueController(
       return resolveInputQueueSessionId(sessionId, {
         queueEnabled,
         getSessionId: getQueueSessionId,
+        scope: queueScope,
       });
     },
-    [getQueueSessionId, queueEnabled],
+    [getQueueSessionId, queueEnabled, queueScope],
   );
 
   const currentQueueSessionId = getInputQueueRouteQueueSessionId(
@@ -284,6 +286,7 @@ export default function useInputQueueController(
     {
       queueEnabled,
       getSessionId: getQueueSessionId,
+      scope: queueScope,
     },
   );
 
@@ -305,6 +308,7 @@ export default function useInputQueueController(
       {
         queueEnabled,
         getSessionId: getQueueSessionId,
+        scope: queueScope,
       },
     );
   }, [
@@ -313,6 +317,7 @@ export default function useInputQueueController(
     getQueueSessionId,
     pendingRouteSessionIdRef,
     queueEnabled,
+    queueScope,
   ]);
 
   const markQueueSessionActive = useCallback(
@@ -419,7 +424,9 @@ export default function useInputQueueController(
         }));
       } catch (error) {
         console.error('input queue running check failed:', error);
-        return false;
+        // Unknown host state must not be treated as idle: doing so can submit
+        // the next queued input while the previous request is still running.
+        return true;
       }
     },
     [getQueueRequestContext, isQueueSessionRunning],
@@ -480,6 +487,7 @@ export default function useInputQueueController(
         {
           queueEnabled,
           getSessionId: getQueueSessionId,
+          scope: queueScope,
         },
         queueSessionId,
         preferredSessionId,
@@ -491,6 +499,7 @@ export default function useInputQueueController(
       getQueueSessionId,
       pendingRouteSessionIdRef,
       queueEnabled,
+      queueScope,
     ],
   );
 
@@ -627,7 +636,7 @@ export default function useInputQueueController(
           isQueueSessionSwitchedError(error) ||
           isChatRequestAbortedError(error);
         if (!interrupted) {
-          setLoading(false);
+          setSessionLoading(chatSessionId, false);
         }
         const shouldRestore =
           error instanceof InputQueueSubmitError
@@ -654,7 +663,7 @@ export default function useInputQueueController(
     },
     [
       consumeQueuedInput,
-      setLoading,
+      setSessionLoading,
       shouldRestoreQueuedInput,
       updateQueueState,
     ],
@@ -665,9 +674,9 @@ export default function useInputQueueController(
       if (!queueEnabled) return;
       const completedQueueSessionIds = [
         currentQARef.current.activeQueueSessionId,
-        activeSessionId,
-        currentSessionIdRef.current,
-        pendingRouteSessionIdRef?.current,
+        resolveQueueSessionId(activeSessionId),
+        resolveQueueSessionId(currentSessionIdRef.current),
+        resolveQueueSessionId(pendingRouteSessionIdRef?.current),
         ...getInputQueueCompletionSessionIds(
           {
             currentSessionId: currentSessionIdRef.current,
@@ -677,6 +686,7 @@ export default function useInputQueueController(
           {
             queueEnabled,
             getSessionId: getQueueSessionId,
+            scope: queueScope,
           },
         ),
       ].filter(
@@ -712,8 +722,10 @@ export default function useInputQueueController(
       markQueueSessionIdle,
       pendingRouteSessionIdRef,
       queueEnabled,
+      queueScope,
       readQueueState,
       releaseQueueOwnerIfIdle,
+      resolveQueueSessionId,
       scheduleDrainQueue,
     ],
   );
@@ -804,13 +816,15 @@ export default function useInputQueueController(
       const sessionId = targetQueueSessionId || getActiveQueueSessionId();
       const chatSessionId = getChatSessionIdForQueue(sessionId);
       const submitNow = submitNowRef.current;
-      const hasGeneratingResponse = !!findGeneratingResponse(getMessages());
+      const hasGeneratingResponse = !!findGeneratingResponse(
+        getSessionMessages(chatSessionId),
+      );
       if (
         !sessionId ||
         !chatSessionId ||
         !submitNow ||
         drainingRef.current ||
-        getLoading() ||
+        getSessionLoading(chatSessionId) ||
         hasGeneratingResponse ||
         isQueueSessionActive(sessionId) ||
         queueDrainBlockedSessionRef.current === sessionId
@@ -845,7 +859,8 @@ export default function useInputQueueController(
       getActiveQueueSessionId,
       getChatSessionIdForQueue,
       getQueueRequestContext,
-      getLoading,
+      getSessionLoading,
+      getSessionMessages,
       isHostSessionRunning,
       isQueueSessionActive,
       readQueueState,
@@ -897,7 +912,9 @@ export default function useInputQueueController(
 
       if (
         !canSubmitDirectly({
-          loading: getLoading(),
+          loading: activeChatSessionId
+            ? getSessionLoading(activeChatSessionId)
+            : getLoading(),
           queueLength: queueState.items.length,
           draining: drainingRef.current,
           paused: queueState.paused,
@@ -920,7 +937,9 @@ export default function useInputQueueController(
         await updateQueueState(sessionId, (state) => {
           if (
             !canSubmitDirectly({
-              loading: getLoading(),
+              loading: activeChatSessionId
+                ? getSessionLoading(activeChatSessionId)
+                : getLoading(),
               queueLength: state.items.length,
               draining: drainingRef.current,
               paused: state.paused,
@@ -952,6 +971,7 @@ export default function useInputQueueController(
       getActiveQueueSessionId,
       getQueueRequestContext,
       getLoading,
+      getSessionLoading,
       isHostSessionRunning,
       queueEnabled,
       readQueueState,
@@ -974,7 +994,7 @@ export default function useInputQueueController(
       ) {
         pendingPeerReconnectSessionRef.current = queueSessionId;
         markQueueSessionActive(queueSessionId);
-        setLoading(true);
+        setSessionLoading(sessionId, true);
         return { blockedByPeer: true, queueSessionId };
       }
       if (pendingPeerReconnectSessionRef.current === queueSessionId) {
@@ -987,7 +1007,7 @@ export default function useInputQueueController(
       markQueueSessionActive,
       readQueueState,
       resolveQueueSessionId,
-      setLoading,
+      setSessionLoading,
     ],
   );
 
@@ -1014,7 +1034,7 @@ export default function useInputQueueController(
         return;
       }
       markQueueSessionIdle(queueSessionId);
-      setLoading(false);
+      if (sessionId) setSessionLoading(sessionId, false);
       if (queueDrainBlockedSessionRef.current === queueSessionId) {
         queueDrainBlockedSessionRef.current = undefined;
       }
@@ -1027,7 +1047,7 @@ export default function useInputQueueController(
       queueEnabled,
       resolveQueueSessionId,
       scheduleDrainQueue,
-      setLoading,
+      setSessionLoading,
     ],
   );
 
@@ -1036,9 +1056,10 @@ export default function useInputQueueController(
       return areInputQueueSessionsEquivalent(left, right, {
         queueEnabled,
         getSessionId: getQueueSessionId,
+        scope: queueScope,
       });
     },
-    [getQueueSessionId, queueEnabled],
+    [getQueueSessionId, queueEnabled, queueScope],
   );
 
   const clearDrainTimer = useCallback(() => {
@@ -1052,21 +1073,20 @@ export default function useInputQueueController(
     (queueSessionId: string, queueState: InputQueueState) => {
       if (!isInputQueueOwnedByTab(queueState, tabIdRef.current)) return;
 
-      const messages = getMessages();
+      const chatSessionId = getChatSessionIdForQueue(queueSessionId);
+      if (!chatSessionId) return;
+      const messages = getSessionMessages(chatSessionId);
       const mirroredGenerating = !!findGeneratingResponse(messages);
 
       if (mirroredGenerating) {
         pendingPeerReconnectSessionRef.current = undefined;
         markQueueSessionActive(queueSessionId);
         queueDrainBlockedSessionRef.current = queueSessionId;
-        setLoading(true);
+        setSessionLoading(chatSessionId, true);
 
-        const chatSessionId = getVisibleChatSessionId();
-        if (chatSessionId) {
-          window.setTimeout(() => {
-            void handleReconnectRef.current?.(chatSessionId);
-          }, 0);
-        }
+        window.setTimeout(() => {
+          void handleReconnectRef.current?.(chatSessionId);
+        }, 0);
         return;
       }
 
@@ -1083,7 +1103,7 @@ export default function useInputQueueController(
         currentQARef.current.abortController?.abort();
         currentQARef.current.response = undefined;
         currentQARef.current.activeRequestId += 1;
-        setLoading(false);
+        setSessionLoading(chatSessionId, false);
       }
 
       if (!queueState.paused) {
@@ -1095,14 +1115,15 @@ export default function useInputQueueController(
     },
     [
       currentQARef,
+      getChatSessionIdForQueue,
       getVisibleChatSessionId,
-      getMessages,
+      getSessionMessages,
       handleReconnectRef,
       isQueueSessionActive,
       markQueueSessionActive,
       markQueueSessionIdle,
       scheduleDrainQueue,
-      setLoading,
+      setSessionLoading,
     ],
   );
 
@@ -1144,18 +1165,25 @@ export default function useInputQueueController(
     if (!currentQueueSessionId) return;
 
     const timer = window.setTimeout(() => {
-      if (
-        isQueueSessionActive(currentQueueSessionId) ||
-        isInputQueueBackgroundRunnerActive(currentQueueSessionId)
-      ) {
-        return;
-      }
+      void import('../InputQueue/background').then(
+        ({ isInputQueueBackgroundRunnerActive }) => {
+          if (
+            isQueueSessionActive(currentQueueSessionId) ||
+            isInputQueueBackgroundRunnerActive(currentQueueSessionId)
+          ) {
+            return;
+          }
 
-      void updateQueueState(currentQueueSessionId, (state) => ({
-        ...state,
-        items: recoverInterruptedQueuedInputs(state.items, tabIdRef.current),
-        updatedAt: Date.now(),
-      }));
+          void updateQueueState(currentQueueSessionId, (state) => ({
+            ...state,
+            items: recoverInterruptedQueuedInputs(
+              state.items,
+              tabIdRef.current,
+            ),
+            updatedAt: Date.now(),
+          }));
+        },
+      );
     }, INPUT_QUEUE_RUNTIME_RECOVERY_DELAY);
 
     return () => window.clearTimeout(timer);
@@ -1253,7 +1281,9 @@ export default function useInputQueueController(
 
     if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel(
-        'agentscope-runtime-webui-input-queue',
+        `agentscope-runtime-webui-input-queue:${encodeURIComponent(
+          queueScope,
+        )}`,
       );
       broadcastRef.current = channel;
       channel.onmessage = (event) => {
@@ -1298,17 +1328,19 @@ export default function useInputQueueController(
           if (canExecuteQueue(readQueueState(queueSessionId))) return;
 
           const messages = event.data.messages || [];
+          const chatSessionId = getChatSessionIdForQueue(queueSessionId);
+          if (!chatSessionId) return;
           currentQARef.current.abortController?.abort();
           currentQARef.current.response = undefined;
           currentQARef.current.activeRequestId += 1;
-          setMessages(messages);
+          setSessionMessages(chatSessionId, messages);
 
           if (findGeneratingResponse(messages)) {
             markQueueSessionActive(queueSessionId);
-            setLoading(true);
+            setSessionLoading(chatSessionId, true);
           } else {
             markQueueSessionIdle(queueSessionId);
-            setLoading(false);
+            setSessionLoading(chatSessionId, false);
             pendingPeerReconnectSessionRef.current = undefined;
             if (queueDrainBlockedSessionRef.current === queueSessionId) {
               queueDrainBlockedSessionRef.current = undefined;
@@ -1335,15 +1367,17 @@ export default function useInputQueueController(
   }, [
     canExecuteQueue,
     currentQARef,
+    getChatSessionIdForQueue,
     getVisibleQueueSessionId,
     markQueueSessionActive,
     markQueueSessionIdle,
     queueEnabled,
+    queueScope,
     readQueueState,
     releasePeerTakeoverBlock,
     rotateTabIdentity,
-    setLoading,
-    setMessages,
+    setSessionLoading,
+    setSessionMessages,
   ]);
 
   useEffect(() => {
@@ -1404,8 +1438,9 @@ export default function useInputQueueController(
   ]);
 
   useEffect(() => {
+    const chatSessionId = getChatSessionIdForQueue(currentQueueSessionId);
     if (
-      !getLoading() &&
+      (!chatSessionId || !getSessionLoading(chatSessionId)) &&
       !isQueueSessionActive(currentQueueSessionId) &&
       queueDrainBlockedSessionRef.current !== currentQueueSessionId &&
       inputQueueSessionId === currentQueueSessionId &&
@@ -1418,7 +1453,8 @@ export default function useInputQueueController(
   }, [
     canExecuteQueue,
     currentQueueSessionId,
-    getLoading,
+    getChatSessionIdForQueue,
+    getSessionLoading,
     inputQueueSessionId,
     inputQueueState,
     isQueueSessionActive,
@@ -1547,11 +1583,11 @@ export default function useInputQueueController(
 
     if (
       hasInputQueueWork(inputQueueState) &&
-      findGeneratingResponse(getMessages())
+      findGeneratingResponse(getSessionMessages(chatSessionId))
     ) {
       markQueueSessionActive(queueSessionId);
       queueDrainBlockedSessionRef.current = queueSessionId;
-      setLoading(true);
+      setSessionLoading(chatSessionId, true);
       window.setTimeout(() => {
         void handleReconnectRef.current?.(chatSessionId);
       }, 0);
@@ -1572,13 +1608,13 @@ export default function useInputQueueController(
     canExecuteQueue,
     currentQueueSessionId,
     getVisibleChatSessionId,
-    getMessages,
+    getSessionMessages,
     handleReconnectRef,
     inputQueueState,
     markQueueSessionActive,
     markQueueSessionIdle,
     releasePeerTakeoverBlock,
-    setLoading,
+    setSessionLoading,
   ]);
 
   backgroundRunnerSnapshotRef.current = {
@@ -1587,7 +1623,7 @@ export default function useInputQueueController(
     getActiveChatSessionId,
     getChatSessionIdForQueue,
     readQueueState,
-    getMessages,
+    getMessages: getSessionMessages,
     getRequestContext: getQueueRequestContext,
     isSessionRunning: isQueueSessionRunning,
     shouldRestoreOnError: shouldRestoreQueuedInput,
@@ -1622,19 +1658,23 @@ export default function useInputQueueController(
 
       const waitForActiveRequest =
         currentQARef.current.activeQueueSessionId === queueSessionId ||
-        !!findGeneratingResponse(snapshot.getMessages?.() || []);
+        !!findGeneratingResponse(snapshot.getMessages?.(chatSessionId) || []);
       if (waitForActiveRequest) return;
 
-      startInputQueueBackgroundRunner({
-        queueSessionId,
-        chatSessionId,
-        ownerTabId: tabIdRef.current,
-        apiOptions: apiOptionsRef.current,
-        sessionApi,
-        requestContext: snapshot.getRequestContext?.(chatSessionId),
-        isSessionRunning: snapshot.isSessionRunning,
-        shouldRestoreOnError: snapshot.shouldRestoreOnError,
-      });
+      void import('../InputQueue/background').then(
+        ({ startInputQueueBackgroundRunner }) => {
+          startInputQueueBackgroundRunner({
+            queueSessionId,
+            chatSessionId,
+            ownerTabId: tabIdRef.current,
+            apiOptions: apiOptionsRef.current,
+            sessionApi,
+            requestContext: snapshot.getRequestContext?.(chatSessionId),
+            isSessionRunning: snapshot.isSessionRunning,
+            shouldRestoreOnError: snapshot.shouldRestoreOnError,
+          });
+        },
+      );
     };
   }, [currentQARef]);
 

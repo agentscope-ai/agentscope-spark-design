@@ -1,6 +1,7 @@
 export interface InputQueueSessionResolverOptions {
   queueEnabled: boolean;
   getSessionId?: (sessionId?: string) => string | undefined;
+  scope?: string;
 }
 
 export interface InputQueueSessionSnapshot {
@@ -16,7 +17,9 @@ export function resolveInputQueueSessionId(
   if (!options.queueEnabled) return undefined;
   const resolved = options.getSessionId?.(sessionId) ?? sessionId;
   if (!resolved) return undefined;
-  return resolved;
+  return options.scope
+    ? `${encodeURIComponent(options.scope)}::${resolved}`
+    : resolved;
 }
 
 export function areInputQueueSessionsEquivalent(
@@ -72,8 +75,9 @@ export function getInputQueueChatSessionIdForQueue(
     getInputQueueVisibleChatSessionId(snapshot),
   ];
 
-  return candidates.find(candidate =>
-    resolveInputQueueSessionId(candidate, options) === queueSessionId,
+  return candidates.find(
+    (candidate) =>
+      resolveInputQueueSessionId(candidate, options) === queueSessionId,
   );
 }
 
@@ -86,8 +90,9 @@ export function getInputQueueCompletionSessionIds(
     getInputQueueVisibleSessionId(snapshot, options),
   ];
 
-  return sessionIds.filter((sessionId, index, list): sessionId is string =>
-    !!sessionId && list.indexOf(sessionId) === index,
+  return sessionIds.filter(
+    (sessionId, index, list): sessionId is string =>
+      !!sessionId && list.indexOf(sessionId) === index,
   );
 }
 

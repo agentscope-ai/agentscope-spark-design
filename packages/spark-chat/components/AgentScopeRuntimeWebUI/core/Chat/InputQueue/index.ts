@@ -48,6 +48,7 @@ export const INPUT_QUEUE_OWNER_HEARTBEAT_INTERVAL = 3_000;
 export const INPUT_QUEUE_OWNER_CLAIM_INTERVAL = 1_000;
 export const INPUT_QUEUE_RUNNING_RETRY_INTERVAL = 2_500;
 export const INPUT_QUEUE_RUNTIME_RECOVERY_DELAY = 500;
+export const INPUT_QUEUE_STORAGE_TTL = 24 * 60 * 60 * 1_000;
 export const INPUT_QUEUE_STORAGE_PREFIX =
   'agentscope-runtime-webui-input-queue';
 export const INPUT_QUEUE_TAB_ID_STORAGE_KEY =

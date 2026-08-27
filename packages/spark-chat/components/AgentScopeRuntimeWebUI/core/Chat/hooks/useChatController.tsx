@@ -1,14 +1,13 @@
-import {
-  sleep,
-  type IAgentScopeRuntimeWebUIMessage,
-} from '@agentscope-ai/chat';
 import { useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useContextSelector } from 'use-context-selector';
+import sleep from '../../../../Util/sleep';
+import type { IAgentScopeRuntimeMessage } from '../../AgentScopeRuntime/types';
 import { ChatAnywhereInputContext } from '../../Context/ChatAnywhereInputContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import { ChatAnywhereSessionsContext } from '../../Context/ChatAnywhereSessionsContext';
 import useChatAnywhereEventEmitter from '../../Context/useChatAnywhereEventEmitter';
+import type { IAgentScopeRuntimeWebUIMessage } from '../../types';
 import type { InputProps } from '../Input';
 import { registerInputQueueSubmission } from '../InputQueue/submission';
 import {
@@ -39,13 +38,17 @@ function findGeneratingResponse(messages: IAgentScopeRuntimeWebUIMessage[]) {
  * useInputQueueController.
  */
 export default function useChatController() {
-  const setLoading = useContextSelector(
-    ChatAnywhereInputContext,
-    (v) => v.setLoading,
-  );
   const getLoading = useContextSelector(
     ChatAnywhereInputContext,
     (v) => v.getLoading,
+  );
+  const setSessionLoading = useContextSelector(
+    ChatAnywhereInputContext,
+    (v) => v.setSessionLoading,
+  );
+  const getSessionLoading = useContextSelector(
+    ChatAnywhereInputContext,
+    (v) => v.getSessionLoading,
   );
   const currentSessionId = useContextSelector(
     ChatAnywhereSessionsContext,
@@ -127,8 +130,9 @@ export default function useChatController() {
     currentSessionId,
     currentSessionIdRef,
     pendingRouteSessionIdRef,
-    setLoading,
     getLoading,
+    setSessionLoading,
+    getSessionLoading,
     getCurrentSessionId: sessionHandler.getCurrentSessionId,
     submitNowRef,
     handleCancelRef,
@@ -136,44 +140,48 @@ export default function useChatController() {
   });
 
   const updateMessageAndSync = useCallback(
-    (message: IAgentScopeRuntimeWebUIMessage) => {
-      messageHandler.updateMessage(message);
-      const sessionId =
-        currentQARef.current.activeSessionId ||
-        sessionHandler.getCurrentSessionId();
+    (message: IAgentScopeRuntimeWebUIMessage, sessionId: string) => {
+      messageHandler.updateMessage(message, sessionId);
       syncMessagesToPeerTabs(
         sessionId,
-        patchChatMessageSnapshot(messageHandler.getMessages(), message),
+        patchChatMessageSnapshot(
+          messageHandler.getSessionMessages(sessionId),
+          message,
+        ),
       );
     },
-    [messageHandler, sessionHandler, syncMessagesToPeerTabs],
+    [messageHandler, syncMessagesToPeerTabs],
   );
 
   const finishResponse = useCallback(
-    (status: 'finished' | 'interrupted' = 'finished') => {
+    (
+      sessionId: string,
+      requestId: number,
+      status: 'finished' | 'interrupted' = 'finished',
+    ) => {
+      if (currentQARef.current.activeRequestId !== requestId) return;
       const response = currentQARef.current.response;
       if (!response) return;
 
-      const activeSessionId = currentQARef.current.activeSessionId;
       response.msgStatus = status;
-      setLoading(false);
+      setSessionLoading(sessionId, false);
       ReactDOM.flushSync(() => {
-        messageHandler.updateMessage(response);
+        messageHandler.updateMessage(response, sessionId);
       });
 
       const nextMessages = patchChatMessageSnapshot(
-        messageHandler.getMessages(),
+        messageHandler.getSessionMessages(sessionId),
         response,
       );
-      syncMessagesToPeerTabs(activeSessionId, nextMessages);
-      sessionHandler.syncSessionMessages(nextMessages, activeSessionId);
-      handleResponseFinished(activeSessionId);
+      syncMessagesToPeerTabs(sessionId, nextMessages);
+      sessionHandler.syncSessionMessages(nextMessages, sessionId);
+      handleResponseFinished(sessionId);
     },
     [
       handleResponseFinished,
       messageHandler,
       sessionHandler,
-      setLoading,
+      setSessionLoading,
       syncMessagesToPeerTabs,
     ],
   );
@@ -181,7 +189,8 @@ export default function useChatController() {
   const { request, reconnect } = useChatRequest({
     currentQARef,
     updateMessage: updateMessageAndSync,
-    onFinish: () => finishResponse('finished'),
+    onFinish: (sessionId, requestId) =>
+      finishResponse(sessionId, requestId, 'finished'),
   });
 
   const submitNow = useCallback<QueueSubmitNow>(
@@ -203,19 +212,23 @@ export default function useChatController() {
       }
 
       currentQARef.current.abortController?.abort();
+      const myRequestId = ++currentQARef.current.activeRequestId;
+      const assertActive = () => {
+        if (myRequestId !== currentQARef.current.activeRequestId) {
+          throw new Error('chat request aborted');
+        }
+      };
 
       const submitSessionId =
         queuedSubmitSessionId ||
         options?.sessionId ||
         data.session_id ||
         (await sessionHandler.ensureSession(data.query));
+      assertActive();
       if (!submitSessionId) {
         throw new Error('chat session is not ready');
       }
-      const submissionData = createChatSubmissionRequest(
-        data,
-        data.session_id || submitSessionId,
-      );
+      const submissionData = createChatSubmissionRequest(data, submitSessionId);
       currentQARef.current.activeSessionId = submitSessionId;
 
       const resolvedSubmitQueueSessionId =
@@ -232,50 +245,54 @@ export default function useChatController() {
       }
 
       await assignOwnerForSubmit(submitQueueSessionId);
+      assertActive();
       markQueueSessionActive(submitQueueSessionId);
       const unregisterSubmission = registerInputQueueSubmission(
         submitQueueSessionId,
         () => handleCancelRef.current?.(),
       );
 
-      const myRequestId = ++currentQARef.current.activeRequestId;
       let requestMessage: IAgentScopeRuntimeWebUIMessage | undefined;
       let responseMessage: IAgentScopeRuntimeWebUIMessage | undefined;
       let requestAccepted = false;
       try {
-        const messages = messageHandler.getMessages();
-        if (submitSessionId) {
-          await sessionHandler.updateSessionName(
-            data.query,
-            messages,
-            submitSessionId,
-          );
-        }
+        const messages = messageHandler.getSessionMessages(submitSessionId);
+        await sessionHandler.updateSessionName(
+          data.query,
+          messages,
+          submitSessionId,
+        );
+        assertActive();
 
-        requestMessage = messageHandler.createRequestMessage(data);
+        requestMessage = messageHandler.createRequestMessage(
+          { ...data, ...submissionData },
+          submitSessionId,
+        );
         const requestSignal = currentQARef.current.abortController?.signal;
-        syncMessagesToPeerTabs(submitSessionId, messageHandler.getMessages());
-        setLoading(true);
+        syncMessagesToPeerTabs(
+          submitSessionId,
+          messageHandler.getSessionMessages(submitSessionId),
+        );
+        setSessionLoading(submitSessionId, true);
         await sleep(100);
+        assertActive();
 
-        if (myRequestId !== currentQARef.current.activeRequestId) {
-          throw new Error('chat request aborted');
-        }
-
-        responseMessage = messageHandler.createResponseMessage();
+        responseMessage = messageHandler.createResponseMessage(submitSessionId);
         syncMessagesToPeerTabs(
           submitSessionId,
           patchChatMessageSnapshot(
-            messageHandler.getMessages(),
+            messageHandler.getSessionMessages(submitSessionId),
             responseMessage,
           ),
         );
 
-        const historyMessages = messageHandler.getHistoryMessages();
+        const historyMessages =
+          messageHandler.getHistoryMessages(submitSessionId);
         await sessionHandler.syncSessionMessages(
-          messageHandler.getMessages(),
+          messageHandler.getSessionMessages(submitSessionId),
           submitSessionId,
         );
+        assertActive();
 
         const accepted = await request(historyMessages, submissionData, {
           requestId: myRequestId,
@@ -307,10 +324,16 @@ export default function useChatController() {
 
           if (shouldRestore) {
             if (responseMessage) {
-              messageHandler.removeMessageById(responseMessage.id);
+              messageHandler.removeMessageById(
+                responseMessage.id,
+                submitSessionId,
+              );
             }
             if (requestMessage) {
-              messageHandler.removeMessageById(requestMessage.id);
+              messageHandler.removeMessageById(
+                requestMessage.id,
+                submitSessionId,
+              );
             }
             if (currentQARef.current.request?.id === requestMessage?.id) {
               currentQARef.current.request = undefined;
@@ -318,7 +341,8 @@ export default function useChatController() {
             if (currentQARef.current.response?.id === responseMessage?.id) {
               currentQARef.current.response = undefined;
             }
-            const rolledBackMessages = messageHandler.getMessages();
+            const rolledBackMessages =
+              messageHandler.getSessionMessages(submitSessionId);
             syncMessagesToPeerTabs(submitSessionId, rolledBackMessages);
             try {
               await sessionHandler.syncSessionMessages(
@@ -332,10 +356,10 @@ export default function useChatController() {
               );
             }
           }
-          setLoading(false);
+          setSessionLoading(submitSessionId, false);
           throw new InputQueueSubmitError(error, shouldRestore);
         }
-        setLoading(false);
+        setSessionLoading(submitSessionId, false);
         console.error(error);
       } finally {
         unregisterSubmission();
@@ -351,7 +375,7 @@ export default function useChatController() {
       request,
       resolveQueueSessionId,
       sessionHandler,
-      setLoading,
+      setSessionLoading,
       syncMessagesToPeerTabs,
     ],
   );
@@ -359,27 +383,38 @@ export default function useChatController() {
   submitNowRef.current = submitNow;
 
   const handleApproval = useCallback(
-    async ({ input }) => {
+    async ({ input }: { input: IAgentScopeRuntimeMessage[] }) => {
       currentQARef.current.abortController?.abort();
       const sessionId = sessionHandler.getCurrentSessionId();
       if (!sessionId) return;
       currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
 
-      messageHandler.createApprovalMessage(input);
+      messageHandler.createApprovalMessage(input, sessionId);
       const requestSignal = currentQARef.current.abortController?.signal;
 
-      setLoading(true);
+      setSessionLoading(sessionId, true);
       await sleep(100);
 
-      if (myRequestId !== currentQARef.current.activeRequestId) return;
+      if (myRequestId !== currentQARef.current.activeRequestId) {
+        setSessionLoading(sessionId, false);
+        return;
+      }
 
-      messageHandler.createResponseMessage();
-      const historyMessages = messageHandler.getHistoryMessages();
+      const responseMessage = messageHandler.createResponseMessage(sessionId);
+      const historyMessages = messageHandler.getHistoryMessages(sessionId);
       await sessionHandler.syncSessionMessages(
-        messageHandler.getMessages(),
+        messageHandler.getSessionMessages(sessionId),
         sessionId,
       );
+      if (myRequestId !== currentQARef.current.activeRequestId) {
+        setSessionLoading(sessionId, false);
+        messageHandler.removeMessageById(responseMessage.id, sessionId);
+        if (currentQARef.current.response?.id === responseMessage.id) {
+          currentQARef.current.response = undefined;
+        }
+        return;
+      }
 
       await request(
         historyMessages,
@@ -391,21 +426,21 @@ export default function useChatController() {
         },
       );
     },
-    [messageHandler, request, sessionHandler, setLoading],
+    [messageHandler, request, sessionHandler, setSessionLoading],
   );
 
   const handleCancel = useCallback(() => {
-    finishResponse('interrupted');
+    const requestId = currentQARef.current.activeRequestId;
+    const sessionId = currentQARef.current.activeSessionId;
+    if (sessionId) finishResponse(sessionId, requestId, 'interrupted');
     // Invalidate the request even when cancellation happens before the
     // assistant placeholder or AbortController has been created.
     currentQARef.current.activeRequestId += 1;
-    const sessionId =
-      currentQARef.current.activeSessionId ||
-      sessionHandler.getCurrentSessionId();
+    const cancelSessionId = sessionId || sessionHandler.getCurrentSessionId();
     const cancelFn = apiOptionsRef.current.cancel;
-    if (cancelFn && sessionId) {
+    if (cancelFn && cancelSessionId) {
       try {
-        cancelFn({ session_id: sessionId });
+        cancelFn({ session_id: cancelSessionId });
       } catch (e) {
         console.error('cancel api failed:', e);
       }
@@ -423,14 +458,14 @@ export default function useChatController() {
       currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
 
-      setLoading(true);
+      setSessionLoading(sessionId, true);
 
-      messageHandler.removeMessageById(messageId);
+      messageHandler.removeMessageById(messageId, sessionId);
       currentQARef.current.abortController = new AbortController();
       const requestSignal = currentQARef.current.abortController.signal;
-      messageHandler.createResponseMessage();
+      messageHandler.createResponseMessage(sessionId);
 
-      const historyMessages = messageHandler.getHistoryMessages();
+      const historyMessages = messageHandler.getHistoryMessages(sessionId);
       await request(
         historyMessages,
         createChatSubmissionRequest(undefined, sessionId),
@@ -441,7 +476,7 @@ export default function useChatController() {
         },
       );
     },
-    [messageHandler, request, sessionHandler, setLoading],
+    [messageHandler, request, sessionHandler, setSessionLoading],
   );
 
   const handleReconnect = useCallback(
@@ -456,10 +491,10 @@ export default function useChatController() {
       const myRequestId = ++currentQARef.current.activeRequestId;
       currentQARef.current.activeSessionId = sessionId;
       markQueueSessionActive(queueSessionId);
-      setLoading(true);
+      setSessionLoading(sessionId, true);
 
       const existingResponse = findGeneratingResponse(
-        messageHandler.getMessages(),
+        messageHandler.getSessionMessages(sessionId),
       );
       if (existingResponse) {
         const activeResponse = {
@@ -467,9 +502,9 @@ export default function useChatController() {
           history: undefined,
         } as IAgentScopeRuntimeWebUIMessage;
         currentQARef.current.response = activeResponse;
-        messageHandler.updateMessage(activeResponse);
+        messageHandler.updateMessage(activeResponse, sessionId);
       } else {
-        messageHandler.createResponseMessage();
+        messageHandler.createResponseMessage(sessionId);
       }
 
       await reconnect(sessionId, myRequestId);
@@ -477,9 +512,12 @@ export default function useChatController() {
       if (myRequestId !== currentQARef.current.activeRequestId) return;
 
       if (currentQARef.current.response?.msgStatus === 'generating') {
-        setLoading(false);
+        setSessionLoading(sessionId, false);
         if (currentQARef.current.response?.id) {
-          messageHandler.removeMessageById(currentQARef.current.response.id);
+          messageHandler.removeMessageById(
+            currentQARef.current.response.id,
+            sessionId,
+          );
         }
         currentQARef.current.response = undefined;
         handleReconnectSettledIdle(queueSessionId);
@@ -491,7 +529,7 @@ export default function useChatController() {
       messageHandler,
       prepareReconnect,
       reconnect,
-      setLoading,
+      setSessionLoading,
     ],
   );
 
@@ -525,68 +563,51 @@ export default function useChatController() {
       activeSessionId: currentSessionId,
       activeQueueSessionId: resolveQueueSessionId(currentSessionId),
     };
+  }, [currentSessionId, resolveQueueSessionId, sameQueueSession]);
 
-    return () => {
+  useEffect(
+    () => () => {
       clearDrainTimer();
       currentQARef.current.abortController?.abort();
       currentQARef.current.activeRequestId += 1;
-    };
-  }, [
-    clearDrainTimer,
-    currentSessionId,
-    resolveQueueSessionId,
-    sameQueueSession,
-  ]);
-
-  useChatAnywhereEventEmitter(
-    {
-      type: 'handleReconnect',
-      callback: async (data) => {
-        await handleReconnect(data.detail.session_id);
-      },
     },
-    [handleReconnect],
+    [clearDrainTimer],
   );
 
-  useChatAnywhereEventEmitter(
-    {
-      type: 'handleSessionLoaded',
-      callback: (data) => {
-        handleSessionLoaded(data.detail?.session_id, data.detail?.generating);
-      },
+  useChatAnywhereEventEmitter({
+    type: 'handleReconnect',
+    callback: async (data) => {
+      await handleReconnect(data.detail.session_id);
     },
-    [handleSessionLoaded],
-  );
+  });
 
-  useChatAnywhereEventEmitter(
-    {
-      type: 'handleReplace',
-      callback: async (data) => {
-        await handleRegenerate(data.detail.id);
-      },
+  useChatAnywhereEventEmitter({
+    type: 'handleSessionLoaded',
+    callback: (data) => {
+      handleSessionLoaded(data.detail?.session_id, data.detail?.generating);
     },
-    [handleRegenerate],
-  );
+  });
 
-  useChatAnywhereEventEmitter(
-    {
-      type: 'handleSubmit',
-      callback: async (data) => {
-        await handleSubmit(data.detail);
-      },
+  useChatAnywhereEventEmitter({
+    type: 'handleReplace',
+    callback: async (data) => {
+      await handleRegenerate(data.detail.id);
     },
-    [handleSubmit],
-  );
+  });
 
-  useChatAnywhereEventEmitter(
-    {
-      type: 'handleApproval',
-      callback: async (data) => {
-        await handleApproval(data.detail);
-      },
+  useChatAnywhereEventEmitter({
+    type: 'handleSubmit',
+    callback: async (data) => {
+      await handleSubmit(data.detail);
     },
-    [handleApproval],
-  );
+  });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleApproval',
+    callback: async (data) => {
+      await handleApproval(data.detail);
+    },
+  });
 
   return {
     handleSubmit,

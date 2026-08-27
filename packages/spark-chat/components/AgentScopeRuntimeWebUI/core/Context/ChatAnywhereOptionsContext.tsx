@@ -1,90 +1,118 @@
-import { useResponsive } from "ahooks";
-import { IAgentScopeRuntimeWebUIOptions } from "@agentscope-ai/chat";
+import {
+  ConfigProvider,
+  generateTheme,
+  generateThemeByToken,
+} from '@agentscope-ai/design';
+import { useResponsive } from 'ahooks';
+import React, { useMemo } from 'react';
 import { createContext, useContextSelector } from 'use-context-selector';
-import { useMemo } from "react";
-import { ConfigProvider, generateTheme, generateThemeByToken } from '@agentscope-ai/design';
-import { createDefaultSessionApi } from "./defaultSessionApi";
+import type {
+  IAgentScopeRuntimeWebUIOptions,
+  IAgentScopeRuntimeWebUISenderOptions,
+  IAgentScopeRuntimeWebUISessionAPI,
+  IAgentScopeRuntimeWebUISessionOptions,
+  IAgentScopeRuntimeWebUIThemeOptions,
+  IAgentScopeRuntimeWebUIWelcomeOptions,
+} from '../types';
+import { createDefaultSessionApi } from './defaultSessionApi';
 
-const fallbackOptions = {
+type NormalizedChatAnywhereOptions = Omit<
+  IAgentScopeRuntimeWebUIOptions,
+  'theme' | 'welcome' | 'sender' | 'session'
+> & {
+  theme: IAgentScopeRuntimeWebUIThemeOptions;
+  welcome: IAgentScopeRuntimeWebUIWelcomeOptions;
+  sender: IAgentScopeRuntimeWebUISenderOptions;
+  session: Omit<IAgentScopeRuntimeWebUISessionOptions, 'api'> & {
+    api: IAgentScopeRuntimeWebUISessionAPI;
+  };
+};
+
+const fallbackSessionApi = createDefaultSessionApi(false);
+const fallbackOptions: NormalizedChatAnywhereOptions = {
   api: {},
-  session: {},
+  session: { multiple: false, api: fallbackSessionApi },
   theme: {},
   welcome: {},
   sender: {},
-} as IAgentScopeRuntimeWebUIOptions;
-
-const ChatAnywhereOptionsContext = createContext<IAgentScopeRuntimeWebUIOptions>(fallbackOptions);
-
-export function useChatAnywhereOptions<Selected>(selector: (value: IAgentScopeRuntimeWebUIOptions) => Selected) {
-  try {
-    const context = useContextSelector(ChatAnywhereOptionsContext, selector);
-    return context;
-
-  } catch (error) {
-    try {
-      return selector(fallbackOptions);
-    } catch {
-      return undefined as Selected;
-    }
-  }
 };
 
+const ChatAnywhereOptionsContext =
+  createContext<NormalizedChatAnywhereOptions>(fallbackOptions);
 
-export function ChatAnywhereOptionsContextProvider(props: { children: React.ReactNode, options: IAgentScopeRuntimeWebUIOptions }) {
+export function useChatAnywhereOptions<Selected>(
+  selector: (value: NormalizedChatAnywhereOptions) => Selected,
+) {
+  return useContextSelector(ChatAnywhereOptionsContext, selector);
+}
+
+export function ChatAnywhereOptionsContextProvider(props: {
+  children: React.ReactNode;
+  options: IAgentScopeRuntimeWebUIOptions;
+}) {
   const { children } = props;
   const responsive = useResponsive();
 
-  const defaultSessionApi = useMemo(() => {
-    const multiple = !!props.options.session?.multiple;
-    return createDefaultSessionApi(multiple);
-  }, [props.options.session?.multiple]);
+  const defaultSessionApi = useMemo(
+    () => createDefaultSessionApi(!!props.options.session?.multiple),
+    [props.options.session?.multiple],
+  );
 
-  const options = useMemo(() => {
+  const options = useMemo<NormalizedChatAnywhereOptions>(() => {
     const theme = props.options.theme || {};
     const session = props.options.session || {};
-    const multiple = !!session.multiple;
 
     return {
       ...props.options,
+      api: props.options.api || {},
+      welcome: props.options.welcome || {},
+      sender: props.options.sender || {},
       session: {
         ...session,
-        multiple,
-        api: session.api || defaultSessionApi,
+        multiple: !!session.multiple,
+        api: {
+          ...defaultSessionApi,
+          ...session.api,
+        },
       },
       theme: {
         ...theme,
-        narrowMode: !responsive.lg || theme.narrowMode,
-      }
+        narrowMode: !responsive.lg || !!theme.narrowMode,
+      },
     };
-  }, [props.options, responsive.lg, defaultSessionApi]);
+  }, [defaultSessionApi, props.options, responsive.lg]);
 
   const themeToken = useMemo(() => {
-    const colorPrimary = options.theme.colorPrimary;
-    const colorBgBase = options.theme.colorBgBase;
-    const colorTextBase = options.theme.colorTextBase;
-    const darkMode = options.theme.darkMode;
-    if (colorPrimary || darkMode) {
-      const res = generateThemeByToken(generateTheme({
+    const { colorPrimary, colorBgBase, colorTextBase, darkMode } =
+      options.theme;
+    if (!colorPrimary && !darkMode) return undefined;
+
+    return generateThemeByToken(
+      generateTheme({
         primaryHex: colorPrimary,
         bgBaseHex: colorBgBase,
         textBaseHex: colorTextBase,
-        darkMode: darkMode,
-      }));
+        darkMode,
+      }),
+    );
+  }, [
+    options.theme.colorBgBase,
+    options.theme.colorPrimary,
+    options.theme.colorTextBase,
+    options.theme.darkMode,
+  ]);
 
-      return res;
-    }
-    return
-  }, [options.theme.colorPrimary, options.theme.colorBgBase, options.theme.colorTextBase, options.theme.darkMode]);
+  const content = (
+    <ChatAnywhereOptionsContext.Provider value={options}>
+      {children}
+    </ChatAnywhereOptionsContext.Provider>
+  );
 
+  if (!themeToken) return content;
 
-  const content = <ChatAnywhereOptionsContext.Provider value={options}>
-    {children}
-  </ChatAnywhereOptionsContext.Provider>;
-
-  if (themeToken) {
-    const prefix = options.theme.prefix || 'agentscope-runtime-webui';
-
-    return <ConfigProvider
+  const prefix = options.theme.prefix || 'agentscope-runtime-webui';
+  return (
+    <ConfigProvider
       {...themeToken}
       style={{ height: '100%' }}
       prefix={prefix}
@@ -92,9 +120,7 @@ export function ChatAnywhereOptionsContextProvider(props: { children: React.Reac
     >
       {content}
     </ConfigProvider>
-  }
-
-  return content;
+  );
 }
 
 export default ChatAnywhereOptionsContext;

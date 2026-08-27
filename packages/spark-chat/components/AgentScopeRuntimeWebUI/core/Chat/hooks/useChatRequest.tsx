@@ -1,15 +1,12 @@
-import {
-  IAgentScopeRuntimeWebUIMessage,
-  sleep,
-  Stream,
-} from '@agentscope-ai/chat';
 import { useCallback, useEffect, useRef } from 'react';
+import Stream from '../../../../Stream';
 import AgentScopeRuntimeResponseBuilder from '../../AgentScopeRuntime/Response/Builder';
 import {
   AgentScopeRuntimeMessageType,
   AgentScopeRuntimeRunStatus,
 } from '../../AgentScopeRuntime/types';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
+import type { IAgentScopeRuntimeWebUIMessage } from '../../types';
 import {
   type ChatSubmissionRequestData,
   fetchChatSubmission,
@@ -26,8 +23,11 @@ interface UseChatRequestOptions {
     /** Session id snapshot for the active request. */
     activeSessionId?: string;
   }>;
-  updateMessage: (message: IAgentScopeRuntimeWebUIMessage) => void;
-  onFinish: () => void;
+  updateMessage: (
+    message: IAgentScopeRuntimeWebUIMessage,
+    sessionId: string,
+  ) => void;
+  onFinish: (sessionId: string, requestId: number) => void;
 }
 
 interface ChatRequestLifecycleOptions {
@@ -51,29 +51,6 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   useEffect(() => {
     apiOptionsRef.current = apiOptions;
   }, [apiOptions]);
-
-  const mockRequest = useCallback(async (mockdata) => {
-    const agentScopeRuntimeResponseBuilder =
-      new AgentScopeRuntimeResponseBuilder({
-        id: '',
-        status: AgentScopeRuntimeRunStatus.Created,
-        created_at: 0,
-      });
-
-    for await (const chunk of mockdata) {
-      const res = agentScopeRuntimeResponseBuilder.handle(chunk);
-      currentQARef.current.response.cards = [
-        {
-          code: 'AgentScopeRuntimeResponseCard',
-          data: res,
-        },
-      ];
-
-      updateMessage(currentQARef.current.response);
-
-      await sleep(100);
-    }
-  }, []);
 
   const processSSEResponse = useCallback(
     async (
@@ -132,7 +109,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           // Ignore JSON parse errors — still call onFinish to reset loading state
         }
         if (isStillActive()) {
-          onFinish();
+          onFinish(mySessionId, myRequestId);
           return true;
         }
         return false;
@@ -160,7 +137,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
                   data: agentScopeRuntimeResponseBuilder.cancel(),
                 },
               ];
-              updateMessage(currentQARef.current.response);
+              updateMessage(currentQARef.current.response, mySessionId);
             }
             return false;
           }
@@ -191,9 +168,9 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
             if (finished) {
               sawFinishedChunk = true;
-              onFinish();
+              onFinish(mySessionId, myRequestId);
             } else {
-              updateMessage(currentQARef.current.response);
+              updateMessage(currentQARef.current.response, mySessionId);
             }
           }
         }
@@ -211,18 +188,18 @@ export default function useChatRequest(options: UseChatRequestOptions) {
                 data: agentScopeRuntimeResponseBuilder.cancel(),
               },
             ];
-            updateMessage(currentQARef.current.response);
+            updateMessage(currentQARef.current.response, mySessionId);
           }
           return false;
         } else {
           console.error(error);
-          onFinish();
+          onFinish(mySessionId, myRequestId);
         }
         return true;
       }
 
       if (!sawFinishedChunk && isStillActive()) {
-        onFinish();
+        onFinish(mySessionId, myRequestId);
       }
       return sawFinishedChunk || isStillActive();
     },
@@ -250,6 +227,12 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         });
       } catch (error) {
         if (signal?.aborted) return false;
+        if (
+          currentQARef.current.activeRequestId === requestId &&
+          currentQARef.current.activeSessionId === sessionId
+        ) {
+          onFinish(sessionId, requestId);
+        }
         throw error;
       }
 
@@ -260,7 +243,17 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         throw new Error(`chat request failed (${response.status})`);
       }
 
-      await lifecycle.onAccepted?.(response);
+      try {
+        await lifecycle.onAccepted?.(response);
+      } catch (error) {
+        if (
+          currentQARef.current.activeRequestId === requestId &&
+          currentQARef.current.activeSessionId === sessionId
+        ) {
+          onFinish(sessionId, requestId);
+        }
+        throw error;
+      }
 
       if (response.body) {
         return processSSEResponse(response, requestId, sessionId, signal);
@@ -270,7 +263,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         currentQARef.current.activeRequestId === requestId &&
         (!sessionId || currentQARef.current.activeSessionId === sessionId)
       ) {
-        onFinish();
+        onFinish(sessionId, requestId);
         return true;
       }
       return false;
@@ -291,14 +284,18 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           session_id: sessionId,
           signal: abortSignal,
         });
-      } catch (error) {}
+      } catch (error) {
+        if (!abortSignal?.aborted) {
+          console.error('chat reconnect failed:', error);
+        }
+      }
 
       if (response && response.body) {
-        await processSSEResponse(response, requestId, sessionId);
+        await processSSEResponse(response, requestId, sessionId, abortSignal);
       }
     },
     [currentQARef, processSSEResponse],
   );
 
-  return { request, reconnect, mockRequest };
+  return { request, reconnect };
 }

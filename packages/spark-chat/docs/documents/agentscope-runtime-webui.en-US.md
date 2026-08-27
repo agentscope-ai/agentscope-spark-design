@@ -226,6 +226,8 @@ const options = {
         signal,
       });
     },
+    // Receives one SSE event's data string, not the Response object
+    responseParser: (chunk) => JSON.parse(chunk),
     // Whether to include history messages in requests (default false)
     enableHistoryMessages: false,
   },
@@ -234,7 +236,7 @@ const options = {
 
 Starting in 1.2.0, WebUI creates a request snapshot when a submission begins. `session_id`, `context`, `biz_params`, `mentions`, and `signal` continue to come from that snapshot across asynchronous boundaries instead of being read again from the active session. A custom `fetch` should use the supplied `session_id` and `context` directly and must not read a global `activeSessionId` again after an `await`.
 
-Use `context` for generic business context scoped to one request. `biz_params` keeps the existing `user_prompt_params` contract. The default request and a custom `fetch` receive the same context fields.
+Use `context` for generic business context scoped to one request. `biz_params` still supports `user_prompt_params` and may contain additional JSON fields. The default request and a custom `fetch` receive the same context fields. `responseParser` receives one SSE `data` string per call and defaults to `JSON.parse`.
 
 ### Theme Configuration
 
@@ -360,6 +362,8 @@ Pass an options object when the host needs to provide session identity and runti
 const options = {
   sender: {
     queue: {
+      // Use a stable unique namespace on multi-agent/multi-tenant pages
+      scope: `${tenantId}:${agentId}`,
       maxSize: 50,
       getSessionId: (sessionId) => sessionId,
       getRequestContext: (sessionId) => ({
@@ -381,7 +385,7 @@ const options = {
 };
 ```
 
-Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks, `BroadcastChannel`, and versioned `localStorage` state coordinate sending across tabs for the same session. Host-specific semantics remain in the callbacks above.
+Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks (with a local lease fallback), a `scope`-isolated `BroadcastChannel`, and versioned `localStorage` state coordinate sending. Persistence keeps only JSON-compatible request fields and attachment references, and state expires after 24 hours without an update. Multi-agent or multi-tenant pages must provide a stable unique `scope`. Host-specific semantics remain in the callbacks above.
 
 #### Host-managed Delayed Queues
 
@@ -445,7 +449,7 @@ const options = {
 };
 ```
 
-When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. Implement the above interface to connect to your backend storage. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route.
+When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. To connect backend storage, implement all five methods above; `getSession` may return `undefined` when a session does not exist. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route.
 
 ### Ref Instance Methods
 
@@ -663,10 +667,13 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 ## Upgrading to 1.2.0
 
 - A custom `api.fetch` now receives a required `session_id` plus independent `context`, `mentions`, `submission`, and `signal` values. Use these snapshot arguments instead of reading the global active session after asynchronous work.
-- Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible with the existing protocol.
+- Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible and additional JSON fields are supported.
 - The built-in input queue is now opt-in and disabled by default. Existing host-managed queues do not need to migrate; they only need to preserve and resubmit the complete input data.
 - `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData`.
-- Built-in queue persistence uses schema v2. Unsent local v1 queue items are discarded during the upgrade, so drain or clear the old queue before upgrading.
+- `responseParser` now correctly receives one SSE `data` string. Update custom parsers that previously declared a `Response` parameter.
+- A custom `session.api` must now implement all five session methods. Omitting it still uses the built-in implementation.
+- `sender.onSubmit` and `sender.onCancel` were removed from the types because runtime never invoked them. Use `beforeSubmit` for interception and `ref.input.submit` for external submission.
+- Built-in queue persistence uses schema v2 with `scope` isolation, minimized serialization, and 24-hour expiry. Unsent local v1 queue items are discarded during the upgrade, so drain or clear the old queue before upgrading.
 
 ## More Details
 

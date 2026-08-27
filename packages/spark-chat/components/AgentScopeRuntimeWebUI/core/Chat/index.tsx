@@ -1,11 +1,13 @@
-import { useProviderContext } from '@agentscope-ai/chat';
+import { lazy, Suspense } from 'react';
+import { useProviderContext } from '../../../Provider';
 import { useChatAnywhereOptions } from '../Context/ChatAnywhereOptionsContext';
 import { useChatAnywhereSessionLoader } from '../Context/ChatAnywhereSessionsContext';
 import useChatController from './hooks/useChatController';
 import Input from './Input';
-import InputQueuePanel from './InputQueue/Panel';
 import MessageList from './MessageList';
 import Style from './styles';
+
+const InputQueuePanel = lazy(() => import('./InputQueue/Panel'));
 
 export default function Chat() {
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-chat');
@@ -32,19 +34,21 @@ export default function Chat() {
       : undefined;
   useChatAnywhereSessionLoader();
   const inputQueuePanel = inputQueue.length ? (
-    <InputQueuePanel
-      items={inputQueue}
-      paused={inputQueuePaused}
-      isOwner={inputQueueIsOwner}
-      itemActions={inputQueueItemActions}
-      onRemove={removeQueuedInput}
-      onClear={clearQueuedInputs}
-      onRetry={retryQueuedInput}
-      onTogglePaused={toggleQueuePaused}
-      onReorder={reorderQueuedInput}
-      onUpdateQuery={updateQueuedInputQuery}
-      onSendNow={sendQueuedInputNow}
-    />
+    <Suspense fallback={null}>
+      <InputQueuePanel
+        items={inputQueue}
+        paused={inputQueuePaused}
+        isOwner={inputQueueIsOwner}
+        itemActions={inputQueueItemActions}
+        onRemove={removeQueuedInput}
+        onClear={clearQueuedInputs}
+        onRetry={retryQueuedInput}
+        onTogglePaused={toggleQueuePaused}
+        onReorder={reorderQueuedInput}
+        onUpdateQuery={updateQueuedInputQuery}
+        onSendNow={sendQueuedInputNow}
+      />
+    </Suspense>
   ) : null;
 
   return (

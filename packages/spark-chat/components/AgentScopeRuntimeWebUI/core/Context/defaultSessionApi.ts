@@ -1,13 +1,17 @@
-import {
+import type {
   IAgentScopeRuntimeWebUISession,
   IAgentScopeRuntimeWebUISessionAPI,
-} from '@agentscope-ai/chat';
+} from '../types';
 
 const STORAGE_KEY_MULTIPLE = 'agent-scope-runtime-webui-sessions';
 const STORAGE_KEY_SINGLE = 'agent-scope-runtime-webui-session';
 
 function canUseLocalStorage() {
-  return typeof window !== 'undefined' && !!window.localStorage;
+  try {
+    return typeof window !== 'undefined' && !!window.localStorage;
+  } catch {
+    return false;
+  }
 }
 
 function createSessionId() {
@@ -34,15 +38,25 @@ function createStorageSessionStore(multiple: boolean) {
     if (!canUseLocalStorage()) {
       return;
     }
-    localStorage.setItem(storageKey, JSON.stringify(sessionList));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(sessionList));
+    } catch (error) {
+      console.error('persist default chat sessions failed:', error);
+    }
   };
 
   const load = () => {
     if (!canUseLocalStorage()) {
       return;
     }
-    const raw = localStorage.getItem(storageKey);
-    sessionList = raw ? JSON.parse(raw) : [];
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      sessionList = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('read default chat sessions failed:', error);
+      sessionList = [];
+    }
   };
 
   return {

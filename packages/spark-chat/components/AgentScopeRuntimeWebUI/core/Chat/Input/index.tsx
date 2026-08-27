@@ -1,13 +1,11 @@
-import {
-  ChatInput,
-  Disclaimer,
-  IAgentScopeRuntimeWebUIInputData,
-  useProviderContext,
-} from '@agentscope-ai/chat';
 import { useGetState } from 'ahooks';
 import { Children, useCallback, useRef, type ReactNode } from 'react';
+import Disclaimer from '../../../../Disclaimer';
+import { useProviderContext } from '../../../../Provider';
+import ChatInput from '../../../../Sender';
 import { useChatAnywhereInput } from '../../Context/ChatAnywhereInputContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
+import type { IAgentScopeRuntimeWebUIInputData } from '../../types';
 import type { QueueEnqueueResult, QueuedInputItem } from '../InputQueue';
 import { hasSubmittableAttachments } from './submission';
 import useAttachments, { type AttachmentUploadFile } from './useAttachments';
@@ -33,7 +31,8 @@ export default function Input(props: InputProps) {
   const [content, setContent, getContent] = useGetState('');
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-input');
   const senderOptions = useChatAnywhereOptions((v) => v.sender);
-  const inputContext = useChatAnywhereInput((v) => v);
+  const loading = useChatAnywhereInput((value) => value.loading);
+  const disabled = useChatAnywhereInput((value) => value.disabled);
   const uploadFileRef = useRef<AttachmentUploadFile | null>(null);
 
   const {
@@ -59,7 +58,7 @@ export default function Input(props: InputProps) {
     mentions,
     content,
     setContent,
-    !!inputContext.disabled,
+    !!disabled,
   );
 
   const uploadLongTextFile = useCallback<AttachmentUploadFile>(
@@ -94,7 +93,7 @@ export default function Input(props: InputProps) {
     uploadIconButton,
     uploadFileListHeader,
   } = useAttachments(attachments, {
-    disabled: !!inputContext.disabled || longTextUploadController.uploading,
+    disabled: !!disabled || longTextUploadController.uploading,
   });
   uploadFileRef.current = uploadFile;
 
@@ -171,9 +170,7 @@ export default function Input(props: InputProps) {
 
     if (
       props.queue &&
-      (inputContext.loading ||
-        props.queue.items.length ||
-        props.queue.isOwner === false)
+      (loading || props.queue.items.length || props.queue.isOwner === false)
     ) {
       const result = await props.queue.onEnqueue(data);
       if (result.ok) {
@@ -184,13 +181,7 @@ export default function Input(props: InputProps) {
       if (result && !result.ok) return;
       clearInput();
     }
-  }, [
-    clearInput,
-    inputContext.loading,
-    prepareSubmissionData,
-    props.onSubmit,
-    props.queue,
-  ]);
+  }, [clearInput, loading, prepareSubmissionData, props.onSubmit, props.queue]);
 
   const handleKeyDownCapture = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -199,8 +190,7 @@ export default function Input(props: InputProps) {
       if (!props.queue) return;
       if (mentionController.open) return;
       const forceEnqueue = event.ctrlKey || event.metaKey;
-      if (!forceEnqueue && !inputContext.loading && !props.queue?.items.length)
-        return;
+      if (!forceEnqueue && !loading && !props.queue?.items.length) return;
 
       const data = getSubmittableData();
       if (!data) return;
@@ -212,7 +202,7 @@ export default function Input(props: InputProps) {
     [
       handleEnqueue,
       handleSubmit,
-      inputContext.loading,
+      loading,
       mentionController.open,
       props.queue,
       props.queue?.items.length,
@@ -230,10 +220,8 @@ export default function Input(props: InputProps) {
         {props.queue?.panel}
         {mentionController.wrapInput(
           <ChatInput
-            loading={inputContext.loading}
-            disabled={
-              inputContext.disabled || longTextUploadController.uploading
-            }
+            loading={loading}
+            disabled={disabled || longTextUploadController.uploading}
             placeholder={placeholder}
             value={content}
             prefix={Children.toArray([uploadIconButton, prefix])}

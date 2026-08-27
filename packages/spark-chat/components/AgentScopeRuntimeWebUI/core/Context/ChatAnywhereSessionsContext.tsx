@@ -1,86 +1,154 @@
+import { useAsyncEffect, useGetState } from 'ahooks';
+import React from 'react';
+import ReactDOM from 'react-dom';
 import { createContext, useContextSelector } from 'use-context-selector';
-import { IAgentScopeRuntimeWebUISessionsContext } from '../types/ISessions';
-import { useGetState, useMount } from 'ahooks';
-import { IAgentScopeRuntimeWebUISession } from '../types/ISessions';
-import React from "react";
+import {
+  IAgentScopeRuntimeWebUISession,
+  IAgentScopeRuntimeWebUISessionsContext,
+} from '../types/ISessions';
 import { ChatAnywhereMessagesContext } from './ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from './ChatAnywhereOptionsContext';
-import ReactDOM from 'react-dom';
-import { useAsyncEffect } from 'ahooks';
-import { emit } from './useChatAnywhereEventEmitter';
 import {
   collectSessionIdentityAliases,
   isSameLoadedSession,
 } from './sessionIdentity';
+import { useChatAnywhereCommandDispatcher } from './useChatAnywhereEventEmitter';
 
 const hasOwn = Object.prototype.hasOwnProperty;
 
-export const ChatAnywhereSessionsContext = createContext<IAgentScopeRuntimeWebUISessionsContext>({
-  sessions: [],
-  setSessions: () => { },
-  getSessions: () => [],
-  currentSessionId: undefined,
-  setCurrentSessionId: () => { },
-  getCurrentSessionId: () => '',
-});
+export const ChatAnywhereSessionsContext =
+  createContext<IAgentScopeRuntimeWebUISessionsContext>({
+    sessions: [],
+    setSessions: () => {},
+    getSessions: () => [],
+    currentSessionId: undefined,
+    setCurrentSessionId: () => {},
+    getCurrentSessionId: () => '',
+  });
 
 export function ChatAnywhereSessionsContextProvider(props: {
   children: React.ReactNode | React.ReactNode[];
 }) {
-  const options = useChatAnywhereOptions(v => v.session);
-  const [sessions, setSessions, getSessions] = useGetState<IAgentScopeRuntimeWebUISession[]>([]);
-  const [currentSessionId, setCurrentSessionId, getCurrentSessionId] = useGetState<string | undefined>(undefined);
+  const options = useChatAnywhereOptions((v) => v.session);
+  const [sessions, setSessions, getSessions] = useGetState<
+    IAgentScopeRuntimeWebUISession[]
+  >([]);
+  const [currentSessionId, setCurrentSessionId, getCurrentSessionId] =
+    useGetState<string | undefined>(undefined);
   const skipNextSessionLoadIdRef = React.useRef<string | undefined>(undefined);
   // In controlled mode, createSession can resolve before the external route
   // passes the new currentSessionId back in.
   const pendingRouteSessionIdRef = React.useRef<string | undefined>(undefined);
-  const previousControlledSessionIdRef = React.useRef<string | undefined>(options.currentSessionId);
+  const previousControlledSessionIdRef = React.useRef<string | undefined>(
+    options.currentSessionId,
+  );
   const isCurrentSessionControlled = hasOwn.call(options, 'currentSessionId');
+  const initialSessionOptionsRef = React.useRef({
+    api: options.api,
+    currentSessionId: options.currentSessionId,
+    isCurrentSessionControlled,
+  });
 
-  useMount(async () => {
-    const sessionList = await options.api.getSessionList();
-    setSessions(sessionList);
-    // In controlled mode the route owns the active session. This keeps /chat
-    // as an empty new-chat page instead of falling back to the first history item.
-    setCurrentSessionId(isCurrentSessionControlled ? options.currentSessionId : sessionList?.[0]?.id);
-  })
+  React.useEffect(() => {
+    let cancelled = false;
+    const initialOptions = initialSessionOptionsRef.current;
+    void initialOptions.api
+      .getSessionList()
+      .then((sessionList) => {
+        if (cancelled) return;
+        setSessions(sessionList);
+        // In controlled mode the route owns the active session. This keeps
+        // /chat as an empty page instead of selecting the first history item.
+        setCurrentSessionId(
+          initialOptions.isCurrentSessionControlled
+            ? initialOptions.currentSessionId
+            : sessionList[0]?.id,
+        );
+      })
+      .catch((error) => {
+        console.error('get session list failed:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setCurrentSessionId, setSessions]);
 
   React.useEffect(() => {
     if (!isCurrentSessionControlled) return;
-    if (previousControlledSessionIdRef.current === options.currentSessionId) return;
+    if (previousControlledSessionIdRef.current === options.currentSessionId)
+      return;
 
     previousControlledSessionIdRef.current = options.currentSessionId;
-    if (pendingRouteSessionIdRef.current === options.currentSessionId || !options.currentSessionId) {
+    if (
+      pendingRouteSessionIdRef.current === options.currentSessionId ||
+      !options.currentSessionId
+    ) {
       pendingRouteSessionIdRef.current = undefined;
     }
     setCurrentSessionId(options.currentSessionId);
-  }, [isCurrentSessionControlled, options.currentSessionId, setCurrentSessionId]);
-
-
-  return <ChatAnywhereSessionsContext.Provider value={{
-    sessions,
-    setSessions,
-    getSessions,
-    currentSessionId,
-    setCurrentSessionId,
-    getCurrentSessionId,
-    skipNextSessionLoadIdRef,
-    pendingRouteSessionIdRef,
+  }, [
     isCurrentSessionControlled,
-  }}>
-    {props.children}
-  </ChatAnywhereSessionsContext.Provider>;
+    options.currentSessionId,
+    setCurrentSessionId,
+  ]);
+
+  const value = React.useMemo<IAgentScopeRuntimeWebUISessionsContext>(
+    () => ({
+      sessions,
+      setSessions,
+      getSessions,
+      currentSessionId,
+      setCurrentSessionId,
+      getCurrentSessionId,
+      skipNextSessionLoadIdRef,
+      pendingRouteSessionIdRef,
+      isCurrentSessionControlled,
+    }),
+    [
+      currentSessionId,
+      getCurrentSessionId,
+      getSessions,
+      isCurrentSessionControlled,
+      sessions,
+      setCurrentSessionId,
+      setSessions,
+    ],
+  );
+
+  return (
+    <ChatAnywhereSessionsContext.Provider value={value}>
+      {props.children}
+    </ChatAnywhereSessionsContext.Provider>
+  );
 }
 
 /**
  * 会话切换时加载消息和判断重连的 hook，必须保证只挂载一次
  */
 export const useChatAnywhereSessionLoader = () => {
-  const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
-  const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
-  const getSessions = useContextSelector(ChatAnywhereSessionsContext, v => v.getSessions);
-  const options = useChatAnywhereOptions(v => v.session);
-  const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
+  const dispatch = useChatAnywhereCommandDispatcher();
+  const currentSessionId = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.currentSessionId,
+  );
+  const skipNextSessionLoadIdRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.skipNextSessionLoadIdRef,
+  );
+  const getSessions = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.getSessions,
+  );
+  const options = useChatAnywhereOptions((v) => v.session);
+  const setMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.setMessages,
+  );
+  const setSessionMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.setSessionMessages,
+  );
   const loadSeqRef = React.useRef(0);
   const loadedSessionAliasesRef = React.useRef<Set<string>>(new Set());
 
@@ -91,8 +159,8 @@ export const useChatAnywhereSessionLoader = () => {
     if (!currentSessionId) {
       loadedSessionAliasesRef.current.clear();
       ReactDOM.flushSync(() => {
-        setMessages([])
-      })
+        setMessages([]);
+      });
       return;
     }
 
@@ -103,7 +171,10 @@ export const useChatAnywhereSessionLoader = () => {
         undefined,
         getSessions(),
       );
-      emit({ type: 'handleSessionLoaded', data: { session_id: currentSessionId, generating: false } });
+      dispatch('handleSessionLoaded', {
+        session_id: currentSessionId,
+        generating: false,
+      });
       return;
     }
 
@@ -126,10 +197,22 @@ export const useChatAnywhereSessionLoader = () => {
     }
 
     ReactDOM.flushSync(() => {
-      setMessages([])
-    })
+      setSessionMessages(currentSessionId, []);
+    });
 
-    const session = await options.api.getSession(currentSessionId);
+    let session: IAgentScopeRuntimeWebUISession | undefined;
+    try {
+      session = await options.api.getSession(currentSessionId);
+    } catch (error) {
+      if (isLatestLoad()) {
+        console.error('get session failed:', error);
+        dispatch('handleSessionLoaded', {
+          session_id: currentSessionId,
+          generating: false,
+        });
+      }
+      return;
+    }
     if (!isLatestLoad()) return;
 
     loadedSessionAliasesRef.current = collectSessionIdentityAliases(
@@ -139,95 +222,170 @@ export const useChatAnywhereSessionLoader = () => {
     );
 
     const messages = session?.messages || [];
-    setMessages(messages.map(item => {
-      return {
+    setSessionMessages(
+      currentSessionId,
+      messages.map((item) => ({
         ...item,
         history: true,
-      }
-    }));
+      })),
+    );
 
-    emit({
-      type: 'handleSessionLoaded',
-      data: { session_id: currentSessionId, generating: !!session?.generating },
+    dispatch('handleSessionLoaded', {
+      session_id: currentSessionId,
+      generating: !!session?.generating,
     });
 
     if (session?.generating) {
-      emit({ type: 'handleReconnect', data: { session_id: currentSessionId } });
+      dispatch('handleReconnect', { session_id: currentSessionId });
     }
-  }, [currentSessionId]);
+  }, [
+    currentSessionId,
+    dispatch,
+    getSessions,
+    options.api,
+    setMessages,
+    setSessionMessages,
+    skipNextSessionLoadIdRef,
+  ]);
 };
 
 /**
  * 获取会话列表的 reactive 状态，供外部自定义会话面板使用
  */
 export const useChatAnywhereSessionsState = () => {
-  return useContextSelector(ChatAnywhereSessionsContext, v => v);
+  return useContextSelector(ChatAnywhereSessionsContext, (v) => v);
 };
 
 export const useChatAnywhereSessions = () => {
-  const {
-    setSessions,
-    getSessions,
-    getCurrentSessionId,
-    setCurrentSessionId,
-    pendingRouteSessionIdRef,
-    isCurrentSessionControlled,
-  } = useContextSelector(ChatAnywhereSessionsContext, v => v);
-  const skipNextSessionLoadIdRef = useContextSelector(ChatAnywhereSessionsContext, v => v.skipNextSessionLoadIdRef);
-  const options = useChatAnywhereOptions(v => v.session);
-  const setMessages = useContextSelector(ChatAnywhereMessagesContext, v => v.setMessages);
+  const setSessions = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.setSessions,
+  );
+  const getSessions = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.getSessions,
+  );
+  const getCurrentSessionId = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.getCurrentSessionId,
+  );
+  const setCurrentSessionId = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.setCurrentSessionId,
+  );
+  const pendingRouteSessionIdRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.pendingRouteSessionIdRef,
+  );
+  const isCurrentSessionControlled = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.isCurrentSessionControlled,
+  );
+  const skipNextSessionLoadIdRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.skipNextSessionLoadIdRef,
+  );
+  const options = useChatAnywhereOptions((v) => v.session);
+  const setMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.setMessages,
+  );
+  const setSessionMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.setSessionMessages,
+  );
+  const clearSessionMessages = useContextSelector(
+    ChatAnywhereMessagesContext,
+    (v) => v.clearSessionMessages,
+  );
 
-  const setActiveSessionId = React.useCallback((sessionId: string | undefined) => {
-    if (isCurrentSessionControlled) {
-      pendingRouteSessionIdRef.current = sessionId;
-    }
-    setCurrentSessionId(sessionId);
-    options.onCurrentSessionChange?.(sessionId);
-  }, [isCurrentSessionControlled, options, pendingRouteSessionIdRef, setCurrentSessionId]);
-
-
-  const removeSession = React.useCallback(async (session: Partial<IAgentScopeRuntimeWebUISession> & { id: string }) => {
-    const res = await options.api.removeSession(session);
-    setMessages([]);
-    setActiveSessionId(undefined);
-    setSessions(res);
-  }, [options.api, setActiveSessionId, setMessages, setSessions]);
-
-  const updateSession = React.useCallback(async (session: Partial<IAgentScopeRuntimeWebUISession>) => {
-    const res = session.id ?
-      await options.api.updateSession(session) :
-      await options.api.createSession(session);
-
-
-    setSessions(res);
-    return session;
-  }, [])
-
-  const createSession = React.useCallback(async (data?: { name?: string }) => {
-    const prevIds = new Set(getSessions().map(session => session.id));
-    const nextSessions = await options.api.createSession({
-      name: data?.name || '',
-      messages: [],
-    });
-    const session = nextSessions.find(item => !prevIds.has(item.id)) || nextSessions[0];
-    setSessions(nextSessions);
-
-    if (session?.id) {
-      if (skipNextSessionLoadIdRef) {
-        skipNextSessionLoadIdRef.current = session.id;
+  const setActiveSessionId = React.useCallback(
+    (sessionId: string | undefined) => {
+      if (isCurrentSessionControlled) {
+        pendingRouteSessionIdRef.current = sessionId;
       }
-      setActiveSessionId(session.id);
-      setMessages(session.messages || []);
-    }
+      setCurrentSessionId(sessionId);
+      options.onCurrentSessionChange?.(sessionId);
+    },
+    [
+      isCurrentSessionControlled,
+      options,
+      pendingRouteSessionIdRef,
+      setCurrentSessionId,
+    ],
+  );
 
-    return session?.id;
-  }, [getSessions, options.api, setActiveSessionId, setMessages, setSessions, skipNextSessionLoadIdRef]);
+  const removeSession = React.useCallback(
+    async (
+      session: Partial<IAgentScopeRuntimeWebUISession> & { id: string },
+    ) => {
+      const res = await options.api.removeSession(session);
+      clearSessionMessages(session.id);
+      if (getCurrentSessionId() === session.id) {
+        setMessages([]);
+        setActiveSessionId(undefined);
+      }
+      setSessions(res);
+    },
+    [
+      clearSessionMessages,
+      getCurrentSessionId,
+      options.api,
+      setActiveSessionId,
+      setMessages,
+      setSessions,
+    ],
+  );
 
+  const updateSession = React.useCallback(
+    async (session: Partial<IAgentScopeRuntimeWebUISession>) => {
+      const res = session.id
+        ? await options.api.updateSession(session)
+        : await options.api.createSession(session);
 
-  const changeCurrentSessionId = React.useCallback((sessionId: string) => {
-    setActiveSessionId(sessionId);
-  }, [setActiveSessionId]);
+      setSessions(res);
+      return session;
+    },
+    [options.api, setSessions],
+  );
 
+  const createSession = React.useCallback(
+    async (data?: { name?: string }) => {
+      const prevIds = new Set(getSessions().map((session) => session.id));
+      const nextSessions = await options.api.createSession({
+        name: data?.name || '',
+        messages: [],
+      });
+      const session =
+        nextSessions.find((item) => !prevIds.has(item.id)) || nextSessions[0];
+      setSessions(nextSessions);
+
+      if (session?.id) {
+        if (skipNextSessionLoadIdRef) {
+          skipNextSessionLoadIdRef.current = session.id;
+        }
+        setActiveSessionId(session.id);
+        setSessionMessages(session.id, session.messages || []);
+      }
+
+      return session?.id;
+    },
+    [
+      getSessions,
+      options.api,
+      setActiveSessionId,
+      setSessionMessages,
+      setSessions,
+      skipNextSessionLoadIdRef,
+    ],
+  );
+
+  const changeCurrentSessionId = React.useCallback(
+    (sessionId: string) => {
+      setActiveSessionId(sessionId);
+    },
+    [setActiveSessionId],
+  );
 
   return {
     changeCurrentSessionId,
@@ -236,5 +394,5 @@ export const useChatAnywhereSessions = () => {
     removeSession,
     updateSession,
     createSession,
-  }
+  };
 };

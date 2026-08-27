@@ -68,7 +68,7 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @descriptionEn Custom parser for stream chunks (default JSON.parse)
    */
   responseParser?: (
-    response: Response,
+    chunk: string,
   ) => IAgentScopeRuntimeResponse | IAgentScopeRuntimeMessage | IContent;
 
   /**
@@ -423,16 +423,6 @@ export interface IAgentScopeRuntimeWebUISenderOptions {
     data: IAgentScopeRuntimeWebUIInputData,
   ) => Promise<boolean | IAgentScopeRuntimeWebUISenderBeforeSubmitResult>;
   /**
-   * @description 提交回调函数
-   * @descriptionEn Submit callback function
-   */
-  onSubmit?: (data: { query: string; fileList?: any[] }) => void;
-  /**
-   * @description 取消回调函数
-   * @descriptionEn Cancel callback function
-   */
-  onCancel?: () => void;
-  /**
    * @description 免责声明
    * @descriptionEn Disclaimer
    */
@@ -609,6 +599,11 @@ export interface IAgentScopeRuntimeWebUIQueueItemAction {
 
 export interface IAgentScopeRuntimeWebUIQueueOptions {
   /**
+   * @description 队列持久化与跨标签页通信的命名空间。多智能体或多租户页面必须设置稳定且唯一的 scope。
+   * @descriptionEn Namespace for queue persistence and cross-tab communication. Multi-agent or multi-tenant hosts should provide a stable unique scope.
+   */
+  scope?: string;
+  /**
    * @description 是否启用输入队列。传 false 可关闭队列。
    * @descriptionEn Whether to enable the input queue. Pass false to disable it.
    */
@@ -670,31 +665,33 @@ export interface IAgentScopeRuntimeWebUISessionAPI {
    * @description 获取会话列表
    * @descriptionEn Get session list
    */
-  getSessionList?: () => Promise<IAgentScopeRuntimeWebUISession[]>;
+  getSessionList: () => Promise<IAgentScopeRuntimeWebUISession[]>;
   /**
    * @description 获取会话详情
    * @descriptionEn Get session details
    */
-  getSession?: (sessionId: string) => Promise<IAgentScopeRuntimeWebUISession>;
+  getSession: (
+    sessionId: string,
+  ) => Promise<IAgentScopeRuntimeWebUISession | undefined>;
   /**
    * @description 更新会话
    * @descriptionEn Update session
    */
-  updateSession?: (
+  updateSession: (
     session: Partial<IAgentScopeRuntimeWebUISession>,
   ) => Promise<IAgentScopeRuntimeWebUISession[]>;
   /**
    * @description 创建会话
    * @descriptionEn Create session
    */
-  createSession?: (
+  createSession: (
     session: Partial<IAgentScopeRuntimeWebUISession>,
   ) => Promise<IAgentScopeRuntimeWebUISession[]>;
   /**
    * @description 删除会话
    * @descriptionEn Remove session
    */
-  removeSession?: (
+  removeSession: (
     session: Partial<IAgentScopeRuntimeWebUISession>,
   ) => Promise<IAgentScopeRuntimeWebUISession[]>;
 }
@@ -955,6 +952,8 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @descriptionEn Get loading state
    */
   getLoading: () => boolean | string;
+  setSessionLoading: (sessionId: string, loading: boolean | string) => void;
+  getSessionLoading: (sessionId: string) => boolean | string;
   /**
    * @description 禁用状态
    * @descriptionEn Disabled state
@@ -964,12 +963,14 @@ export interface IAgentScopeRuntimeWebUIInputContext {
    * @description 设置禁用状态
    * @descriptionEn Set disabled state
    */
-  setDisabled: (disabled: boolean) => void;
+  setDisabled: (disabled: boolean | string) => void;
   /**
    * @description 获取禁用状态
    * @descriptionEn Get disabled state
    */
   getDisabled: () => boolean | string;
+  setSessionDisabled: (sessionId: string, disabled: boolean | string) => void;
+  getSessionDisabled: (sessionId: string) => boolean | string;
 }
 
 /**
@@ -1043,5 +1044,5 @@ export interface IAgentScopeRuntimeWebUIInputData {
    */
   biz_params?: {
     user_prompt_params?: Record<string, string>;
-  };
+  } & Record<string, unknown>;
 }

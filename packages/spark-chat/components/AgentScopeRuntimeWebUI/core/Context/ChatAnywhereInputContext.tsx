@@ -1,65 +1,195 @@
-import { createContext, useContextSelector } from 'use-context-selector';
-import { IAgentScopeRuntimeWebUIInputContext } from '@agentscope-ai/chat';
 import { useGetState } from 'ahooks';
-import { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { createContext, useContextSelector } from 'use-context-selector';
+import type { IAgentScopeRuntimeWebUIInputContext } from '../types';
 import { ChatAnywhereSessionsContext } from './ChatAnywhereSessionsContext';
+import { collectSessionIdentityAliases } from './sessionIdentity';
 
-export const ChatAnywhereInputContext = createContext<IAgentScopeRuntimeWebUIInputContext>({
+type InputState = Pick<
+  IAgentScopeRuntimeWebUIInputContext,
+  'loading' | 'disabled'
+>;
+
+const EMPTY_INPUT_STATE: InputState = {
   loading: false,
-  setLoading: () => { },
-  getLoading: () => false,
   disabled: false,
-  setDisabled: () => { },
-  getDisabled: () => false,
-});
+};
+
+export const ChatAnywhereInputContext =
+  createContext<IAgentScopeRuntimeWebUIInputContext>({
+    ...EMPTY_INPUT_STATE,
+    setLoading: () => {},
+    getLoading: () => false,
+    setSessionLoading: () => {},
+    getSessionLoading: () => false,
+    setDisabled: () => {},
+    getDisabled: () => false,
+    setSessionDisabled: () => {},
+    getSessionDisabled: () => false,
+  });
 
 export function ChatAnywhereInputContextProvider(props: {
   children: React.ReactNode | React.ReactNode[];
 }) {
-  const currentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.currentSessionId);
-  const getCurrentSessionId = useContextSelector(ChatAnywhereSessionsContext, v => v.getCurrentSessionId);
+  const currentSessionId = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (value) => value.currentSessionId,
+  );
+  const getCurrentSessionId = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (value) => value.getCurrentSessionId,
+  );
+  const getSessions = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (value) => value.getSessions,
+  );
+  const [loading, setActiveLoading, getLoading] = useGetState<boolean | string>(
+    false,
+  );
+  const [disabled, setActiveDisabled, getDisabled] = useGetState<
+    boolean | string
+  >(false);
+  const stateBySessionRef = useRef<Record<string, InputState>>({});
 
-  const [loading, _setLoading, getLoading] = useGetState<boolean | string>(false);
-  const [disabled, _setDisabled, getDisabled] = useGetState<boolean | string>(false);
+  const getAliases = useCallback(
+    (sessionId: string) =>
+      collectSessionIdentityAliases(sessionId, undefined, getSessions()),
+    [getSessions],
+  );
 
-  const stateMapRef = useRef<Record<string, { loading: boolean | string; disabled: boolean | string }>>({});
-  const setLoading = useCallback((value: boolean | string) => {
-    const sessionId = getCurrentSessionId();
-    if (sessionId) {
-      if (!stateMapRef.current[sessionId]) {
-        stateMapRef.current[sessionId] = { loading: false, disabled: false };
+  const getSessionState = useCallback(
+    (sessionId: string): InputState => {
+      for (const alias of getAliases(sessionId)) {
+        const state = stateBySessionRef.current[alias];
+        if (state) return state;
       }
-      stateMapRef.current[sessionId].loading = value;
-    }
-    _setLoading(value);
-  }, [getCurrentSessionId, _setLoading]);
+      return EMPTY_INPUT_STATE;
+    },
+    [getAliases],
+  );
 
-  const setDisabled = useCallback((value: boolean | string) => {
-    const sessionId = getCurrentSessionId();
-    if (sessionId) {
-      if (!stateMapRef.current[sessionId]) {
-        stateMapRef.current[sessionId] = { loading: false, disabled: false };
+  const isVisibleSession = useCallback(
+    (sessionId: string) => {
+      const visibleSessionId = getCurrentSessionId();
+      return !!visibleSessionId && getAliases(visibleSessionId).has(sessionId);
+    },
+    [getAliases, getCurrentSessionId],
+  );
+
+  const setSessionState = useCallback(
+    (sessionId: string, patch: Partial<InputState>) => {
+      const aliases = getAliases(sessionId);
+      const next = { ...getSessionState(sessionId), ...patch };
+      aliases.forEach((alias) => {
+        stateBySessionRef.current[alias] = next;
+      });
+      const storedSessionIds = Object.keys(stateBySessionRef.current);
+      if (storedSessionIds.length > 100) {
+        storedSessionIds
+          .filter((storedSessionId) => !aliases.has(storedSessionId))
+          .slice(0, storedSessionIds.length - 100)
+          .forEach((storedSessionId) => {
+            delete stateBySessionRef.current[storedSessionId];
+          });
       }
-      stateMapRef.current[sessionId].disabled = value;
-    }
-    _setDisabled(value);
-  }, [getCurrentSessionId, _setDisabled]);
+      if (isVisibleSession(sessionId)) {
+        if (patch.loading !== undefined) setActiveLoading(next.loading);
+        if (patch.disabled !== undefined) setActiveDisabled(next.disabled);
+      }
+    },
+    [
+      getAliases,
+      getSessionState,
+      isVisibleSession,
+      setActiveDisabled,
+      setActiveLoading,
+    ],
+  );
+
+  const setSessionLoading = useCallback(
+    (sessionId: string, value: boolean | string) => {
+      setSessionState(sessionId, { loading: value });
+    },
+    [setSessionState],
+  );
+
+  const getSessionLoading = useCallback(
+    (sessionId: string) => getSessionState(sessionId).loading,
+    [getSessionState],
+  );
+
+  const setSessionDisabled = useCallback(
+    (sessionId: string, value: boolean | string) => {
+      setSessionState(sessionId, { disabled: value });
+    },
+    [setSessionState],
+  );
+
+  const getSessionDisabled = useCallback(
+    (sessionId: string) => getSessionState(sessionId).disabled,
+    [getSessionState],
+  );
+
+  const setLoading = useCallback(
+    (value: boolean | string) => {
+      const sessionId = getCurrentSessionId();
+      if (sessionId) setSessionLoading(sessionId, value);
+      else setActiveLoading(value);
+    },
+    [getCurrentSessionId, setActiveLoading, setSessionLoading],
+  );
+
+  const setDisabled = useCallback(
+    (value: boolean | string) => {
+      const sessionId = getCurrentSessionId();
+      if (sessionId) setSessionDisabled(sessionId, value);
+      else setActiveDisabled(value);
+    },
+    [getCurrentSessionId, setActiveDisabled, setSessionDisabled],
+  );
 
   useEffect(() => {
-    // Preserve the previous session state on switch. The frontend SSE is aborted
-    // during navigation, but the backend may still be generating; clearing
-    // loading here would make that session's queue drain before reconnect/load
-    // confirms the run has actually finished.
-    const state = currentSessionId ? stateMapRef.current[currentSessionId] : undefined;
-    _setLoading(state?.loading ?? false);
-    _setDisabled(state?.disabled ?? false);
-  }, [currentSessionId]);
+    const state = currentSessionId
+      ? getSessionState(currentSessionId)
+      : EMPTY_INPUT_STATE;
+    setActiveLoading(state.loading);
+    setActiveDisabled(state.disabled);
+  }, [currentSessionId, getSessionState, setActiveDisabled, setActiveLoading]);
 
-  return <ChatAnywhereInputContext.Provider value={{ loading, setLoading, getLoading, disabled, setDisabled, getDisabled }}>
-    {props.children}
-  </ChatAnywhereInputContext.Provider>;
+  const value = React.useMemo<IAgentScopeRuntimeWebUIInputContext>(
+    () => ({
+      loading,
+      setLoading,
+      getLoading,
+      setSessionLoading,
+      getSessionLoading,
+      disabled,
+      setDisabled,
+      getDisabled,
+      setSessionDisabled,
+      getSessionDisabled,
+    }),
+    [
+      disabled,
+      getDisabled,
+      getLoading,
+      getSessionDisabled,
+      getSessionLoading,
+      loading,
+      setDisabled,
+      setLoading,
+      setSessionDisabled,
+      setSessionLoading,
+    ],
+  );
+
+  return (
+    <ChatAnywhereInputContext.Provider value={value}>
+      {props.children}
+    </ChatAnywhereInputContext.Provider>
+  );
 }
 
-export const useChatAnywhereInput = (selector: (v: Partial<IAgentScopeRuntimeWebUIInputContext>) => Partial<IAgentScopeRuntimeWebUIInputContext>) => {
-  return useContextSelector(ChatAnywhereInputContext, selector);
-}
+export const useChatAnywhereInput = <Selected,>(
+  selector: (value: IAgentScopeRuntimeWebUIInputContext) => Selected,
+) => useContextSelector(ChatAnywhereInputContext, selector);

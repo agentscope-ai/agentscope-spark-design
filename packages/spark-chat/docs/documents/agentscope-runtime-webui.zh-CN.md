@@ -226,6 +226,8 @@ const options = {
         signal,
       });
     },
+    // 参数是单个 SSE 事件的 data 字符串，不是 Response 对象
+    responseParser: (chunk) => JSON.parse(chunk),
     // 是否在请求中携带历史消息（默认 false）
     enableHistoryMessages: false,
   },
@@ -234,7 +236,7 @@ const options = {
 
 从 1.2.0 开始，WebUI 会在一次提交开始时创建请求快照。`session_id`、`context`、`biz_params`、`mentions` 和 `signal` 在后续异步流程中都来自这份快照，不会在 `await` 后重新读取当前会话。自定义 `fetch` 应直接使用参数中的 `session_id` 和 `context`，不要再次读取业务侧的全局 `activeSessionId`。
 
-`context` 用于承载与单次请求绑定的通用业务上下文；`biz_params` 继续保留已有的 `user_prompt_params` 协议。默认请求和自定义 `fetch` 都会收到相同的上下文字段。
+`context` 用于承载与单次请求绑定的通用业务上下文；`biz_params` 仍支持已有的 `user_prompt_params`，同时允许扩展其他 JSON 字段。默认请求和自定义 `fetch` 都会收到相同的上下文字段。`responseParser` 每次接收一个 SSE `data` 字符串，默认实现是 `JSON.parse`。
 
 ### 主题配置
 
@@ -358,6 +360,8 @@ const options = {
 const options = {
   sender: {
     queue: {
+      // 多智能体/多租户页面应使用稳定且唯一的命名空间
+      scope: `${tenantId}:${agentId}`,
       maxSize: 50,
       getSessionId: (sessionId) => sessionId,
       getRequestContext: (sessionId) => ({
@@ -379,7 +383,7 @@ const options = {
 };
 ```
 
-队列条目会保存入队时的 `session_id` 和 `context`，出队时不会重新绑定到当前页面会话。队列通过 Web Locks、`BroadcastChannel` 和带版本号的 `localStorage` 状态协调同一会话的多标签页发送；业务语义仍由宿主通过上述回调提供。
+队列条目会保存入队时的 `session_id` 和 `context`，出队时不会重新绑定到当前页面会话。队列通过 Web Locks（不支持时使用带租约的本地锁）、按 `scope` 隔离的 `BroadcastChannel` 和带版本号的 `localStorage` 状态协调发送；持久化只保留可 JSON 化的请求字段和附件引用，24 小时未更新的队列会自动过期。多智能体或多租户页面必须配置稳定且唯一的 `scope`，业务语义仍由宿主通过上述回调提供。
 
 #### 业务方自有延迟队列
 
@@ -443,7 +447,7 @@ const options = {
 };
 ```
 
-当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，实现上述接口即可。传入 `currentSessionId` 后，WebUI 会把它视为外部路由控制值；`onCurrentSessionChange` 用于把组件内的会话创建或切换同步回业务路由。
+当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，需要完整实现上述五个接口；`getSession` 在会话不存在时可以返回 `undefined`。传入 `currentSessionId` 后，WebUI 会把它视为外部路由控制值；`onCurrentSessionChange` 用于把组件内的会话创建或切换同步回业务路由。
 
 ### Ref 实例方法
 
@@ -663,10 +667,13 @@ export default config;
 ## 1.2.0 升级说明
 
 - 自定义 `api.fetch` 现在会收到必填的 `session_id`，以及独立的 `context`、`mentions`、`submission` 和 `signal`。请求实现应使用这些快照参数，不要在异步操作后读取全局活动会话。
-- 通用业务上下文应通过 `context` 传递；`biz_params.user_prompt_params` 继续兼容原协议。
+- 通用业务上下文应通过 `context` 传递；`biz_params.user_prompt_params` 继续兼容原协议，也可扩展其他 JSON 字段。
 - 内置输入队列改为显式开启，默认不启用。现有业务方自有队列不需要迁移到内置队列，只需保存并回传完整输入数据。
 - `ref.input.submit` 会完整透传 `IAgentScopeRuntimeWebUIInputData`。
-- 内置队列持久化 schema 升级到 v2。升级前尚未发送的 v1 本地队列条目会被丢弃，建议业务方在升级前先清空或发送完旧队列。
+- `responseParser` 的入参类型修正为单个 SSE `data` 字符串；自定义解析器需要相应调整。
+- 自定义 `session.api` 现在必须完整实现五个会话方法；不传时继续使用内置实现。
+- `sender.onSubmit`、`sender.onCancel` 从类型中移除；这两个字段此前未被运行时调用。提交前拦截请使用 `beforeSubmit`，外部提交请使用 `ref.input.submit`。
+- 内置队列持久化 schema 为 v2，并增加 `scope` 隔离、轻量序列化和 24 小时过期清理。升级前尚未发送的 v1 本地队列条目会被丢弃，建议业务方在升级前先清空或发送完旧队列。
 
 ## 更多细节
 
