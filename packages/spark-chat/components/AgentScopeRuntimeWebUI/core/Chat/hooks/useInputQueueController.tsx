@@ -154,7 +154,7 @@ export default function useInputQueueController(
   );
   const queueEnabled = isInputQueueEnabled(queueOptions);
   const queueMaxSize = queueConfig.maxSize ?? MAX_INPUT_QUEUE_SIZE;
-  const getQueueSessionId = queueConfig.getSessionId;
+  const getQueueKey = queueConfig.getQueueKey ?? queueConfig.getSessionId;
   const queueScope = queueConfig.scope || apiOptions.baseURL || 'default';
   const getQueueRequestContext = queueConfig.getRequestContext;
   const isQueueSessionRunning = queueConfig.isSessionRunning;
@@ -254,11 +254,11 @@ export default function useInputQueueController(
     (sessionId?: string) => {
       return resolveInputQueueSessionId(sessionId, {
         queueEnabled,
-        getSessionId: getQueueSessionId,
+        getQueueKey,
         scope: queueScope,
       });
     },
-    [getQueueSessionId, queueEnabled, queueScope],
+    [getQueueKey, queueEnabled, queueScope],
   );
 
   const currentQueueSessionId = getInputQueueRouteQueueSessionId(
@@ -268,7 +268,7 @@ export default function useInputQueueController(
     },
     {
       queueEnabled,
-      getSessionId: getQueueSessionId,
+      getQueueKey,
       scope: queueScope,
     },
   );
@@ -290,14 +290,14 @@ export default function useInputQueueController(
       },
       {
         queueEnabled,
-        getSessionId: getQueueSessionId,
+        getQueueKey,
         scope: queueScope,
       },
     );
   }, [
     currentQARef,
     currentSessionIdRef,
-    getQueueSessionId,
+    getQueueKey,
     pendingRouteSessionIdRef,
     queueEnabled,
     queueScope,
@@ -469,7 +469,7 @@ export default function useInputQueueController(
         },
         {
           queueEnabled,
-          getSessionId: getQueueSessionId,
+          getQueueKey,
           scope: queueScope,
         },
         queueSessionId,
@@ -479,7 +479,7 @@ export default function useInputQueueController(
     [
       currentQARef,
       getCurrentSessionId,
-      getQueueSessionId,
+      getQueueKey,
       pendingRouteSessionIdRef,
       queueEnabled,
       queueScope,
@@ -668,7 +668,7 @@ export default function useInputQueueController(
           },
           {
             queueEnabled,
-            getSessionId: getQueueSessionId,
+            getQueueKey,
             scope: queueScope,
           },
         ),
@@ -701,7 +701,7 @@ export default function useInputQueueController(
     [
       currentQARef,
       currentSessionIdRef,
-      getQueueSessionId,
+      getQueueKey,
       markQueueSessionIdle,
       pendingRouteSessionIdRef,
       queueEnabled,
@@ -1038,11 +1038,11 @@ export default function useInputQueueController(
     (left: string | undefined, right: string | undefined) => {
       return areInputQueueSessionsEquivalent(left, right, {
         queueEnabled,
-        getSessionId: getQueueSessionId,
+        getQueueKey,
         scope: queueScope,
       });
     },
-    [getQueueSessionId, queueEnabled, queueScope],
+    [getQueueKey, queueEnabled, queueScope],
   );
 
   const clearDrainTimer = useCallback(() => {

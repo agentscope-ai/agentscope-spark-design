@@ -62,6 +62,7 @@ export interface IAgentScopeRuntimeWebUIMessagesContext {
       | ((
           previous: IAgentScopeRuntimeWebUIMessage[],
         ) => IAgentScopeRuntimeWebUIMessage[]),
+    options?: { activate?: boolean },
   ) => void;
   getSessionMessages: (sessionId: string) => IAgentScopeRuntimeWebUIMessage[];
   clearSessionMessages: (sessionId: string) => void;

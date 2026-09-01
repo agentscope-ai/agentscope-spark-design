@@ -515,8 +515,8 @@ export interface IAgentScopeRuntimeWebUIQueueSessionContext {
    */
   sessionId?: string;
   /**
-   * @description 输入队列使用的稳定会话 id
-   * @descriptionEn Stable session id used by the input queue.
+   * @description 输入队列持久化和跨标签页通信使用的不透明 key
+   * @descriptionEn Opaque key used for queue persistence and cross-tab communication.
    */
   queueSessionId?: string;
   /**
@@ -631,8 +631,13 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
    */
   itemActions?: readonly IAgentScopeRuntimeWebUIQueueItemAction[];
   /**
-   * @description 获取队列使用的会话 id
-   * @descriptionEn Resolve the session id used by the input queue
+   * @description 根据聊天会话 id 生成稳定且唯一的队列 key。它用于持久化和跨标签页隔离，不应返回后端请求的 session_id。
+   * @descriptionEn Resolve a stable unique queue key from the chat session id. It is used for persistence and cross-tab isolation and must not return the backend request session_id.
+   */
+  getQueueKey?: (sessionId?: string) => string | undefined;
+  /**
+   * @deprecated 使用 getQueueKey。该别名仅用于兼容旧配置。
+   * @deprecatedEn Use getQueueKey. This alias is retained only for backward compatibility.
    */
   getSessionId?: (sessionId?: string) => string | undefined;
   /**

@@ -1,6 +1,5 @@
 import { useAsyncEffect, useGetState } from 'ahooks';
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { createContext, useContextSelector } from 'use-context-selector';
 import {
   IAgentScopeRuntimeWebUISession,
@@ -13,6 +12,10 @@ import {
   isSameLoadedSession,
 } from './sessionIdentity';
 import { activateCachedSessionMessages } from './sessionMessageActivation';
+import {
+  hasSessionListChanged,
+  selectCreatedSession,
+} from './sessionCreation';
 import { useChatAnywhereCommandDispatcher } from './useChatAnywhereEventEmitter';
 
 const hasOwn = Object.prototype.hasOwnProperty;
@@ -167,9 +170,7 @@ export const useChatAnywhereSessionLoader = () => {
 
     if (!currentSessionId) {
       loadedSessionAliasesRef.current.clear();
-      ReactDOM.flushSync(() => {
-        setMessages([]);
-      });
+      setMessages([]);
       return;
     }
 
@@ -215,9 +216,7 @@ export const useChatAnywhereSessionLoader = () => {
       return;
     }
 
-    ReactDOM.flushSync(() => {
-      setSessionMessages(currentSessionId, []);
-    });
+    setSessionMessages(currentSessionId, []);
 
     let session: IAgentScopeRuntimeWebUISession | undefined;
     try {
@@ -370,21 +369,39 @@ export const useChatAnywhereSessions = () => {
 
   const createSession = React.useCallback(
     async (data?: { name?: string }) => {
-      const prevIds = new Set(getSessions().map((session) => session.id));
-      const nextSessions = await options.api.createSession({
+      const previousSessions = getSessions();
+      const prevIds = new Set(previousSessions.map((session) => session.id));
+      const sessionDraft: Partial<IAgentScopeRuntimeWebUISession> = {
         name: data?.name || '',
         messages: [],
-      });
-      const session =
-        nextSessions.find((item) => !prevIds.has(item.id)) || nextSessions[0];
-      setSessions(nextSessions);
+      };
+      const nextSessions = await options.api.createSession(sessionDraft);
+      const session = selectCreatedSession(
+        prevIds,
+        nextSessions,
+        sessionDraft.id,
+      );
+      // Some adapters reuse an unresolved draft and return a shallow copy of
+      // the unchanged list. Avoid publishing that no-op update: consumers may
+      // synchronize URL state from session-list changes while the new-chat
+      // navigation is still committing, which can reactivate the old session.
+      if (hasSessionListChanged(previousSessions, nextSessions)) {
+        setSessions(nextSessions);
+      }
 
       if (session?.id) {
         if (skipNextSessionLoadIdRef) {
           skipNextSessionLoadIdRef.current = session.id;
         }
         setActiveSessionId(session.id);
-        setSessionMessages(session.id, session.messages || []);
+        // In controlled mode the route can intentionally remain `/chat` for a
+        // local unresolved draft. Activate the empty list immediately instead
+        // of waiting for the controlled session id to round-trip; otherwise a
+        // reused draft leaves the previous conversation visible until the
+        // user clicks "new chat" again.
+        setSessionMessages(session.id, session.messages || [], {
+          activate: true,
+        });
       }
 
       return session?.id;

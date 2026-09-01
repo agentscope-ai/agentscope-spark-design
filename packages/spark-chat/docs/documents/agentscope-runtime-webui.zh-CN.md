@@ -384,7 +384,8 @@ const options = {
       // 多智能体/多租户页面应使用稳定且唯一的命名空间
       scope: `${tenantId}:${agentId}`,
       maxSize: 50,
-      getSessionId: (sessionId) => sessionId,
+      // 队列 key 必须对应唯一聊天；不要返回请求上下文中的后端 session_id
+      getQueueKey: (chatSessionId) => chatSessionId,
       getRequestContext: (sessionId) => ({
         session_id: sessionId,
         user_id: getCurrentUserId(),
@@ -404,7 +405,9 @@ const options = {
 };
 ```
 
-队列条目会保存入队时的 `session_id` 和 `context`，出队时不会重新绑定到当前页面会话。队列通过 Web Locks（不支持时使用带租约的本地锁）、按 `scope` 隔离的 `BroadcastChannel` 和带版本号的 `localStorage` 状态协调发送；持久化只保留可 JSON 化的请求字段和附件引用，24 小时未更新的队列会自动过期。多智能体或多租户页面必须配置稳定且唯一的 `scope`，业务语义仍由宿主通过上述回调提供。
+`getQueueKey` 的输入是 SDK 聊天会话 id，返回值是队列持久化和跨标签页通信使用的不透明 key。即使多个聊天共用一个后端 runtime `session_id`，它们也必须返回不同的 queue key；请求路由字段只放在 `getRequestContext` 中。旧的 `getSessionId` 配置仍兼容，但已废弃。
+
+队列条目会保存入队时的 `session_id` 和 `context`，出队时不会重新绑定到当前页面会话。队列通过 Web Locks（不支持时使用带租约的本地锁）、按 `scope` 隔离的 `BroadcastChannel` 和带版本号的 `localStorage` 状态协调发送；持久化只保留可 JSON 化的请求字段和附件引用，24 小时未更新的队列会自动过期。多智能体或多租户页面必须配置稳定且唯一的 `scope`，业务语义仍由宿主通过上述回调提供。外部迁移或清理持久化队列时，可使用导出的 `resolveInputQueueKey(chatSessionId, { scope, getQueueKey })` 生成与 SDK 完全一致的 key，避免业务方重复拼接内部格式。
 
 #### 业务方自有延迟队列
 

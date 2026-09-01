@@ -1,7 +1,13 @@
-export interface InputQueueSessionResolverOptions {
-  queueEnabled: boolean;
+export interface InputQueueKeyResolverOptions {
+  getQueueKey?: (sessionId?: string) => string | undefined;
+  /** @deprecated Use getQueueKey. */
   getSessionId?: (sessionId?: string) => string | undefined;
   scope?: string;
+}
+
+export interface InputQueueSessionResolverOptions
+  extends InputQueueKeyResolverOptions {
+  queueEnabled: boolean;
 }
 
 export interface InputQueueSessionSnapshot {
@@ -10,16 +16,29 @@ export interface InputQueueSessionSnapshot {
   activeSessionId?: string;
 }
 
+/**
+ * Resolve the opaque persistence and cross-tab key for one canonical chat.
+ * Request-routing identifiers belong in getRequestContext and must not be used
+ * here when several chats can share the same backend runtime session.
+ */
+export function resolveInputQueueKey(
+  sessionId: string | undefined,
+  options: InputQueueKeyResolverOptions = {},
+) {
+  const resolver = options.getQueueKey ?? options.getSessionId;
+  const resolved = resolver?.(sessionId) ?? sessionId;
+  if (!resolved) return undefined;
+  return options.scope
+    ? `${encodeURIComponent(options.scope)}::${resolved}`
+    : resolved;
+}
+
 export function resolveInputQueueSessionId(
   sessionId: string | undefined,
   options: InputQueueSessionResolverOptions,
 ) {
   if (!options.queueEnabled) return undefined;
-  const resolved = options.getSessionId?.(sessionId) ?? sessionId;
-  if (!resolved) return undefined;
-  return options.scope
-    ? `${encodeURIComponent(options.scope)}::${resolved}`
-    : resolved;
+  return resolveInputQueueKey(sessionId, options);
 }
 
 export function areInputQueueSessionsEquivalent(

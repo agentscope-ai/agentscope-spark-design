@@ -386,7 +386,8 @@ const options = {
       // Use a stable unique namespace on multi-agent/multi-tenant pages
       scope: `${tenantId}:${agentId}`,
       maxSize: 50,
-      getSessionId: (sessionId) => sessionId,
+      // A queue key must identify one chat; do not return the backend session_id
+      getQueueKey: (chatSessionId) => chatSessionId,
       getRequestContext: (sessionId) => ({
         session_id: sessionId,
         user_id: getCurrentUserId(),
@@ -406,7 +407,9 @@ const options = {
 };
 ```
 
-Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks (with a local lease fallback), a `scope`-isolated `BroadcastChannel`, and versioned `localStorage` state coordinate sending. Persistence keeps only JSON-compatible request fields and attachment references, and state expires after 24 hours without an update. Multi-agent or multi-tenant pages must provide a stable unique `scope`. Host-specific semantics remain in the callbacks above.
+`getQueueKey` receives the SDK chat session id and returns the opaque key used for persistence and cross-tab communication. Chats that share one backend runtime `session_id` must still return different queue keys; request-routing fields belong only in `getRequestContext`. The legacy `getSessionId` option remains compatible but is deprecated.
+
+Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks (with a local lease fallback), a `scope`-isolated `BroadcastChannel`, and versioned `localStorage` state coordinate sending. Persistence keeps only JSON-compatible request fields and attachment references, and state expires after 24 hours without an update. Multi-agent or multi-tenant pages must provide a stable unique `scope`. Host-specific semantics remain in the callbacks above. For external migration or cleanup, use the exported `resolveInputQueueKey(chatSessionId, { scope, getQueueKey })` to generate exactly the same key as the SDK instead of duplicating its internal format.
 
 #### Host-managed Delayed Queues
 

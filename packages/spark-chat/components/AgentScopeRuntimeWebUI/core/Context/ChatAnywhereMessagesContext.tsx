@@ -78,12 +78,18 @@ export function ChatAnywhereMessagesContextProvider(props: {
   );
 
   const setSessionMessages = useCallback(
-    (sessionId: string, updater: MessageUpdater) => {
+    (
+      sessionId: string,
+      updater: MessageUpdater,
+      options?: { activate?: boolean },
+    ) => {
       const previous = getSessionMessages(sessionId);
       const next = resolveMessages(updater, previous);
-      const aliases = getVisibleSessionAliases();
+      const aliases = options?.activate
+        ? collectSessionIdentityAliases(sessionId, undefined, getSessions())
+        : getVisibleSessionAliases();
       messagesBySessionRef.current[sessionId] = next;
-      if (aliases.has(sessionId)) {
+      if (options?.activate || aliases.has(sessionId)) {
         aliases.forEach((alias) => {
           messagesBySessionRef.current[alias] = next;
         });

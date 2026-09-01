@@ -15,6 +15,7 @@ import type {
   IAgentScopeRuntimeWebUIWelcomeOptions,
 } from '../types';
 import { createDefaultSessionApi } from './defaultSessionApi';
+import { normalizeSessionApi } from './sessionApi';
 
 type NormalizedChatAnywhereOptions = Omit<
   IAgentScopeRuntimeWebUIOptions,
@@ -70,10 +71,7 @@ export function ChatAnywhereOptionsContextProvider(props: {
       session: {
         ...session,
         multiple: !!session.multiple,
-        api: {
-          ...defaultSessionApi,
-          ...session.api,
-        },
+        api: normalizeSessionApi(defaultSessionApi, session.api),
       },
       theme: {
         ...theme,

@@ -33,9 +33,11 @@ export {
   clearInputQueueState,
   hasInputQueueItems,
   migrateInputQueueState,
+  resolveInputQueueKey,
   useChatAnywhereInput,
   useChatAnywhereSessions,
   useChatAnywhereSessionsState,
+  type InputQueueKeyResolverOptions,
 } from './AgentScopeRuntimeWebUI';
 export * from './AgentScopeRuntimeWebUI/core/types';
 
