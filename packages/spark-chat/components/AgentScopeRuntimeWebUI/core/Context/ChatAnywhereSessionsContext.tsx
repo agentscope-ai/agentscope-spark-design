@@ -12,6 +12,7 @@ import {
   collectSessionIdentityAliases,
   isSameLoadedSession,
 } from './sessionIdentity';
+import { activateCachedSessionMessages } from './sessionMessageActivation';
 import { useChatAnywhereCommandDispatcher } from './useChatAnywhereEventEmitter';
 
 const hasOwn = Object.prototype.hasOwnProperty;
@@ -179,6 +180,14 @@ export const useChatAnywhereSessionLoader = () => {
         undefined,
         getSessions(),
       );
+      // `createSession` already seeded this session's message cache, so no
+      // backend load is necessary. We still need to promote that cached list
+      // to the active view after React has applied the new session id;
+      // otherwise the previous conversation remains visible until another
+      // interaction triggers a render or session load.
+      ReactDOM.flushSync(() => {
+        activateCachedSessionMessages(currentSessionId, setSessionMessages);
+      });
       await dispatch('handleSessionLoaded', {
         session_id: currentSessionId,
         generating: false,
