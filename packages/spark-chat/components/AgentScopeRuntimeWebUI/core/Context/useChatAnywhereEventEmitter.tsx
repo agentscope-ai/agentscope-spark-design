@@ -6,9 +6,16 @@ import React, {
   useRef,
 } from 'react';
 import type { IAgentScopeRuntimeMessage } from '../AgentScopeRuntime/types';
+import { createExecutionEventHub } from '../Execution/events';
 import type {
+  IAgentScopeRuntimeWebUICancelResult,
+  IAgentScopeRuntimeWebUIExecuteOptions,
   IAgentScopeRuntimeWebUIInputData,
   IAgentScopeRuntimeWebUIQueueEnqueueResult,
+  IAgentScopeRuntimeWebUIResumeOptions,
+  IAgentScopeRuntimeWebUIRunHandle,
+  IAgentScopeRuntimeWebUIRunListener,
+  IAgentScopeRuntimeWebUIRunTarget,
 } from '../types';
 
 export interface ChatAnywhereCommandMap {
@@ -17,6 +24,13 @@ export interface ChatAnywhereCommandMap {
   handleReplace: { id: string };
   handleSubmit: IAgentScopeRuntimeWebUIInputData;
   handleApproval: { input: IAgentScopeRuntimeMessage[] };
+  handleExecute: {
+    data: IAgentScopeRuntimeWebUIInputData;
+    options?: IAgentScopeRuntimeWebUIExecuteOptions;
+  };
+  handleCancelExecution: IAgentScopeRuntimeWebUIRunTarget | undefined;
+  handleResumeExecution: IAgentScopeRuntimeWebUIResumeOptions;
+  handleGetActiveRun: { sessionId?: string };
 }
 
 type ChatAnywhereCommandType = keyof ChatAnywhereCommandMap;
@@ -27,12 +41,17 @@ interface ChatAnywhereCommandResultMap {
   handleReplace: void;
   handleSubmit: void | IAgentScopeRuntimeWebUIQueueEnqueueResult;
   handleApproval: void;
+  handleExecute: IAgentScopeRuntimeWebUIRunHandle;
+  handleCancelExecution: IAgentScopeRuntimeWebUICancelResult;
+  handleResumeExecution: IAgentScopeRuntimeWebUIRunHandle;
+  handleGetActiveRun: IAgentScopeRuntimeWebUIRunHandle | undefined;
 }
 
 type ChatAnywhereCommandHandler = (data: unknown) => unknown | Promise<unknown>;
 
 interface ChatAnywhereCommandBus {
   handlers: Map<ChatAnywhereCommandType, Set<ChatAnywhereCommandHandler>>;
+  executionEvents: ReturnType<typeof createExecutionEventHub>;
 }
 
 const ChatAnywhereCommandContext = createContext<ChatAnywhereCommandBus | null>(
@@ -44,7 +63,10 @@ export function ChatAnywhereCommandProvider(props: {
 }) {
   const busRef = useRef<ChatAnywhereCommandBus>();
   if (!busRef.current) {
-    busRef.current = { handlers: new Map() };
+    busRef.current = {
+      handlers: new Map(),
+      executionEvents: createExecutionEventHub(),
+    };
   }
 
   return (
@@ -108,6 +130,20 @@ export function useChatAnywhereCommandDispatcher() {
       );
       return results[0] as ChatAnywhereCommandResultMap[Type];
     },
+    [bus],
+  );
+}
+
+export function useChatAnywhereExecutionEventPublisher() {
+  const bus = useChatAnywhereCommandBus();
+  return bus.executionEvents.publish;
+}
+
+export function useChatAnywhereExecutionSubscriber() {
+  const bus = useChatAnywhereCommandBus();
+  return useCallback(
+    (listener: IAgentScopeRuntimeWebUIRunListener) =>
+      bus.executionEvents.subscribe(listener),
     [bus],
   );
 }

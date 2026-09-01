@@ -7,6 +7,8 @@ export interface ChatControllerCurrentQA {
   abortController?: AbortController;
   activeRequestId: number;
   activeSessionId?: string;
+  /** Public Run id associated with the active request, when externally orchestrated. */
+  activeRunId?: string;
   activeQueueSessionId?: string;
   cancelRequestedRequestId?: number;
 }

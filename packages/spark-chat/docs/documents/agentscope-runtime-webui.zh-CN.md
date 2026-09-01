@@ -411,19 +411,19 @@ const options = {
 
 #### 业务方自有延迟队列
 
-不需要启用内置队列。业务方应在入队时保存完整的 `IAgentScopeRuntimeWebUIInputData`，尤其是 `session_id` 和 `context`；恢复发送时将同一对象交回 `ref.input.submit`：
+不需要启用内置队列。业务方继续负责 FIFO、持久化、暂停/编辑/重试、跨标签页选主等队列策略；SDK 的 `ref.execution` 负责一次 AI Run 的会话创建、请求提交、SSE 消费、取消和断流恢复。业务方应在入队时保存完整的 `IAgentScopeRuntimeWebUIInputData`，尤其是 `session_id` 和 `context`：
 
 ```tsx | pure
-const pendingInputs: IAgentScopeRuntimeWebUIInputData[] = [];
-
 const options = {
   sender: {
     beforeSubmit: async (data) => {
-      pendingInputs.push({
-        ...data,
-        session_id: activeSessionId,
-        context: {
-          workspaceId: activeWorkspaceId,
+      hostQueue.enqueue({
+        id: crypto.randomUUID(),
+        chatSessionId: activeSessionId,
+        data: {
+          ...data,
+          session_id: activeSessionId,
+          context: { workspaceId: activeWorkspaceId },
         },
       });
       return { proceed: false, clear: true };
@@ -431,13 +431,47 @@ const options = {
   },
 };
 
-function flushNextInput() {
-  const data = pendingInputs.shift();
-  if (data) chatRef.current?.input.submit(data);
+async function deliver(item: HostQueueItem) {
+  const run = await chatRef.current!.execution.execute(item.data, {
+    source: 'host-queue',
+    clientRequestId: item.id,
+    sessionId: item.chatSessionId,
+  });
+
+  const session = await run.session;
+  if (session.resolved) {
+    // 新建聊天在真正发起请求前即可拿到 SDK chat session id，
+    // 可立即更新 URL 和会话列表选中态。
+    selectChatSession(session.sessionId!);
+  }
+
+  const unsubscribe = run.subscribe((event) => {
+    hostQueue.updateRunState(item.id, event);
+    // disconnected 不是完成；由宿主决定重连时机，不能重新提交该队列项。
+  });
+
+  const accepted = await run.accepted;
+  hostQueue.markAccepted(item.id, accepted.accepted, run.runId);
+
+  const result = await run.completion;
+  unsubscribe();
+  if (result.status === 'completed') hostQueue.remove(item.id);
+  else if (result.retryable) hostQueue.restore(item.id);
+}
+
+function resume(item: HostQueueItem) {
+  return chatRef.current!.execution.resume({
+    runId: item.runId,
+    sessionId: item.chatSessionId,
+    source: 'host-queue',
+    clientRequestId: item.id,
+  });
 }
 ```
 
-`ref.input.submit` 会完整保留提交数据，不再只提取 `query`、`fileList` 和 `biz_params`。业务方自己的异步队列及 `customFetch` 都应使用已保存的 `session_id`，不要在恢复发送后重新读取全局活动会话。
+`execution.execute` 绕过 `beforeSubmit` 和 SDK 内置队列策略，因此不会重复入队；同一挂载实例内重复传入 `clientRequestId` 会返回同一个活动 Run。状态按 `preparing → submitting → accepted → streaming → completed/failed/canceled` 演进；SSE 在终态事件前断开会进入 `disconnected`，`completion` 保持 pending，调用 `execution.resume` 后沿用同一 Run 进入 `reconnecting`，不会创建新的业务提交。`execution.cancel({ runId })` 在返回时保证本地流和消息状态也已终止。
+
+`ref.input.submit` 仍适合简单的外部触发提交，也会完整保留 `IAgentScopeRuntimeWebUIInputData`；需要精确区分“未受理可重试”和“已受理待重连”的持久化业务队列应使用 `ref.execution`。业务方自己的队列及 `api.fetch` 都应使用入队时保存的 `session_id`，不要在恢复发送后重新读取全局活动会话。
 
 ### 会话管理
 
@@ -693,6 +727,7 @@ export default config;
 - 自定义 `api.fetch` 现在会收到必填的 `session_id`，以及独立的 `context`、`mentions`、`submission` 和 `signal`。请求实现应使用这些快照参数，不要在异步操作后读取全局活动会话。
 - 通用业务上下文应通过 `context` 传递；`biz_params.user_prompt_params` 继续兼容原协议，也可扩展其他 JSON 字段。
 - 内置输入队列改为显式开启，默认不启用。现有业务方自有队列不需要迁移到内置队列，只需保存并回传完整输入数据。
+- 新增 `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run 控制器。自有队列可以保留调度策略，同时复用 SDK 的会话创建、提交、SSE、终态、取消和重连生命周期；只有后端受理前的失败会标记为可安全重新入队。
 - `ref.input.submit` 会完整透传 `IAgentScopeRuntimeWebUIInputData`，并返回可等待的 Promise；外部延迟队列可以等待本次提交或入队结果。
 - `api.cancel` 可接管停止行为。配置后默认保留原 SSE 以接收后端取消事件；调用参数中的 `abort()` 可立即终止本地流。未配置时仍采用立即本地终止。
 - `responseParser` 的入参类型修正为单个 SSE `data` 字符串；自定义解析器需要相应调整。

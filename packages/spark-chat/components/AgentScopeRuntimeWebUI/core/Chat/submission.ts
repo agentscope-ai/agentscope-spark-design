@@ -9,7 +9,7 @@ import type {
 } from '../types';
 
 export interface ChatSubmissionDescriptor {
-  source: 'direct' | 'queue';
+  source: 'direct' | 'queue' | 'host-queue';
   queueItemId?: string;
 }
 

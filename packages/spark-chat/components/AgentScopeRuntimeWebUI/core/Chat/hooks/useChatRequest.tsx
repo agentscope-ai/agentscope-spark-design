@@ -6,7 +6,10 @@ import {
   AgentScopeRuntimeRunStatus,
 } from '../../AgentScopeRuntime/types';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
-import type { IAgentScopeRuntimeWebUIMessage } from '../../types';
+import type {
+  IAgentScopeRuntimeWebUIMessage,
+  IAgentScopeRuntimeWebUISubmissionContext,
+} from '../../types';
 import {
   type ChatSubmissionRequestData,
   fetchChatSubmission,
@@ -40,6 +43,13 @@ interface ChatRequestLifecycleOptions {
   sessionId: string;
   signal?: AbortSignal;
   onAccepted?: (response: Response) => void | Promise<void>;
+  onStreaming?: () => void | Promise<void>;
+  onFinished?: (
+    status: 'finished' | 'interrupted',
+  ) => void | Promise<void>;
+  onFailed?: (error: unknown) => void | Promise<void>;
+  onDisconnected?: (error?: unknown) => void | Promise<void>;
+  submission?: IAgentScopeRuntimeWebUISubmissionContext;
   queueItemId?: string;
 }
 
@@ -63,6 +73,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       myRequestId: number,
       mySessionId: string,
       abortSignal?: AbortSignal,
+      lifecycle?: ChatRequestLifecycleOptions,
     ) => {
       const agentScopeRuntimeResponseBuilder =
         new AgentScopeRuntimeResponseBuilder({
@@ -121,6 +132,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       }
 
       let sawFinishedChunk = false;
+      let notifiedStreaming = false;
 
       try {
         for await (const chunk of Stream({
@@ -130,6 +142,11 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           // Primary guard: if this SSE is no longer active, stop immediately
           // to prevent ghost writes into a different session/request.
           if (!isStillActive()) return false;
+
+          if (!notifiedStreaming) {
+            notifiedStreaming = true;
+            await lifecycle?.onStreaming?.();
+          }
 
           if (currentQARef.current.response?.msgStatus === 'interrupted') {
             currentQARef.current.abortController?.abort();
@@ -173,6 +190,17 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
             if (finished) {
               sawFinishedChunk = true;
+              if (res.status === AgentScopeRuntimeRunStatus.Failed) {
+                await lifecycle?.onFailed?.(
+                  new Error('runtime response failed'),
+                );
+              } else {
+                await lifecycle?.onFinished?.(
+                  res.status === AgentScopeRuntimeRunStatus.Canceled
+                    ? 'interrupted'
+                    : 'finished',
+                );
+              }
               onFinish(
                 mySessionId,
                 myRequestId,
@@ -188,6 +216,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       } catch (error) {
         if (!isStillActive() || abortSignal?.aborted) {
           // Request is no longer active; do not write cards or fire cancel.
+          await lifecycle?.onDisconnected?.(error);
           return false;
         }
         if (currentQARef.current.response?.msgStatus === 'interrupted') {
@@ -201,16 +230,25 @@ export default function useChatRequest(options: UseChatRequestOptions) {
             ];
             updateMessage(currentQARef.current.response, mySessionId);
           }
+          await lifecycle?.onFinished?.('interrupted');
           return false;
         } else {
           console.error(error);
-          onFinish(mySessionId, myRequestId);
+          await lifecycle?.onDisconnected?.(error);
+          if (!lifecycle?.onDisconnected) {
+            onFinish(mySessionId, myRequestId);
+          }
         }
         return true;
       }
 
       if (!sawFinishedChunk && isStillActive()) {
-        onFinish(mySessionId, myRequestId);
+        await lifecycle?.onDisconnected?.(
+          new Error('chat stream ended before a terminal runtime event'),
+        );
+        if (!lifecycle?.onDisconnected) {
+          onFinish(mySessionId, myRequestId);
+        }
       }
       return sawFinishedChunk || isStillActive();
     },
@@ -232,12 +270,15 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           historyMessages,
           data,
           signal,
-          submission: lifecycle.queueItemId
-            ? { source: 'queue', queueItemId: lifecycle.queueItemId }
-            : { source: 'direct' },
+          submission:
+            lifecycle.submission ||
+            (lifecycle.queueItemId
+              ? { source: 'queue', queueItemId: lifecycle.queueItemId }
+              : { source: 'direct' }),
         });
       } catch (error) {
         if (signal?.aborted) return false;
+        await lifecycle.onFailed?.(error);
         if (
           currentQARef.current.activeRequestId === requestId &&
           currentQARef.current.activeSessionId === sessionId
@@ -251,7 +292,9 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
       if (!response.ok) {
         await processSSEResponse(response, requestId, sessionId, signal);
-        throw new Error(`chat request failed (${response.status})`);
+        const error = new Error(`chat request failed (${response.status})`);
+        await lifecycle.onFailed?.(error);
+        throw error;
       }
 
       try {
@@ -267,13 +310,20 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       }
 
       if (response.body) {
-        return processSSEResponse(response, requestId, sessionId, signal);
+        return processSSEResponse(
+          response,
+          requestId,
+          sessionId,
+          signal,
+          lifecycle,
+        );
       }
 
       if (
         currentQARef.current.activeRequestId === requestId &&
         (!sessionId || currentQARef.current.activeSessionId === sessionId)
       ) {
+        await lifecycle.onFinished?.('finished');
         onFinish(sessionId, requestId);
         return true;
       }
@@ -283,9 +333,18 @@ export default function useChatRequest(options: UseChatRequestOptions) {
   );
 
   const reconnect = useCallback(
-    async (sessionId: string, myRequestId?: number) => {
+    async (
+      sessionId: string,
+      myRequestId?: number,
+      lifecycle?: Omit<ChatRequestLifecycleOptions, 'requestId' | 'sessionId'>,
+    ) => {
       const currentApiOptions = apiOptionsRef.current;
-      if (!currentApiOptions.reconnect) return;
+      if (!currentApiOptions.reconnect) {
+        await lifecycle?.onDisconnected?.(
+          new Error('chat reconnect api is not configured'),
+        );
+        return false;
+      }
 
       const abortSignal = currentQARef.current.abortController?.signal;
       const requestId = myRequestId ?? currentQARef.current.activeRequestId;
@@ -299,13 +358,39 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         if (!abortSignal?.aborted) {
           console.error('chat reconnect failed:', error);
         }
+        await lifecycle?.onDisconnected?.(error);
+        return false;
       }
 
-      if (response && response.body) {
-        await processSSEResponse(response, requestId, sessionId, abortSignal);
+      if (!response.ok) {
+        await lifecycle?.onDisconnected?.(
+          new Error(`chat reconnect failed (${response.status})`),
+        );
+        return false;
       }
+
+      await lifecycle?.onAccepted?.(response);
+
+      if (response.body) {
+        return processSSEResponse(
+          response,
+          requestId,
+          sessionId,
+          abortSignal,
+          {
+            requestId,
+            sessionId,
+            signal: abortSignal,
+            ...lifecycle,
+          },
+        );
+      }
+
+      await lifecycle?.onFinished?.('finished');
+      onFinish(sessionId, requestId);
+      return true;
     },
-    [currentQARef, processSSEResponse],
+    [currentQARef, onFinish, processSSEResponse],
   );
 
   return { request, reconnect };

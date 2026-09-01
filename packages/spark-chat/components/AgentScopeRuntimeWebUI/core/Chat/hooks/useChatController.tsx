@@ -1,14 +1,25 @@
 import { useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useContextSelector } from 'use-context-selector';
+import { v4 as uuid } from 'uuid';
 import sleep from '../../../../Util/sleep';
 import AgentScopeRuntimeResponseBuilder from '../../AgentScopeRuntime/Response/Builder';
 import type { IAgentScopeRuntimeMessage } from '../../AgentScopeRuntime/types';
 import { ChatAnywhereInputContext } from '../../Context/ChatAnywhereInputContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import { ChatAnywhereSessionsContext } from '../../Context/ChatAnywhereSessionsContext';
-import useChatAnywhereEventEmitter from '../../Context/useChatAnywhereEventEmitter';
-import type { IAgentScopeRuntimeWebUIMessage } from '../../types';
+import useChatAnywhereEventEmitter, {
+  useChatAnywhereExecutionEventPublisher,
+} from '../../Context/useChatAnywhereEventEmitter';
+import { ChatRunLifecycle } from '../../Execution/runLifecycle';
+import type {
+  IAgentScopeRuntimeWebUICancelResult,
+  IAgentScopeRuntimeWebUIExecuteOptions,
+  IAgentScopeRuntimeWebUIMessage,
+  IAgentScopeRuntimeWebUIResumeOptions,
+  IAgentScopeRuntimeWebUIRunHandle,
+  IAgentScopeRuntimeWebUIRunTarget,
+} from '../../types';
 import type { InputProps } from '../Input';
 import { registerInputQueueSubmission } from '../InputQueue/submission';
 import {
@@ -56,12 +67,14 @@ export default function useChatController() {
   );
   const apiOptions = useChatAnywhereOptions((v) => v.api);
   const apiOptionsRef = useRef(apiOptions);
+  const publishRunEvent = useChatAnywhereExecutionEventPublisher();
 
   useEffect(() => {
     apiOptionsRef.current = apiOptions;
   }, [apiOptions]);
 
   const currentQARef = useRef<ChatControllerCurrentQA>({ activeRequestId: 0 });
+  const runLifecyclesRef = useRef(new Map<string, ChatRunLifecycle>());
   const currentSessionIdRef = useRef(currentSessionId);
   const submitNowRef = useRef<QueueSubmitNow | null>(null);
   const handleCancelRef = useRef<(() => void) | null>(null);
@@ -190,16 +203,7 @@ export default function useChatController() {
   });
 
   const submitNow = useCallback<QueueSubmitNow>(
-    async (
-      data: Parameters<InputProps['onSubmit']>[0],
-      options?: {
-        sessionId?: string;
-        queueSessionId?: string;
-        queueItemId?: string;
-        onRequestAccepted?: () => void | Promise<void>;
-        shouldRestoreOnError?: (error: unknown) => boolean | Promise<boolean>;
-      },
-    ) => {
+    async (data: Parameters<InputProps['onSubmit']>[0], options) => {
       const queuedSubmitSessionId = options?.queueSessionId
         ? getChatSessionIdForQueue(options.queueSessionId, options.sessionId)
         : undefined;
@@ -210,6 +214,7 @@ export default function useChatController() {
       currentQARef.current.abortController?.abort();
       const myRequestId = ++currentQARef.current.activeRequestId;
       currentQARef.current.cancelRequestedRequestId = undefined;
+      currentQARef.current.activeRunId = options?.runId;
       const assertActive = () => {
         if (myRequestId !== currentQARef.current.activeRequestId) {
           throw new Error('chat request aborted');
@@ -228,6 +233,7 @@ export default function useChatController() {
       if (!submitSessionId) {
         throw new Error('chat session is not ready');
       }
+      await options?.onSessionResolved?.(submitSessionId);
       const submissionData = createChatSubmissionRequest(data, submitSessionId);
       currentQARef.current.activeSessionId = submitSessionId;
 
@@ -302,6 +308,16 @@ export default function useChatController() {
             requestAccepted = true;
             await options?.onRequestAccepted?.();
           },
+          onStreaming: options?.onRequestStreaming,
+          onFinished: options?.onRequestFinished,
+          onFailed: options?.onRequestFailed,
+          onDisconnected: options?.onRequestDisconnected
+            ? async (error) => {
+                await options.onRequestDisconnected?.(error);
+                setSessionLoading(submitSessionId, false);
+              }
+            : undefined,
+          submission: options?.submission,
           queueItemId: options?.queueItemId,
         });
         if (!accepted) {
@@ -475,6 +491,194 @@ export default function useChatController() {
 
   handleCancelRef.current = handleCancel;
 
+  const findActiveRunLifecycle = useCallback(
+    (target?: IAgentScopeRuntimeWebUIRunTarget) => {
+      if (target?.runId) {
+        const lifecycle = runLifecyclesRef.current.get(target.runId);
+        return lifecycle && !lifecycle.isTerminal() ? lifecycle : undefined;
+      }
+
+      const lifecycles = Array.from(runLifecyclesRef.current.values()).reverse();
+      return lifecycles.find(
+        (lifecycle) =>
+          !lifecycle.isTerminal() &&
+          (!target?.sessionId ||
+            lifecycle.getSessionId() === target.sessionId),
+      );
+    },
+    [],
+  );
+
+  const cancelExecution = useCallback(
+    async (
+      target?: IAgentScopeRuntimeWebUIRunTarget,
+    ): Promise<IAgentScopeRuntimeWebUICancelResult> => {
+      const lifecycle = findActiveRunLifecycle(target);
+      if (!lifecycle) {
+        return {
+          runId: target?.runId,
+          sessionId: target?.sessionId,
+          status: 'not-found',
+          locallyCanceled: false,
+        };
+      }
+
+      const { runId } = lifecycle.handle;
+      const sessionId = lifecycle.getSessionId();
+      lifecycle.markCanceling();
+
+      const requestId = currentQARef.current.activeRequestId;
+      const isActiveRequest = currentQARef.current.activeRunId === runId;
+      let locallyCanceled = false;
+      const abort = () => {
+        if (locallyCanceled) return;
+        locallyCanceled = true;
+        if (isActiveRequest) abortActiveRequest(requestId, sessionId);
+        lifecycle.cancel();
+      };
+
+      const cancelFn = apiOptionsRef.current.cancel;
+      try {
+        if (cancelFn && sessionId) {
+          await cancelFn({
+            session_id: sessionId,
+            signal: isActiveRequest
+              ? currentQARef.current.abortController?.signal
+              : undefined,
+            abort,
+          });
+        }
+        // The public Run contract is stronger than the legacy UI callback:
+        // once cancel() resolves, local stream/message state is terminal too.
+        abort();
+        return {
+          runId,
+          sessionId,
+          status: 'canceled',
+          locallyCanceled,
+        };
+      } catch (error) {
+        console.error('cancel execution failed:', error);
+        abort();
+        return {
+          runId,
+          sessionId,
+          status: 'failed',
+          locallyCanceled,
+          error,
+        };
+      }
+    },
+    [abortActiveRequest, findActiveRunLifecycle],
+  );
+
+  const createRunLifecycle = useCallback(
+    (options: {
+      runId?: string;
+      clientRequestId?: string;
+      sessionId?: string;
+      source: 'direct' | 'host-queue';
+    }) => {
+      const runId = options.runId || uuid();
+      const lifecycle = new ChatRunLifecycle({
+        runId,
+        clientRequestId: options.clientRequestId,
+        sessionId: options.sessionId,
+        source: options.source,
+        publish: publishRunEvent,
+        cancel: () => cancelExecution({ runId }),
+      });
+      runLifecyclesRef.current.set(runId, lifecycle);
+      void lifecycle.handle.completion.then(() => {
+        if (runLifecyclesRef.current.get(runId) === lifecycle) {
+          runLifecyclesRef.current.delete(runId);
+        }
+      });
+      return lifecycle;
+    },
+    [cancelExecution, publishRunEvent],
+  );
+
+  const executeRun = useCallback(
+    (
+      data: Parameters<InputProps['onSubmit']>[0],
+      options?: IAgentScopeRuntimeWebUIExecuteOptions,
+    ): IAgentScopeRuntimeWebUIRunHandle => {
+      if (options?.clientRequestId) {
+        const existing = Array.from(
+          runLifecyclesRef.current.values(),
+        ).find(
+          (lifecycle) =>
+            !lifecycle.isTerminal() &&
+            lifecycle.handle.clientRequestId === options.clientRequestId,
+        );
+        if (existing) return existing.handle;
+      }
+
+      const source = options?.source || 'direct';
+      const lifecycle = createRunLifecycle({
+        clientRequestId: options?.clientRequestId,
+        sessionId: options?.sessionId,
+        source,
+      });
+      lifecycle.markSubmitting();
+
+      void submitNow(data, {
+        sessionId: options?.sessionId,
+        runId: lifecycle.handle.runId,
+        submission: {
+          source,
+          queueItemId:
+            source === 'host-queue' ? options?.clientRequestId : undefined,
+        },
+        onSessionResolved: (sessionId) => lifecycle.resolveSession(sessionId),
+        onRequestAccepted: () => {
+          const sessionId = lifecycle.getSessionId();
+          if (sessionId) lifecycle.markAccepted(sessionId);
+        },
+        onRequestStreaming: () => lifecycle.markStreaming(),
+        onRequestFinished: (status) => {
+          if (status === 'interrupted') lifecycle.cancel();
+          else lifecycle.complete();
+        },
+        onRequestFailed: (error) => lifecycle.fail(error),
+        onRequestDisconnected: (error) =>
+          lifecycle.markDisconnected(error),
+      })
+        .then(() => {
+          if (lifecycle.isTerminal()) return;
+          const state = lifecycle.getState();
+          if (state === 'canceling') lifecycle.cancel();
+          else if (state === 'preparing' || state === 'submitting') {
+            lifecycle.fail(
+              new Error('chat request ended before backend acceptance'),
+            );
+          } else if (state !== 'disconnected') {
+            lifecycle.markDisconnected(
+              new Error('chat stream ended before a terminal runtime event'),
+            );
+          }
+        })
+        .catch((error) => {
+          if (lifecycle.isTerminal()) return;
+          const state = lifecycle.getState();
+          if (state === 'canceling') lifecycle.cancel(error);
+          else if (
+            state === 'accepted' ||
+            state === 'streaming' ||
+            state === 'reconnecting'
+          ) {
+            lifecycle.markDisconnected(error);
+          } else {
+            lifecycle.fail(error);
+          }
+        });
+
+      return lifecycle.handle;
+    },
+    [createRunLifecycle, submitNow],
+  );
+
   const handleRegenerate = useCallback(
     async (messageId: string) => {
       currentQARef.current.abortController?.abort();
@@ -505,17 +709,28 @@ export default function useChatController() {
   );
 
   const handleReconnect = useCallback(
-    async (sessionId: string) => {
-      if (!sessionId || sessionId !== currentSessionIdRef.current) return;
+    async (sessionId: string, lifecycle?: ChatRunLifecycle) => {
+      if (!sessionId || sessionId !== currentSessionIdRef.current) {
+        lifecycle?.markDisconnected(
+          new Error('chat session is not active for reconnect'),
+        );
+        return false;
+      }
 
       const { blockedByPeer, queueSessionId } = prepareReconnect(sessionId);
-      if (blockedByPeer) return;
+      if (blockedByPeer) {
+        lifecycle?.markDisconnected(
+          new Error('chat reconnect is owned by another tab'),
+        );
+        return false;
+      }
 
       currentQARef.current.abortController?.abort();
       currentQARef.current.abortController = new AbortController();
       const myRequestId = ++currentQARef.current.activeRequestId;
       currentQARef.current.cancelRequestedRequestId = undefined;
       currentQARef.current.activeSessionId = sessionId;
+      currentQARef.current.activeRunId = lifecycle?.handle.runId;
       markQueueSessionActive(queueSessionId);
       setSessionLoading(sessionId, true);
 
@@ -533,12 +748,39 @@ export default function useChatController() {
         messageHandler.createResponseMessage(sessionId);
       }
 
-      await reconnect(sessionId, myRequestId);
+      const reconnected = await reconnect(
+        sessionId,
+        myRequestId,
+        lifecycle
+          ? {
+              onAccepted: () => {
+                if (lifecycle.getState() === 'preparing') {
+                  lifecycle.markAccepted(sessionId);
+                }
+              },
+              onStreaming: () => lifecycle.markStreaming(),
+              onFinished: (status) => {
+                if (status === 'interrupted') lifecycle.cancel();
+                else lifecycle.complete();
+              },
+              onFailed: (error) => lifecycle.fail(error),
+              onDisconnected: (error) => {
+                lifecycle.markDisconnected(error);
+                setSessionLoading(sessionId, false);
+              },
+            }
+          : undefined,
+      );
 
-      if (myRequestId !== currentQARef.current.activeRequestId) return;
+      if (myRequestId !== currentQARef.current.activeRequestId) return false;
 
       if (currentQARef.current.response?.msgStatus === 'generating') {
         setSessionLoading(sessionId, false);
+        if (lifecycle?.getState() === 'disconnected') {
+          // Keep the partially rendered response so resume() can continue the
+          // same Run instead of creating a second assistant message.
+          return reconnected;
+        }
         if (currentQARef.current.response?.id) {
           messageHandler.removeMessageById(
             currentQARef.current.response.id,
@@ -548,6 +790,7 @@ export default function useChatController() {
         currentQARef.current.response = undefined;
         handleReconnectSettledIdle(queueSessionId);
       }
+      return reconnected;
     },
     [
       handleReconnectSettledIdle,
@@ -559,7 +802,41 @@ export default function useChatController() {
     ],
   );
 
-  handleReconnectRef.current = handleReconnect;
+  handleReconnectRef.current = async (sessionId) => {
+    await handleReconnect(sessionId);
+  };
+
+  const resumeRun = useCallback(
+    (options: IAgentScopeRuntimeWebUIResumeOptions) => {
+      let lifecycle = findActiveRunLifecycle({
+        runId: options.runId,
+        sessionId: options.sessionId,
+      });
+      if (!lifecycle) {
+        lifecycle = createRunLifecycle({
+          clientRequestId: options.clientRequestId,
+          sessionId: options.sessionId,
+          source: options.source || 'direct',
+        });
+        // resume() explicitly attaches to a backend Run that was already
+        // accepted before this stream connection was created.
+        lifecycle.markAccepted(options.sessionId);
+      }
+
+      lifecycle.markReconnecting();
+      void handleReconnect(options.sessionId, lifecycle).catch((error) => {
+        lifecycle?.markDisconnected(error);
+      });
+      return lifecycle.handle;
+    },
+    [createRunLifecycle, findActiveRunLifecycle, handleReconnect],
+  );
+
+  const getActiveRun = useCallback(
+    (sessionId?: string): IAgentScopeRuntimeWebUIRunHandle | undefined =>
+      findActiveRunLifecycle({ sessionId })?.handle,
+    [findActiveRunLifecycle],
+  );
 
   useEffect(() => {
     const prevSessionId = currentQARef.current.activeSessionId;
@@ -580,6 +857,12 @@ export default function useChatController() {
       return;
     }
 
+    const activeRunId = currentQARef.current.activeRunId;
+    if (activeRunId) {
+      runLifecyclesRef.current
+        .get(activeRunId)
+        ?.markDisconnected(new Error('chat session changed during streaming'));
+    }
     currentQARef.current.abortController?.abort();
     currentQARef.current = {
       request: undefined,
@@ -587,6 +870,7 @@ export default function useChatController() {
       abortController: undefined,
       activeRequestId: currentQARef.current.activeRequestId + 1,
       activeSessionId: currentSessionId,
+      activeRunId: undefined,
       activeQueueSessionId: resolveQueueSessionId(currentSessionId),
       cancelRequestedRequestId: undefined,
     };
@@ -595,6 +879,12 @@ export default function useChatController() {
   useEffect(
     () => () => {
       clearDrainTimer();
+      const activeRunId = currentQARef.current.activeRunId;
+      if (activeRunId) {
+        runLifecyclesRef.current
+          .get(activeRunId)
+          ?.markDisconnected(new Error('chat component unmounted'));
+      }
       currentQARef.current.abortController?.abort();
       currentQARef.current.activeRequestId += 1;
     },
@@ -632,6 +922,26 @@ export default function useChatController() {
     callback: async (data) => {
       await handleApproval(data);
     },
+  });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleExecute',
+    callback: ({ data, options }) => executeRun(data, options),
+  });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleCancelExecution',
+    callback: (target) => cancelExecution(target),
+  });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleResumeExecution',
+    callback: (options) => resumeRun(options),
+  });
+
+  useChatAnywhereEventEmitter({
+    type: 'handleGetActiveRun',
+    callback: ({ sessionId }) => getActiveRun(sessionId),
   });
 
   return {

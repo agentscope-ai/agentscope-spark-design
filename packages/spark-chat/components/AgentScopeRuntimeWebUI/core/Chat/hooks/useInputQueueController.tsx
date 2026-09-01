@@ -13,6 +13,7 @@ import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext
 import type {
   IAgentScopeRuntimeWebUIMessage,
   IAgentScopeRuntimeWebUIQueueRequestContext,
+  IAgentScopeRuntimeWebUISubmissionContext,
 } from '../../types';
 import type { InputProps } from '../Input';
 import {
@@ -71,7 +72,16 @@ export type QueueSubmitNow = (
     sessionId?: string;
     queueSessionId?: string;
     queueItemId?: string;
+    runId?: string;
+    submission?: IAgentScopeRuntimeWebUISubmissionContext;
+    onSessionResolved?: (sessionId: string) => void | Promise<void>;
     onRequestAccepted?: () => void | Promise<void>;
+    onRequestStreaming?: () => void | Promise<void>;
+    onRequestFinished?: (
+      status: 'finished' | 'interrupted',
+    ) => void | Promise<void>;
+    onRequestFailed?: (error: unknown) => void | Promise<void>;
+    onRequestDisconnected?: (error?: unknown) => void | Promise<void>;
     shouldRestoreOnError?: (error: unknown) => boolean | Promise<boolean>;
   },
 ) => Promise<void>;

@@ -413,19 +413,19 @@ Each queue item keeps the `session_id` and `context` captured when it was enqueu
 
 #### Host-managed Delayed Queues
 
-You do not need to enable the built-in queue. Save the complete `IAgentScopeRuntimeWebUIInputData` when enqueuing, especially `session_id` and `context`, and pass the same object back to `ref.input.submit` when it is ready:
+You do not need to enable the built-in queue. The host continues to own FIFO ordering, persistence, pause/edit/retry behavior, and cross-tab ownership. The SDK `ref.execution` controller owns one AI Run's session creation, request submission, SSE consumption, cancellation, and stream recovery. Save the complete `IAgentScopeRuntimeWebUIInputData` when enqueuing, especially `session_id` and `context`:
 
 ```tsx | pure
-const pendingInputs: IAgentScopeRuntimeWebUIInputData[] = [];
-
 const options = {
   sender: {
     beforeSubmit: async (data) => {
-      pendingInputs.push({
-        ...data,
-        session_id: activeSessionId,
-        context: {
-          workspaceId: activeWorkspaceId,
+      hostQueue.enqueue({
+        id: crypto.randomUUID(),
+        chatSessionId: activeSessionId,
+        data: {
+          ...data,
+          session_id: activeSessionId,
+          context: { workspaceId: activeWorkspaceId },
         },
       });
       return { proceed: false, clear: true };
@@ -433,13 +433,48 @@ const options = {
   },
 };
 
-function flushNextInput() {
-  const data = pendingInputs.shift();
-  if (data) chatRef.current?.input.submit(data);
+async function deliver(item: HostQueueItem) {
+  const run = await chatRef.current!.execution.execute(item.data, {
+    source: 'host-queue',
+    clientRequestId: item.id,
+    sessionId: item.chatSessionId,
+  });
+
+  const session = await run.session;
+  if (session.resolved) {
+    // The SDK chat session id is available before the request starts, so a
+    // newly created chat can immediately update the URL and selected row.
+    selectChatSession(session.sessionId!);
+  }
+
+  const unsubscribe = run.subscribe((event) => {
+    hostQueue.updateRunState(item.id, event);
+    // disconnected is not completion. The host chooses when to reconnect and
+    // must not submit this accepted queue item again.
+  });
+
+  const accepted = await run.accepted;
+  hostQueue.markAccepted(item.id, accepted.accepted, run.runId);
+
+  const result = await run.completion;
+  unsubscribe();
+  if (result.status === 'completed') hostQueue.remove(item.id);
+  else if (result.retryable) hostQueue.restore(item.id);
+}
+
+function resume(item: HostQueueItem) {
+  return chatRef.current!.execution.resume({
+    runId: item.runId,
+    sessionId: item.chatSessionId,
+    source: 'host-queue',
+    clientRequestId: item.id,
+  });
 }
 ```
 
-`ref.input.submit` now preserves the complete submission instead of selecting only `query`, `fileList`, and `biz_params`. A host-managed asynchronous queue and `customFetch` should use the stored `session_id` instead of reading the global active session again when delivery resumes.
+`execution.execute` bypasses `beforeSubmit` and the SDK queue policy, so it cannot enqueue the item again. Repeating a `clientRequestId` in the same mounted instance returns the same active Run. The lifecycle advances through `preparing → submitting → accepted → streaming → completed/failed/canceled`. If SSE closes before a terminal runtime event, the Run enters `disconnected` and `completion` remains pending. `execution.resume` continues that same Run through `reconnecting` without creating a new business submission. When `execution.cancel({ runId })` resolves, the local stream and message state are terminal as well.
+
+`ref.input.submit` remains available for simple imperative submission and preserves the complete `IAgentScopeRuntimeWebUIInputData`. Durable host queues that must distinguish “not accepted and safe to retry” from “accepted and waiting to reconnect” should use `ref.execution`. Both a host queue and `api.fetch` should use the stored `session_id` rather than reading the global active session again when delivery resumes.
 
 ### Session Management
 
@@ -693,6 +728,7 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 - A custom `api.fetch` now receives a required `session_id` plus independent `context`, `mentions`, `submission`, and `signal` values. Use these snapshot arguments instead of reading the global active session after asynchronous work.
 - Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible and additional JSON fields are supported.
 - The built-in input queue is now opt-in and disabled by default. Existing host-managed queues do not need to migrate; they only need to preserve and resubmit the complete input data.
+- Added the `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run controller. A host queue can retain its scheduling policy while reusing SDK session creation, submission, SSE, terminal-state, cancellation, and reconnection lifecycles. Only failures before backend acceptance are marked safe to enqueue again.
 - `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData` and returns an awaitable Promise, so a host-managed delayed queue can wait for the submission or enqueue result.
 - `api.cancel` can take ownership of Stop. When configured, it keeps the original SSE open for backend cancellation events by default; call the supplied `abort()` to terminate the local stream immediately. Without it, Stop still aborts locally.
 - `responseParser` now correctly receives one SSE `data` string. Update custom parsers that previously declared a `Response` parameter.

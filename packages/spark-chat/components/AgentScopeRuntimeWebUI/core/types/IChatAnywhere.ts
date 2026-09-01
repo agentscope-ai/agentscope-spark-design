@@ -99,7 +99,7 @@ export interface IAgentScopeRuntimeWebUISubmissionContext {
    * @description 请求来源
    * @descriptionEn Request submission source.
    */
-  source: 'direct' | 'queue';
+  source: 'direct' | 'queue' | 'host-queue';
   /**
    * @description 输入队列条目 id，仅队列请求存在
    * @descriptionEn Input queue item id, present only for queued requests.
