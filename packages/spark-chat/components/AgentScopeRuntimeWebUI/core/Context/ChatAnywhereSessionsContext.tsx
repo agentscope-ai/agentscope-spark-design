@@ -185,9 +185,11 @@ export const useChatAnywhereSessionLoader = () => {
       // to the active view after React has applied the new session id;
       // otherwise the previous conversation remains visible until another
       // interaction triggers a render or session load.
-      ReactDOM.flushSync(() => {
-        activateCachedSessionMessages(currentSessionId, setSessionMessages);
-      });
+      // This loader already runs from an effect. Calling flushSync here is
+      // rejected by React and leaves the previous session visible until the
+      // next interaction. A normal context update activates the cached empty
+      // list in the same render cycle without violating the lifecycle.
+      activateCachedSessionMessages(currentSessionId, setSessionMessages);
       await dispatch('handleSessionLoaded', {
         session_id: currentSessionId,
         generating: false,
