@@ -495,7 +495,9 @@ const options = {
         /* ... */
       },
       createSession: async (session) => {
-        /* ... */
+        const created = await createOrReuseSession(session);
+        const sessions = await listSessions();
+        return { sessions, session: created };
       },
       updateSession: async (session) => {
         /* ... */
@@ -508,7 +510,28 @@ const options = {
 };
 ```
 
-When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. To connect backend storage, implement all five methods above; `getSession` may return `undefined` when a session does not exist. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route.
+When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. To connect backend storage, implement all five methods above; `getSession` may return `undefined` when a session does not exist. `createSession` should return `{ sessions, session }`, where `sessions` is the updated list and `session` is the session created or reused by this call. Legacy adapters that only return the session array remain supported, but the explicit result prevents the SDK from guessing by list order when a host reuses an unresolved draft and removes the need to mutate the input `session.id`. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route. After creation, the SDK immediately activates the new session's empty message list, so hosts do not need to clear messages through an internal Context hook.
+
+### Message Bubble Extensions
+
+Compose host UI with the SDK defaults through `request.render` and `response.render`. `fallback()` returns the default SDK bubble, so hosts do not need to deep-import internal components from `lib/AgentScopeRuntimeWebUI/core/...`. Runtime message, content, and status types are also exported directly from the `@agentscope-ai/chat` root entry.
+
+```tsx | pure
+const options = {
+  request: {
+    render: ({ data, fallback }) => (
+      <HostRequestFrame data={data}>{fallback()}</HostRequestFrame>
+    ),
+  },
+  response: {
+    render: ({ data, isLast, fallback }) => (
+      <HostResponseFrame data={data} isLast={isLast}>
+        {fallback()}
+      </HostResponseFrame>
+    ),
+  },
+};
+```
 
 ### Ref Instance Methods
 

@@ -8,14 +8,15 @@ import {
 import { ChatAnywhereMessagesContext } from './ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from './ChatAnywhereOptionsContext';
 import {
+  hasSessionListChanged,
+  normalizeCreateSessionResult,
+  selectCreatedSession,
+} from './sessionCreation';
+import {
   collectSessionIdentityAliases,
   isSameLoadedSession,
 } from './sessionIdentity';
 import { activateCachedSessionMessages } from './sessionMessageActivation';
-import {
-  hasSessionListChanged,
-  selectCreatedSession,
-} from './sessionCreation';
 import { useChatAnywhereCommandDispatcher } from './useChatAnywhereEventEmitter';
 
 const hasOwn = Object.prototype.hasOwnProperty;
@@ -357,29 +358,38 @@ export const useChatAnywhereSessions = () => {
 
   const updateSession = React.useCallback(
     async (session: Partial<IAgentScopeRuntimeWebUISession>) => {
-      const res = session.id
-        ? await options.api.updateSession(session)
-        : await options.api.createSession(session);
+      if (!session.id) {
+        const result = normalizeCreateSessionResult(
+          await options.api.createSession(session),
+        );
+        setSessions(result.sessions);
+        return result.session || session;
+      }
 
-      setSessions(res);
-      return session;
+      const sessions = await options.api.updateSession(session);
+      setSessions(sessions);
+      return sessions.find((item) => item.id === session.id) || session;
     },
     [options.api, setSessions],
   );
 
   const createSession = React.useCallback(
-    async (data?: { name?: string }) => {
+    async (data?: { name?: string }): Promise<string | undefined> => {
       const previousSessions = getSessions();
       const prevIds = new Set(previousSessions.map((session) => session.id));
       const sessionDraft: Partial<IAgentScopeRuntimeWebUISession> = {
         name: data?.name || '',
         messages: [],
       };
-      const nextSessions = await options.api.createSession(sessionDraft);
+      const creation = normalizeCreateSessionResult(
+        await options.api.createSession(sessionDraft),
+      );
+      const nextSessions = creation.sessions;
       const session = selectCreatedSession(
         prevIds,
         nextSessions,
         sessionDraft.id,
+        creation.session,
       );
       // Some adapters reuse an unresolved draft and return a shallow copy of
       // the unchanged list. Avoid publishing that no-op update: consumers may

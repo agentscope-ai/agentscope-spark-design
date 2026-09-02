@@ -24,6 +24,25 @@ export interface IAgentScopeRuntimeWebUISession {
   generating?: boolean;
 }
 
+/**
+ * Explicit result for session creation.
+ *
+ * Returning both the updated list and the created/reused session avoids
+ * guessing from list order when an adapter reuses an unresolved draft.
+ */
+export interface IAgentScopeRuntimeWebUICreateSessionResult {
+  sessions: IAgentScopeRuntimeWebUISession[];
+  session: IAgentScopeRuntimeWebUISession;
+}
+
+/**
+ * Legacy adapters may keep returning the updated list. New adapters should
+ * return the explicit result whenever creation can reuse an existing session.
+ */
+export type IAgentScopeRuntimeWebUICreateSessionReturn =
+  | IAgentScopeRuntimeWebUISession[]
+  | IAgentScopeRuntimeWebUICreateSessionResult;
+
 export interface IAgentScopeRuntimeWebUISessionsContext {
   sessions: IAgentScopeRuntimeWebUISession[];
   setSessions: (sessions: IAgentScopeRuntimeWebUISession[]) => void;

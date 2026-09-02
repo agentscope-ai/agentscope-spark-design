@@ -1,3 +1,4 @@
+export * from './core/AgentScopeRuntime/types';
 export { resolveInputQueueKey } from './core/Chat/InputQueue/session';
 export type { InputQueueKeyResolverOptions } from './core/Chat/InputQueue/session';
 export {

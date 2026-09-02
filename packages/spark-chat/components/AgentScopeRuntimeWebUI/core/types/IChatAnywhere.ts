@@ -6,7 +6,10 @@ import {
   IAgentScopeRuntimeResponse,
   IContent,
 } from '../AgentScopeRuntime/types';
-import { IAgentScopeRuntimeWebUISession } from './ISessions';
+import {
+  IAgentScopeRuntimeWebUICreateSessionReturn,
+  IAgentScopeRuntimeWebUISession,
+} from './ISessions';
 
 /**
  * @description API 配置选项
@@ -703,7 +706,7 @@ export interface IAgentScopeRuntimeWebUISessionAPI {
    */
   createSession: (
     session: Partial<IAgentScopeRuntimeWebUISession>,
-  ) => Promise<IAgentScopeRuntimeWebUISession[]>;
+  ) => Promise<IAgentScopeRuntimeWebUICreateSessionReturn>;
   /**
    * @description 删除会话
    * @descriptionEn Remove session

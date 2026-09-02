@@ -39,6 +39,7 @@ export {
   useChatAnywhereSessionsState,
   type InputQueueKeyResolverOptions,
 } from './AgentScopeRuntimeWebUI';
+export * from './AgentScopeRuntimeWebUI/core/AgentScopeRuntime/types';
 export * from './AgentScopeRuntimeWebUI/core/types';
 
 export {

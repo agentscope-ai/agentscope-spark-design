@@ -82,7 +82,8 @@ function createStorageSessionStore(multiple: boolean) {
     },
     async updateSession(session: Partial<IAgentScopeRuntimeWebUISession>) {
       if (!session.id) {
-        return this.createSession(session);
+        const result = await this.createSession(session);
+        return Array.isArray(result) ? result : result.sessions;
       }
 
       const list = await this.getSessionList();
@@ -115,7 +116,7 @@ function createStorageSessionStore(multiple: boolean) {
       }
 
       persist();
-      return [...sessionList];
+      return { sessions: [...sessionList], session: created };
     },
     async removeSession(session: Partial<IAgentScopeRuntimeWebUISession>) {
       const list = await this.getSessionList();

@@ -314,7 +314,9 @@ export default function useChatController() {
           onDisconnected: options?.onRequestDisconnected
             ? async (error) => {
                 await options.onRequestDisconnected?.(error);
-                setSessionLoading(submitSessionId, false);
+                if (currentQARef.current.activeRequestId === myRequestId) {
+                  setSessionLoading(submitSessionId, false);
+                }
               }
             : undefined,
           submission: options?.submission,
@@ -498,12 +500,13 @@ export default function useChatController() {
         return lifecycle && !lifecycle.isTerminal() ? lifecycle : undefined;
       }
 
-      const lifecycles = Array.from(runLifecyclesRef.current.values()).reverse();
+      const lifecycles = Array.from(
+        runLifecyclesRef.current.values(),
+      ).reverse();
       return lifecycles.find(
         (lifecycle) =>
           !lifecycle.isTerminal() &&
-          (!target?.sessionId ||
-            lifecycle.getSessionId() === target.sessionId),
+          (!target?.sessionId || lifecycle.getSessionId() === target.sessionId),
       );
     },
     [],
@@ -605,9 +608,7 @@ export default function useChatController() {
       options?: IAgentScopeRuntimeWebUIExecuteOptions,
     ): IAgentScopeRuntimeWebUIRunHandle => {
       if (options?.clientRequestId) {
-        const existing = Array.from(
-          runLifecyclesRef.current.values(),
-        ).find(
+        const existing = Array.from(runLifecyclesRef.current.values()).find(
           (lifecycle) =>
             !lifecycle.isTerminal() &&
             lifecycle.handle.clientRequestId === options.clientRequestId,
@@ -642,8 +643,7 @@ export default function useChatController() {
           else lifecycle.complete();
         },
         onRequestFailed: (error) => lifecycle.fail(error),
-        onRequestDisconnected: (error) =>
-          lifecycle.markDisconnected(error),
+        onRequestDisconnected: (error) => lifecycle.markDisconnected(error),
       })
         .then(() => {
           if (lifecycle.isTerminal()) return;
@@ -663,6 +663,7 @@ export default function useChatController() {
           if (lifecycle.isTerminal()) return;
           const state = lifecycle.getState();
           if (state === 'canceling') lifecycle.cancel(error);
+          else if (state === 'disconnected') return;
           else if (
             state === 'accepted' ||
             state === 'streaming' ||
@@ -766,7 +767,9 @@ export default function useChatController() {
               onFailed: (error) => lifecycle.fail(error),
               onDisconnected: (error) => {
                 lifecycle.markDisconnected(error);
-                setSessionLoading(sessionId, false);
+                if (currentQARef.current.activeRequestId === myRequestId) {
+                  setSessionLoading(sessionId, false);
+                }
               },
             }
           : undefined,
@@ -814,6 +817,7 @@ export default function useChatController() {
       });
       if (!lifecycle) {
         lifecycle = createRunLifecycle({
+          runId: options.runId,
           clientRequestId: options.clientRequestId,
           sessionId: options.sessionId,
           source: options.source || 'direct',
@@ -821,6 +825,8 @@ export default function useChatController() {
         // resume() explicitly attaches to a backend Run that was already
         // accepted before this stream connection was created.
         lifecycle.markAccepted(options.sessionId);
+      } else if (lifecycle.getState() !== 'disconnected') {
+        return lifecycle.handle;
       }
 
       lifecycle.markReconnecting();

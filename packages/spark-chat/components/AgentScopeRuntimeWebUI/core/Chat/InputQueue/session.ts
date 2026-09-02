@@ -24,7 +24,7 @@ export interface InputQueueSessionSnapshot {
 export function resolveInputQueueKey(
   sessionId: string | undefined,
   options: InputQueueKeyResolverOptions = {},
-) {
+): string | undefined {
   const resolver = options.getQueueKey ?? options.getSessionId;
   const resolved = resolver?.(sessionId) ?? sessionId;
   if (!resolved) return undefined;

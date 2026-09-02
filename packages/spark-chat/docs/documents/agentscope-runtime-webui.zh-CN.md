@@ -492,7 +492,9 @@ const options = {
         /* ... */
       },
       createSession: async (session) => {
-        /* ... */
+        const created = await createOrReuseSession(session);
+        const sessions = await listSessions();
+        return { sessions, session: created };
       },
       updateSession: async (session) => {
         /* ... */
@@ -505,7 +507,28 @@ const options = {
 };
 ```
 
-当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，需要完整实现上述五个接口；`getSession` 在会话不存在时可以返回 `undefined`。传入 `currentSessionId` 后，WebUI 会把它视为外部路由控制值；`onCurrentSessionChange` 用于把组件内的会话创建或切换同步回业务路由。
+当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，需要完整实现上述五个接口；`getSession` 在会话不存在时可以返回 `undefined`。`createSession` 推荐显式返回 `{ sessions, session }`：`sessions` 是更新后的列表，`session` 是本次创建或复用的会话。旧版只返回会话数组的实现仍兼容，但当业务会复用一个尚未落库的临时会话时，显式结果可以避免 SDK 根据列表顺序猜错当前会话，也不再要求业务修改传入的 `session.id`。传入 `currentSessionId` 后，WebUI 会把它视为外部路由控制值；`onCurrentSessionChange` 用于把组件内的会话创建或切换同步回业务路由。新建会话成功后 SDK 会立即激活该会话的空消息列表，业务无需再调用内部消息 Context 清屏。
+
+### 消息气泡扩展
+
+通过 `request.render` 和 `response.render` 组合业务 UI 与 SDK 默认气泡。`fallback()` 返回 SDK 默认渲染，业务无需深度导入 `lib/AgentScopeRuntimeWebUI/core/...` 下的内部组件。Runtime 消息、内容和状态类型也可以直接从 `@agentscope-ai/chat` 根入口导入。
+
+```tsx | pure
+const options = {
+  request: {
+    render: ({ data, fallback }) => (
+      <HostRequestFrame data={data}>{fallback()}</HostRequestFrame>
+    ),
+  },
+  response: {
+    render: ({ data, isLast, fallback }) => (
+      <HostResponseFrame data={data} isLast={isLast}>
+        {fallback()}
+      </HostResponseFrame>
+    ),
+  },
+};
+```
 
 ### Ref 实例方法
 
