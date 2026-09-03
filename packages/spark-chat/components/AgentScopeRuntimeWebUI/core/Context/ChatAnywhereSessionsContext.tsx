@@ -4,6 +4,7 @@ import { createContext, useContextSelector } from 'use-context-selector';
 import {
   IAgentScopeRuntimeWebUISession,
   IAgentScopeRuntimeWebUISessionsContext,
+  IAgentScopeRuntimeWebUISessionActions as SessionActions,
 } from '../types/ISessions';
 import { ChatAnywhereMessagesContext } from './ChatAnywhereMessagesContext';
 import { useChatAnywhereOptions } from './ChatAnywhereOptionsContext';
@@ -275,7 +276,7 @@ export const useChatAnywhereSessionsState = () => {
   return useContextSelector(ChatAnywhereSessionsContext, (v) => v);
 };
 
-export const useChatAnywhereSessions = () => {
+export const useChatAnywhereSessions = (): SessionActions => {
   const setSessions = useContextSelector(
     ChatAnywhereSessionsContext,
     (v) => v.setSessions,
@@ -284,7 +285,7 @@ export const useChatAnywhereSessions = () => {
     ChatAnywhereSessionsContext,
     (v) => v.getSessions,
   );
-  const getCurrentSessionId = useContextSelector(
+  const getCurrentSessionId: () => string | undefined = useContextSelector(
     ChatAnywhereSessionsContext,
     (v) => v.getCurrentSessionId,
   );

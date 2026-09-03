@@ -250,7 +250,15 @@ function Stream<Output = SSEOutput>(
       if (signal && abortHandler) {
         signal.removeEventListener('abort', abortHandler);
       }
-      reader.releaseLock();
+      // Early return (Runtime terminal) and abort must propagate through the
+      // transform chain to the source. Releasing a reader alone keeps it alive.
+      try {
+        await reader.cancel();
+      } catch {
+        // Preserve the original parser/network exception if the source errored.
+      } finally {
+        reader.releaseLock();
+      }
     }
   };
 

@@ -77,6 +77,7 @@ export type QueueSubmitNow = (
     submission?: IAgentScopeRuntimeWebUISubmissionContext;
     onSessionResolved?: (sessionId: string) => void | Promise<void>;
     onRequestAccepted?: () => void | Promise<void>;
+    onRequestDispatched?: () => void;
     onRequestStreaming?: () => void | Promise<void>;
     onRequestFinished?: (
       status: 'finished' | 'interrupted',
@@ -897,7 +898,7 @@ export default function useInputQueueController(
       };
       if (!queueEnabled) {
         return submitNow(submissionData, {
-          sessionId: submissionData.session_id,
+          sessionId: activeChatSessionId,
           onRequestAccepted: submissionOptions?.onAccepted,
         });
       }
@@ -925,7 +926,7 @@ export default function useInputQueueController(
 
       if (!sessionId) {
         return submitNow(submissionData, {
-          sessionId: submissionData.session_id,
+          sessionId: activeChatSessionId,
           onRequestAccepted: submissionOptions?.onAccepted,
         });
       }
@@ -955,7 +956,7 @@ export default function useInputQueueController(
         if (!ownerClaimed) return false;
 
         await submitNow(submissionData, {
-          sessionId: submissionData.session_id,
+          sessionId: activeChatSessionId,
           onRequestAccepted: submissionOptions?.onAccepted,
         });
         return true;

@@ -30,8 +30,12 @@ function normalizeSession(
   } as IAgentScopeRuntimeWebUISession;
 }
 
-function createStorageSessionStore(multiple: boolean) {
-  const storageKey = multiple ? STORAGE_KEY_MULTIPLE : STORAGE_KEY_SINGLE;
+function createStorageSessionStore(multiple: boolean, storageScope?: string) {
+  const legacyKey = multiple ? STORAGE_KEY_MULTIPLE : STORAGE_KEY_SINGLE;
+  // Never copy unscoped data into a tenant-scoped store implicitly.
+  const storageKey = storageScope
+    ? `${legacyKey}:v1:${encodeURIComponent(storageScope)}`
+    : legacyKey;
   let sessionList: IAgentScopeRuntimeWebUISession[] = [];
 
   const persist = () => {
@@ -130,6 +134,9 @@ function createStorageSessionStore(multiple: boolean) {
   } as IAgentScopeRuntimeWebUISessionAPI;
 }
 
-export function createDefaultSessionApi(multiple: boolean) {
-  return createStorageSessionStore(multiple);
+export function createDefaultSessionApi(
+  multiple: boolean,
+  storageScope?: string,
+) {
+  return createStorageSessionStore(multiple, storageScope);
 }

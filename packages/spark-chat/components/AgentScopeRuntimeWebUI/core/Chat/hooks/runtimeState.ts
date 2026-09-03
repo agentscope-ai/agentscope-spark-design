@@ -1,4 +1,5 @@
 import type { MutableRefObject } from 'react';
+import type { ChatRunContext } from '../../Execution/runContext';
 import type { IAgentScopeRuntimeWebUIMessage } from '../../types';
 
 export interface ChatControllerCurrentQA {
@@ -9,6 +10,7 @@ export interface ChatControllerCurrentQA {
   activeSessionId?: string;
   /** Public Run id associated with the active request, when externally orchestrated. */
   activeRunId?: string;
+  execution?: ChatRunContext;
   activeQueueSessionId?: string;
   cancelRequestedRequestId?: number;
 }

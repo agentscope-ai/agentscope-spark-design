@@ -55,8 +55,12 @@ export function ChatAnywhereOptionsContextProvider(props: {
   const responsive = useResponsive();
 
   const defaultSessionApi = useMemo(
-    () => createDefaultSessionApi(!!props.options.session?.multiple),
-    [props.options.session?.multiple],
+    () =>
+      createDefaultSessionApi(
+        !!props.options.session?.multiple,
+        props.options.session?.storageScope,
+      ),
+    [props.options.session?.multiple, props.options.session?.storageScope],
   );
 
   const options = useMemo<NormalizedChatAnywhereOptions>(() => {

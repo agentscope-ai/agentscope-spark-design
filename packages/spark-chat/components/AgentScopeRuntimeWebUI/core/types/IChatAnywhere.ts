@@ -11,6 +11,20 @@ import {
   IAgentScopeRuntimeWebUISession,
 } from './ISessions';
 
+/** Immutable routing identity shared by submit, cancel and reconnect. */
+export interface IAgentScopeRuntimeWebUITransportContext {
+  /** Backend Runtime identity, not the SDK chat id. */
+  session_id: string;
+  chatSessionId?: string;
+  user_id?: string;
+  channel?: string;
+  agent_id?: string;
+  context?: IAgentScopeRuntimeWebUIRequestContext;
+  /** SDK identifiers for host correlation; not a server idempotency guarantee. */
+  runId?: string;
+  clientRequestId?: string;
+}
+
 /**
  * @description API 配置选项
  * @descriptionEn API configuration options
@@ -32,39 +46,38 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
    * @param data
    * @returns
    */
-  fetch?: (data: {
-    input: any[];
-    session_id: string;
-    user_id?: string;
-    channel?: string;
-    agent_id?: string;
-    context?: IAgentScopeRuntimeWebUIRequestContext;
-    biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
-    mentions?: IAgentScopeRuntimeWebUISenderMentionData[];
-    submission?: IAgentScopeRuntimeWebUISubmissionContext;
-    signal?: AbortSignal;
-  }) => Promise<Response>;
+  fetch?: (
+    data: IAgentScopeRuntimeWebUITransportContext & {
+      input: any[];
+      biz_params?: IAgentScopeRuntimeWebUIInputData['biz_params'];
+      mentions?: IAgentScopeRuntimeWebUISenderMentionData[];
+      submission?: IAgentScopeRuntimeWebUISubmissionContext;
+      signal?: AbortSignal;
+    },
+  ) => Promise<Response>;
 
   /**
    * @description 自定义取消当前会话生成。提供该回调时 SDK 默认保留原 SSE；如需立即终止本地流，请调用 abort。
    * @descriptionEn Custom cancellation for the current session. When provided, the SDK keeps the original SSE open by default; call abort to terminate the local stream immediately.
    */
-  cancel?: (data: {
-    session_id: string;
-    /** 当前请求的信号，可用于判断本地流是否已终止 / Signal for the active request */
-    signal?: AbortSignal;
-    /** 立即终止本地 SSE 并将运行态标记为 canceled / Abort the local SSE and mark running states as canceled */
-    abort: () => void;
-  }) => void | Promise<void>;
+  cancel?: (
+    data: IAgentScopeRuntimeWebUITransportContext & {
+      /** 当前请求的信号，可用于判断本地流是否已终止 / Signal for the active request */
+      signal?: AbortSignal;
+      /** 立即终止本地 SSE 并将运行态标记为 canceled / Abort the local SSE and mark running states as canceled */
+      abort: () => void;
+    },
+  ) => void | Promise<void>;
 
   /**
    * @description 重连会话流式响应
    * @descriptionEn Reconnect session stream response
    */
-  reconnect?: (data: {
-    session_id: string;
-    signal?: AbortSignal;
-  }) => Promise<Response>;
+  reconnect?: (
+    data: IAgentScopeRuntimeWebUITransportContext & {
+      signal?: AbortSignal;
+    },
+  ) => Promise<Response>;
 
   /**
    * @description 是否在请求中携带历史消息
@@ -98,6 +111,8 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
 }
 
 export interface IAgentScopeRuntimeWebUISubmissionContext {
+  runId?: string;
+  clientRequestId?: string;
   /**
    * @description 请求来源
    * @descriptionEn Request submission source.
@@ -721,6 +736,13 @@ export interface IAgentScopeRuntimeWebUISessionAPI {
  * @descriptionEn Session configuration options
  */
 export interface IAgentScopeRuntimeWebUISessionOptions {
+  /**
+   * 默认 localStorage 的隔离命名空间，建议使用 tenant:user:workspace:agent。
+   * 未配置时兼容旧存储；配置后不自动读取/迁移旧历史。变更会重挂载会话状态。
+   * Namespace for default storage. Omit for legacy storage; scoped stores never
+   * import unscoped history. Changing it remounts the session runtime.
+   */
+  storageScope?: string;
   /**
    * @description 是否支持多会话
    * @descriptionEn Whether to support multiple sessions

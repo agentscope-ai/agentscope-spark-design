@@ -7,6 +7,7 @@ import { useChatAnywhereOptions } from '../Context/ChatAnywhereOptionsContext';
 import Header from '../Header';
 import Ref from '../Ref';
 import Sessions from '../Sessions';
+import type { IAgentScopeRuntimeWebUIRef } from '../types';
 import Style from './styles';
 
 interface IProps {
@@ -15,7 +16,7 @@ interface IProps {
   right?: React.ReactNode;
 }
 
-function Layout(props: IProps, ref: React.Ref<any>) {
+function Layout(props: IProps, ref: React.Ref<IAgentScopeRuntimeWebUIRef>) {
   const { className } = props;
   const prefixCls = useProviderContext().getPrefixCls('chat-anywhere-layout');
   const narrowMode = useChatAnywhereOptions((v) => v.theme.narrowMode);
@@ -59,4 +60,4 @@ function Layout(props: IProps, ref: React.Ref<any>) {
   );
 }
 
-export default forwardRef(Layout);
+export default forwardRef<IAgentScopeRuntimeWebUIRef, IProps>(Layout);

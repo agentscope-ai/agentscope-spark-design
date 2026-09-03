@@ -7,8 +7,10 @@ import {
 } from '../../AgentScopeRuntime/types';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import type {
+  IAgentScopeRuntimeWebUIAPIOptions,
   IAgentScopeRuntimeWebUIMessage,
   IAgentScopeRuntimeWebUISubmissionContext,
+  IAgentScopeRuntimeWebUITransportContext,
 } from '../../types';
 import {
   type ChatSubmissionRequestData,
@@ -35,18 +37,19 @@ interface UseChatRequestOptions {
     sessionId: string,
     requestId: number,
     status?: 'finished' | 'interrupted',
-  ) => void;
+  ) => void | Promise<void>;
 }
 
 interface ChatRequestLifecycleOptions {
   requestId: number;
   sessionId: string;
   signal?: AbortSignal;
+  apiOptions?: IAgentScopeRuntimeWebUIAPIOptions;
+  transportContext?: IAgentScopeRuntimeWebUITransportContext;
+  onDispatched?: () => void;
   onAccepted?: (response: Response) => void | Promise<void>;
   onStreaming?: () => void | Promise<void>;
-  onFinished?: (
-    status: 'finished' | 'interrupted',
-  ) => void | Promise<void>;
+  onFinished?: (status: 'finished' | 'interrupted') => void | Promise<void>;
   onFailed?: (error: unknown) => void | Promise<void>;
   onDisconnected?: (error?: unknown) => void | Promise<void>;
   submission?: IAgentScopeRuntimeWebUISubmissionContext;
@@ -125,7 +128,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           // Ignore JSON parse errors — still call onFinish to reset loading state
         }
         if (isStillActive()) {
-          onFinish(mySessionId, myRequestId);
+          await onFinish(mySessionId, myRequestId);
           return true;
         }
         return false;
@@ -165,7 +168,8 @@ export default function useChatRequest(options: UseChatRequestOptions) {
           }
 
           const responseParser =
-            apiOptionsRef.current.responseParser || JSON.parse;
+            (lifecycle?.apiOptions || apiOptionsRef.current).responseParser ||
+            JSON.parse;
           const chunkData = responseParser(chunk.data);
           if (chunkData === null || chunkData === undefined) continue;
           const res = agentScopeRuntimeResponseBuilder.handle(chunkData);
@@ -190,6 +194,15 @@ export default function useChatRequest(options: UseChatRequestOptions) {
 
             if (finished) {
               sawFinishedChunk = true;
+              // Flush the old message and its session snapshot before publishing
+              // terminal events: subscribers may synchronously start another Run.
+              await onFinish(
+                mySessionId,
+                myRequestId,
+                res.status === AgentScopeRuntimeRunStatus.Canceled
+                  ? 'interrupted'
+                  : 'finished',
+              );
               if (res.status === AgentScopeRuntimeRunStatus.Failed) {
                 await lifecycle?.onFailed?.(
                   new Error('runtime response failed'),
@@ -201,13 +214,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
                     : 'finished',
                 );
               }
-              onFinish(
-                mySessionId,
-                myRequestId,
-                res.status === AgentScopeRuntimeRunStatus.Canceled
-                  ? 'interrupted'
-                  : 'finished',
-              );
+              return true;
             } else {
               updateMessage(currentQARef.current.response, mySessionId);
             }
@@ -230,6 +237,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
             ];
             updateMessage(currentQARef.current.response, mySessionId);
           }
+          await onFinish(mySessionId, myRequestId, 'interrupted');
           await lifecycle?.onFinished?.('interrupted');
           return false;
         } else {
@@ -261,15 +269,18 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       data: ChatSubmissionRequestData,
       lifecycle: ChatRequestLifecycleOptions,
     ) => {
-      const currentApiOptions = apiOptionsRef.current;
+      const currentApiOptions = lifecycle.apiOptions || apiOptionsRef.current;
       const { requestId, sessionId, signal } = lifecycle;
       let response: Response | undefined;
       try {
+        if (signal?.aborted) return false;
+        lifecycle.onDispatched?.();
         response = await fetchChatSubmission({
           apiOptions: currentApiOptions,
           historyMessages,
           data,
           signal,
+          transportContext: lifecycle.transportContext,
           submission:
             lifecycle.submission ||
             (lifecycle.queueItemId
@@ -278,13 +289,13 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         });
       } catch (error) {
         if (signal?.aborted) return false;
-        await lifecycle.onFailed?.(error);
         if (
           currentQARef.current.activeRequestId === requestId &&
           currentQARef.current.activeSessionId === sessionId
         ) {
-          onFinish(sessionId, requestId);
+          await onFinish(sessionId, requestId);
         }
+        await lifecycle.onFailed?.(error);
         throw error;
       }
 
@@ -323,9 +334,10 @@ export default function useChatRequest(options: UseChatRequestOptions) {
         currentQARef.current.activeRequestId === requestId &&
         (!sessionId || currentQARef.current.activeSessionId === sessionId)
       ) {
-        await lifecycle.onFinished?.('finished');
-        onFinish(sessionId, requestId);
-        return true;
+        await lifecycle.onDisconnected?.(
+          new Error('chat response has no body or terminal runtime event'),
+        );
+        return false;
       }
       return false;
     },
@@ -338,7 +350,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       myRequestId?: number,
       lifecycle?: Omit<ChatRequestLifecycleOptions, 'requestId' | 'sessionId'>,
     ) => {
-      const currentApiOptions = apiOptionsRef.current;
+      const currentApiOptions = lifecycle?.apiOptions || apiOptionsRef.current;
       if (!currentApiOptions.reconnect) {
         await lifecycle?.onDisconnected?.(
           new Error('chat reconnect api is not configured'),
@@ -352,6 +364,7 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       try {
         response = await currentApiOptions.reconnect({
           session_id: sessionId,
+          ...lifecycle?.transportContext,
           signal: abortSignal,
         });
       } catch (error) {
@@ -372,23 +385,18 @@ export default function useChatRequest(options: UseChatRequestOptions) {
       await lifecycle?.onAccepted?.(response);
 
       if (response.body) {
-        return processSSEResponse(
-          response,
+        return processSSEResponse(response, requestId, sessionId, abortSignal, {
           requestId,
           sessionId,
-          abortSignal,
-          {
-            requestId,
-            sessionId,
-            signal: abortSignal,
-            ...lifecycle,
-          },
-        );
+          signal: abortSignal,
+          ...lifecycle,
+        });
       }
 
-      await lifecycle?.onFinished?.('finished');
-      onFinish(sessionId, requestId);
-      return true;
+      await lifecycle?.onDisconnected?.(
+        new Error('chat reconnect has no body or terminal runtime event'),
+      );
+      return false;
     },
     [currentQARef, onFinish, processSSEResponse],
   );

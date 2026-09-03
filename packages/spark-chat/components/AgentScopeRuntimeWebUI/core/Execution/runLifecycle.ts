@@ -1,4 +1,5 @@
 import type {
+  IAgentScopeRuntimeWebUIBackendAcceptance,
   IAgentScopeRuntimeWebUICancelResult,
   IAgentScopeRuntimeWebUIExecutionSource,
   IAgentScopeRuntimeWebUIRunAcceptedResult,
@@ -9,6 +10,7 @@ import type {
   IAgentScopeRuntimeWebUIRunSessionResult,
   IAgentScopeRuntimeWebUIRunState,
 } from '../types';
+import type { ChatRunContext } from './runContext';
 
 type Resolver<T> = (value: T) => void;
 
@@ -37,14 +39,20 @@ export interface CreateRunLifecycleOptions {
 
 export class ChatRunLifecycle {
   readonly handle: IAgentScopeRuntimeWebUIRunHandle;
+  execution?: ChatRunContext;
   private state: IAgentScopeRuntimeWebUIRunState = 'preparing';
   private sessionId?: string;
   private backendAccepted = false;
+  private backendAcceptance: IAgentScopeRuntimeWebUIBackendAcceptance =
+    'not-submitted';
   private terminal = false;
   private readonly listeners = new Set<IAgentScopeRuntimeWebUIRunListener>();
-  private readonly sessionDeferred = deferred<IAgentScopeRuntimeWebUIRunSessionResult>();
-  private readonly acceptedDeferred = deferred<IAgentScopeRuntimeWebUIRunAcceptedResult>();
-  private readonly completionDeferred = deferred<IAgentScopeRuntimeWebUIRunResult>();
+  private readonly sessionDeferred =
+    deferred<IAgentScopeRuntimeWebUIRunSessionResult>();
+  private readonly acceptedDeferred =
+    deferred<IAgentScopeRuntimeWebUIRunAcceptedResult>();
+  private readonly completionDeferred =
+    deferred<IAgentScopeRuntimeWebUIRunResult>();
 
   constructor(private readonly options: CreateRunLifecycleOptions) {
     this.handle = {
@@ -92,15 +100,23 @@ export class ChatRunLifecycle {
     this.transition('submitting');
   }
 
+  markDispatched() {
+    if (!this.terminal && !this.backendAccepted)
+      this.backendAcceptance = 'unknown';
+  }
+
   markAccepted(sessionId: string) {
+    if (this.terminal) return;
     this.resolveSession(sessionId);
     if (!this.backendAccepted) {
       this.backendAccepted = true;
+      this.backendAcceptance = 'accepted';
       this.acceptedDeferred.resolve({
         runId: this.options.runId,
         clientRequestId: this.options.clientRequestId,
         sessionId,
         accepted: true,
+        backendAcceptance: this.backendAcceptance,
       });
     }
     this.transition('accepted');
@@ -128,7 +144,7 @@ export class ChatRunLifecycle {
   }
 
   fail(error: unknown) {
-    this.settle('failed', !this.backendAccepted, error);
+    this.settle('failed', this.backendAcceptance === 'not-submitted', error);
   }
 
   cancel(error?: unknown) {
@@ -164,6 +180,7 @@ export class ChatRunLifecycle {
         clientRequestId: this.options.clientRequestId,
         sessionId: this.sessionId,
         accepted: false,
+        backendAcceptance: this.backendAcceptance,
         error,
       });
     }
@@ -174,6 +191,7 @@ export class ChatRunLifecycle {
       source: this.options.source,
       status: state,
       backendAccepted: this.backendAccepted,
+      backendAcceptance: this.backendAcceptance,
       retryable,
       error,
     };
@@ -194,6 +212,7 @@ export class ChatRunLifecycle {
       previousState,
       state: this.state,
       backendAccepted: this.backendAccepted,
+      backendAcceptance: this.backendAcceptance,
       retryable,
       error,
       timestamp: Date.now(),

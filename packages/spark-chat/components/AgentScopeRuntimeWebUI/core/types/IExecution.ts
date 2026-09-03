@@ -1,4 +1,13 @@
-import type { IAgentScopeRuntimeWebUIInputData } from './IChatAnywhere';
+import type {
+  IAgentScopeRuntimeWebUIInputData,
+  IAgentScopeRuntimeWebUIQueueRequestContext,
+} from './IChatAnywhere';
+
+/** No acknowledgement after dispatch is unknown, not proof of rejection. */
+export type IAgentScopeRuntimeWebUIBackendAcceptance =
+  | 'not-submitted'
+  | 'unknown'
+  | 'accepted';
 
 export type IAgentScopeRuntimeWebUIExecutionSource =
   | 'direct'
@@ -27,6 +36,9 @@ export interface IAgentScopeRuntimeWebUIExecuteOptions {
 }
 
 export interface IAgentScopeRuntimeWebUIResumeOptions {
+  /** 页面重挂载后恢复后端身份；挂载内恢复默认沿用原始快照。 */
+  /** Restore persisted routing after remount; mounted Runs keep their snapshot. */
+  requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
   /** 已挂载实例内优先使用 runId；页面恢复后可只传 sessionId / Prefer runId in a mounted instance; sessionId supports page recovery */
   runId?: string;
   sessionId: string;
@@ -51,6 +63,8 @@ export interface IAgentScopeRuntimeWebUIRunAcceptedResult {
   clientRequestId?: string;
   sessionId?: string;
   accepted: boolean;
+  /** false alone does not prove non-acceptance; inspect this field. */
+  backendAcceptance: IAgentScopeRuntimeWebUIBackendAcceptance;
   error?: unknown;
 }
 
@@ -62,6 +76,7 @@ export interface IAgentScopeRuntimeWebUIRunResult {
   status: 'completed' | 'failed' | 'canceled';
   /** 已接受但断流的请求应 resume，不能重新提交 / Resume accepted disconnected requests instead of resubmitting */
   backendAccepted: boolean;
+  backendAcceptance: IAgentScopeRuntimeWebUIBackendAcceptance;
   /** 是否可由宿主安全地重新入队 / Whether the host can safely enqueue the input again */
   retryable: boolean;
   error?: unknown;
@@ -83,6 +98,7 @@ export interface IAgentScopeRuntimeWebUIRunEvent {
   previousState?: IAgentScopeRuntimeWebUIRunState;
   state: IAgentScopeRuntimeWebUIRunState;
   backendAccepted: boolean;
+  backendAcceptance: IAgentScopeRuntimeWebUIBackendAcceptance;
   retryable?: boolean;
   error?: unknown;
   timestamp: number;
@@ -98,8 +114,8 @@ export interface IAgentScopeRuntimeWebUIRunHandle {
   source: IAgentScopeRuntimeWebUIExecutionSource;
   session: Promise<IAgentScopeRuntimeWebUIRunSessionResult>;
   accepted: Promise<IAgentScopeRuntimeWebUIRunAcceptedResult>;
-  /** 仅在 Runtime 明确进入 completed、failed 或 canceled 后 resolve */
-  /** Resolves only after the Runtime reaches completed, failed, or canceled */
+  /** Runtime 明确终止或主动本地取消后，在消息收尾和会话保存完成后 resolve。保存失败会记录错误。 */
+  /** Resolves after terminal message cleanup and the session save attempt, on a Runtime terminal or explicit local cancellation. */
   completion: Promise<IAgentScopeRuntimeWebUIRunResult>;
   getState: () => IAgentScopeRuntimeWebUIRunState;
   cancel: () => Promise<IAgentScopeRuntimeWebUICancelResult>;

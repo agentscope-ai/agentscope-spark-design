@@ -460,6 +460,7 @@ async function deliver(item: HostQueueItem) {
   unsubscribe();
   if (result.status === 'completed') hostQueue.remove(item.id);
   else if (result.retryable) hostQueue.restore(item.id);
+  // For backendAcceptance === 'unknown', query the backend before any new POST.
 }
 
 function resume(item: HostQueueItem) {
@@ -468,13 +469,16 @@ function resume(item: HostQueueItem) {
     sessionId: item.chatSessionId,
     source: 'host-queue',
     clientRequestId: item.id,
+    requestContext: item.data, // Restore persisted backend routing after remount.
   });
 }
 ```
 
 `execution.execute` bypasses `beforeSubmit` and the SDK queue policy, so it cannot enqueue the item again. Repeating a `clientRequestId` in the same mounted instance returns the same active Run. The lifecycle advances through `preparing → submitting → accepted → streaming → completed/failed/canceled`. If SSE closes before a terminal runtime event, the Run enters `disconnected` and `completion` remains pending. `execution.resume` continues that same Run through `reconnecting` without creating a new business submission. When `execution.cancel({ runId })` resolves, the local stream and message state are terminal as well.
 
-`ref.input.submit` remains available for simple imperative submission and preserves the complete `IAgentScopeRuntimeWebUIInputData`. Durable host queues that must distinguish “not accepted and safe to retry” from “accepted and waiting to reconnect” should use `ref.execution`. Both a host queue and `api.fetch` should use the stored `session_id` rather than reading the global active session again when delivery resumes.
+`ref.input.submit` remains available for simple imperative submission and preserves the complete `IAgentScopeRuntimeWebUIInputData`. Durable host queues should use `ref.execution` and inspect `backendAcceptance`: `not-submitted` means the send adapter has not been called; `unknown` means it was called but no successful response was received; `accepted` means a successful response was received or the host explicitly resumed an existing Run. Only failures with `not-submitted` return `retryable: true`. Neither `backendAccepted: false` nor `accepted: false` proves backend rejection. For `unknown`, query backend state or rely on an explicitly supported backend idempotency protocol before resubmitting.
+
+Both the host queue and `api.fetch` should use the persisted `session_id` instead of reading the global active session again. Custom `fetch`, `cancel`, and `reconnect` receive `runId` / `clientRequestId` for correlation. These are SDK/host identifiers, not automatically backend Run IDs or idempotency keys; the built-in fetch does not invent a backend idempotency protocol. Public Run events belong to handles created by `execution.execute/resume`; ordinary UI submission, regeneration, and approval do not automatically create public Runs.
 
 ### Session Management
 
@@ -511,6 +515,8 @@ const options = {
 ```
 
 When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. To connect backend storage, implement all five methods above; `getSession` may return `undefined` when a session does not exist. `createSession` should return `{ sessions, session }`, where `sessions` is the updated list and `session` is the session created or reused by this call. Legacy adapters that only return the session array remain supported, but the explicit result prevents the SDK from guessing by list order when a host reuses an unresolved draft and removes the need to mutate the input `session.id`. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route. After creation, the SDK immediately activates the new session's empty message list, so hosts do not need to clear messages through an internal Context hook.
+
+Isolate default storage with `session.storageScope`, for example `JSON.stringify([tenantId, userId, workspaceId, agentId])`. Multi-tenant, multi-account, or multi-agent hosts must provide a stable nonempty scope. This is separate from `sender.queue.scope`: configure both when using both history and queues. Omitting it preserves legacy keys and history. Scoped stores use independent keys and never import unscoped history automatically. Changing the scope remounts the session runtime and aborts the old local connection, but does not stop the backend task. Hosts using a custom `session.api` remain responsible for storage isolation; localStorage namespaces are not an authorization boundary.
 
 ### Message Bubble Extensions
 
@@ -751,7 +757,7 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 - A custom `api.fetch` now receives a required `session_id` plus independent `context`, `mentions`, `submission`, and `signal` values. Use these snapshot arguments instead of reading the global active session after asynchronous work.
 - Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible and additional JSON fields are supported.
 - The built-in input queue is now opt-in and disabled by default. Existing host-managed queues do not need to migrate; they only need to preserve and resubmit the complete input data.
-- Added the `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run controller. A host queue can retain its scheduling policy while reusing SDK session creation, submission, SSE, terminal-state, cancellation, and reconnection lifecycles. Only failures before backend acceptance are marked safe to enqueue again.
+- Added the `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run controller. A host queue can retain its scheduling policy while reusing SDK session creation, submission, SSE, terminal-state, cancellation, and reconnection lifecycles. Only failures before the send adapter is called are safe to enqueue again; failures without acknowledgement after dispatch have `backendAcceptance: 'unknown'`.
 - `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData` and returns an awaitable Promise, so a host-managed delayed queue can wait for the submission or enqueue result.
 - `api.cancel` can take ownership of Stop. When configured, it keeps the original SSE open for backend cancellation events by default; call the supplied `abort()` to terminate the local stream immediately. Without it, Stop still aborts locally.
 - `responseParser` now correctly receives one SSE `data` string. Update custom parsers that previously declared a `Response` parameter.
@@ -763,3 +769,12 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat/components/AgentScopeRuntimeWebUI
+
+### Run lifecycle and session identity
+
+- In `execute(data, { sessionId })`, `sessionId` identifies the SDK Chat and `data.session_id` identifies the backend Runtime session. `api.fetch`, `api.cancel`, and `api.reconnect` all receive that captured backend identity as `session_id`; the separate `chatSessionId` identifies the SDK Chat. Explicit Runtime IDs are preserved, with the SDK Chat ID used only as a legacy fallback. Adapters that previously mapped cancel/reconnect `session_id` as an SDK Chat ID must use `chatSessionId` for that mapping instead.
+- Only Runtime response statuses `completed`, `failed`, and `canceled` are backend terminal states. Completed messages/content, HTTP 2xx, missing bodies, and stream EOF are not terminal evidence. An accepted disconnected input must be resumed, not submitted again.
+- Terminal message state and the awaited session save precede terminal events and `completion`. Persistence failures are logged without turning a known terminal into a disconnect; completion does not replace host storage reliability monitoring.
+- The built-in Stop button and public cancellation settle the corresponding Run after local cleanup. A custom `api.cancel` that does not call `abort()` keeps the built-in Stop stream open until a backend terminal arrives. Local `canceled` does not prove the server has stopped.
+- Within a mounted component, SessionLoader reconnection and explicit `execution.resume` attach to the same Run with its original routing snapshot and API adapter. Adapters needing refreshed credentials should obtain them internally. Old transport cleanup cannot overwrite the resumed connection. After a page reload, obtain a new handle using `resume({ sessionId, requestContext })`, supplying persisted `session_id`, `context`, and other routing metadata. Omitting the context falls back to the SDK Chat ID; the SDK does not infer backend identity from message content.
+- Canceling a detached Run finalizes its own message and session, without clearing another session's or a newer Run's loading state. Runtime terminal events, aborts, and consumption errors release the SSE reader and cancel upstream reading.

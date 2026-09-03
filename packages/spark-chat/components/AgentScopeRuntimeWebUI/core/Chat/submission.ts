@@ -6,11 +6,14 @@ import type {
   IAgentScopeRuntimeWebUIAPIOptions,
   IAgentScopeRuntimeWebUIInputData,
   IAgentScopeRuntimeWebUIMessage,
+  IAgentScopeRuntimeWebUITransportContext,
 } from '../types';
 
 export interface ChatSubmissionDescriptor {
   source: 'direct' | 'queue' | 'host-queue';
   queueItemId?: string;
+  runId?: string;
+  clientRequestId?: string;
 }
 
 export type ChatSubmissionRequestData = Readonly<
@@ -60,7 +63,9 @@ export function createChatSubmissionRequest(
   const mentions = cloneSubmissionValue(data?.mentions);
 
   return Object.freeze({
-    session_id: sessionId,
+    // SDK chat identity is only the fallback for legacy callers that do
+    // not supply a distinct backend Runtime identity.
+    session_id: data?.session_id || sessionId,
     user_id: data?.user_id,
     channel: data?.channel,
     agent_id: data?.agent_id,
@@ -87,17 +92,9 @@ export function isRuntimeStatusFinished(
 export function isRuntimeResponseFinished(
   response: ReturnType<AgentScopeRuntimeResponseBuilder['handle']>,
 ) {
-  if (isRuntimeStatusFinished(response.status)) return true;
-
-  const output = response.output || [];
-  return (
-    output.length > 0 &&
-    output.every((message) => {
-      if (!isRuntimeStatusFinished(message.status)) return false;
-      const content = message.content || [];
-      return content.every((item) => isRuntimeStatusFinished(item.status));
-    })
-  );
+  // More messages (including tool calls) may follow any completed message.
+  // Only the enclosing Runtime response can declare the Run terminal.
+  return isRuntimeStatusFinished(response.status);
 }
 
 export function createChatRequestMessage(
@@ -149,12 +146,14 @@ export async function fetchChatSubmission({
   data,
   signal,
   submission,
+  transportContext,
 }: {
   apiOptions: IAgentScopeRuntimeWebUIAPIOptions;
   historyMessages: any[];
   data: ChatSubmissionRequestData;
   signal?: AbortSignal;
   submission: ChatSubmissionDescriptor;
+  transportContext?: IAgentScopeRuntimeWebUITransportContext;
 }) {
   const { enableHistoryMessages = false } = apiOptions;
   if (apiOptions.fetch) {
@@ -167,6 +166,7 @@ export async function fetchChatSubmission({
       context: data.context,
       biz_params: data.biz_params,
       mentions: data.mentions,
+      ...transportContext,
       submission,
       signal,
     });

@@ -54,3 +54,17 @@ export interface IAgentScopeRuntimeWebUISessionsContext {
   pendingRouteSessionIdRef?: MutableRefObject<string | undefined>;
   isCurrentSessionControlled?: boolean;
 }
+
+/** Explicit public return type preserves nullable ids in non-strict builds. */
+export interface IAgentScopeRuntimeWebUISessionActions {
+  changeCurrentSessionId: (sessionId: string) => void;
+  getCurrentSessionId: () => string | undefined;
+  getSessions: () => IAgentScopeRuntimeWebUISession[];
+  removeSession: (
+    session: Partial<IAgentScopeRuntimeWebUISession> & { id: string },
+  ) => Promise<void>;
+  updateSession: (
+    session: Partial<IAgentScopeRuntimeWebUISession>,
+  ) => Promise<Partial<IAgentScopeRuntimeWebUISession>>;
+  createSession: (data?: { name?: string }) => Promise<string | undefined>;
+}

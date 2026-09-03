@@ -191,12 +191,9 @@ async function consumeResponse(
   }
 
   if (!response.body) {
-    responseMessage.msgStatus = 'finished';
-    await persistMessages(
-      options,
-      patchChatMessageSnapshot(messages, responseMessage),
-    );
-    return;
+    // Accepted input remains consumed; without a Runtime terminal, keep the
+    // generating snapshot so the queue waits for authoritative recovery.
+    throw new Error('chat response has no body or terminal runtime event');
   }
 
   let nextMessages = messages;
@@ -233,11 +230,7 @@ async function consumeResponse(
     if (finished) return;
   }
 
-  responseMessage.msgStatus = 'finished';
-  await persistMessages(
-    options,
-    patchChatMessageSnapshot(nextMessages, responseMessage),
-  );
+  throw new Error('chat stream ended before a terminal runtime event');
 }
 
 async function beginNextOwnedSubmission(
@@ -349,6 +342,10 @@ async function sendQueuedItem(
   let responseMessage: IAgentScopeRuntimeWebUIMessage | undefined;
   let submittedMessages: IAgentScopeRuntimeWebUIMessage[] | undefined;
   const abortController = new AbortController();
+  const requestData = createChatSubmissionRequest(
+    item.data,
+    options.chatSessionId,
+  );
   const unregisterSubmission = registerInputQueueSubmission(
     options.queueSessionId,
     () => {
@@ -367,7 +364,12 @@ async function sendQueuedItem(
       try {
         void Promise.resolve(
           cancel({
-            session_id: options.chatSessionId,
+            session_id: requestData.session_id,
+            chatSessionId: options.chatSessionId,
+            user_id: requestData.user_id,
+            channel: requestData.channel,
+            agent_id: requestData.agent_id,
+            context: requestData.context,
             signal: abortController.signal,
             abort,
           }),
@@ -393,10 +395,11 @@ async function sendQueuedItem(
     const response = await fetchChatSubmission({
       apiOptions: options.apiOptions,
       historyMessages,
-      data: createChatSubmissionRequest(
-        item.data,
-        item.data.session_id || options.chatSessionId,
-      ),
+      data: requestData,
+      transportContext: {
+        ...requestData,
+        chatSessionId: options.chatSessionId,
+      },
       signal: abortController.signal,
       submission: { source: 'queue', queueItemId: item.id },
     });

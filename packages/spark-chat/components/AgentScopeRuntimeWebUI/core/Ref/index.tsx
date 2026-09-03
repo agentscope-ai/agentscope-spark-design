@@ -2,12 +2,20 @@ import React, { forwardRef } from 'react';
 import { useContextSelector } from 'use-context-selector';
 import { ChatAnywhereInputContext } from '../Context/ChatAnywhereInputContext';
 import { useChatAnywhereMessages } from '../Context/ChatAnywhereMessagesContext';
-import { useChatAnywhereCommandDispatcher } from '../Context/useChatAnywhereEventEmitter';
-import { useChatAnywhereExecutionSubscriber } from '../Context/useChatAnywhereEventEmitter';
-import { IAgentScopeRuntimeWebUIInputData } from '../types';
+import {
+  useChatAnywhereCommandDispatcher,
+  useChatAnywhereExecutionSubscriber,
+} from '../Context/useChatAnywhereEventEmitter';
+import type {
+  IAgentScopeRuntimeWebUIInputData,
+  IAgentScopeRuntimeWebUIRef,
+} from '../types';
 
 // 逐步放开
-function Ref(_, ref) {
+function Ref(
+  _: Record<never, never>,
+  ref: React.Ref<IAgentScopeRuntimeWebUIRef>,
+) {
   const messages = useChatAnywhereMessages();
   const dispatch = useChatAnywhereCommandDispatcher();
   const subscribe = useChatAnywhereExecutionSubscriber();
@@ -16,7 +24,10 @@ function Ref(_, ref) {
     (v) => v.setDisabled,
   );
 
-  React.useImperativeHandle(
+  React.useImperativeHandle<
+    IAgentScopeRuntimeWebUIRef,
+    IAgentScopeRuntimeWebUIRef
+  >(
     ref,
     () => {
       return {
@@ -43,4 +54,6 @@ function Ref(_, ref) {
   return null;
 }
 
-export default forwardRef(Ref);
+export default forwardRef<IAgentScopeRuntimeWebUIRef, Record<never, never>>(
+  Ref,
+);

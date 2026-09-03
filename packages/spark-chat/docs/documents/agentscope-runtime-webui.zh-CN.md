@@ -457,6 +457,7 @@ async function deliver(item: HostQueueItem) {
   unsubscribe();
   if (result.status === 'completed') hostQueue.remove(item.id);
   else if (result.retryable) hostQueue.restore(item.id);
+  // backendAcceptance === 'unknown' 时先查询后端状态，不要直接重发 POST。
 }
 
 function resume(item: HostQueueItem) {
@@ -465,13 +466,16 @@ function resume(item: HostQueueItem) {
     sessionId: item.chatSessionId,
     source: 'host-queue',
     clientRequestId: item.id,
+    requestContext: item.data, // 重挂载后恢复入队时保存的后端身份与 context
   });
 }
 ```
 
 `execution.execute` 绕过 `beforeSubmit` 和 SDK 内置队列策略，因此不会重复入队；同一挂载实例内重复传入 `clientRequestId` 会返回同一个活动 Run。状态按 `preparing → submitting → accepted → streaming → completed/failed/canceled` 演进；SSE 在终态事件前断开会进入 `disconnected`，`completion` 保持 pending，调用 `execution.resume` 后沿用同一 Run 进入 `reconnecting`，不会创建新的业务提交。`execution.cancel({ runId })` 在返回时保证本地流和消息状态也已终止。
 
-`ref.input.submit` 仍适合简单的外部触发提交，也会完整保留 `IAgentScopeRuntimeWebUIInputData`；需要精确区分“未受理可重试”和“已受理待重连”的持久化业务队列应使用 `ref.execution`。业务方自己的队列及 `api.fetch` 都应使用入队时保存的 `session_id`，不要在恢复发送后重新读取全局活动会话。
+`ref.input.submit` 仍适合简单的外部触发提交，也会完整保留 `IAgentScopeRuntimeWebUIInputData`；持久化业务队列应使用 `ref.execution` 区分三种 `backendAcceptance`：`not-submitted`（尚未调用发送适配器，失败时可重试）、`unknown`（已调用适配器，但没有收到成功响应，是否受理未知）、`accepted`（已收到成功响应，或宿主明确恢复已有 Run）。只有 `not-submitted` 的失败会返回 `retryable: true`；`backendAccepted: false` / `accepted: false` 本身不能证明后端未受理。对于 `unknown`，宿主应查询后端状态或使用后端明确支持的幂等协议后决定是否重发。
+
+业务方自己的队列及 `api.fetch` 都应使用入队时保存的 `session_id`，不要在恢复发送后重新读取全局活动会话。`runId` / `clientRequestId` 会传给自定义 `fetch`、`cancel`、`reconnect` 用于关联；它们是 SDK/宿主标识，不自动等于后端 Run ID 或幂等键，内置 fetch 不会凭空增加后端幂等协议。公开 Run 事件对应 `execution.execute/resume` 创建的句柄；普通 UI 提交、重新生成和审批并不自动创建公开 Run。
 
 ### 会话管理
 
@@ -508,6 +512,8 @@ const options = {
 ```
 
 当不传入 `session.api` 时，组件内置了基于 `localStorage` 的默认会话持久化实现，开箱即用。如需对接后端存储，需要完整实现上述五个接口；`getSession` 在会话不存在时可以返回 `undefined`。`createSession` 推荐显式返回 `{ sessions, session }`：`sessions` 是更新后的列表，`session` 是本次创建或复用的会话。旧版只返回会话数组的实现仍兼容，但当业务会复用一个尚未落库的临时会话时，显式结果可以避免 SDK 根据列表顺序猜错当前会话，也不再要求业务修改传入的 `session.id`。传入 `currentSessionId` 后，WebUI 会把它视为外部路由控制值；`onCurrentSessionChange` 用于把组件内的会话创建或切换同步回业务路由。新建会话成功后 SDK 会立即激活该会话的空消息列表，业务无需再调用内部消息 Context 清屏。
+
+默认存储通过 `session.storageScope` 隔离，例如 `JSON.stringify([tenantId, userId, workspaceId, agentId])`。多租户、多账号或多 Agent 接入必须提供稳定的非空 scope；它与 `sender.queue.scope` 分别控制会话历史和输入队列，启用两者时都应配置。未提供时保留旧版存储 key 和历史；提供后使用独立 key，不自动导入无 scope 的历史，避免把旧历史带入另一租户。切换 scope 会重挂载会话运行时并中止旧本地连接，不会自动停止服务端任务。自定义 `session.api` 仍由宿主负责存储隔离；localStorage namespace 不是安全授权边界。
 
 ### 消息气泡扩展
 
@@ -750,7 +756,7 @@ export default config;
 - 自定义 `api.fetch` 现在会收到必填的 `session_id`，以及独立的 `context`、`mentions`、`submission` 和 `signal`。请求实现应使用这些快照参数，不要在异步操作后读取全局活动会话。
 - 通用业务上下文应通过 `context` 传递；`biz_params.user_prompt_params` 继续兼容原协议，也可扩展其他 JSON 字段。
 - 内置输入队列改为显式开启，默认不启用。现有业务方自有队列不需要迁移到内置队列，只需保存并回传完整输入数据。
-- 新增 `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run 控制器。自有队列可以保留调度策略，同时复用 SDK 的会话创建、提交、SSE、终态、取消和重连生命周期；只有后端受理前的失败会标记为可安全重新入队。
+- 新增 `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run 控制器。自有队列可以保留调度策略，同时复用 SDK 的会话创建、提交、SSE、终态、取消和重连生命周期；只有发送适配器调用前的失败会标记为可安全重新入队，发出后未获确认的失败为 `backendAcceptance: 'unknown'`。
 - `ref.input.submit` 会完整透传 `IAgentScopeRuntimeWebUIInputData`，并返回可等待的 Promise；外部延迟队列可以等待本次提交或入队结果。
 - `api.cancel` 可接管停止行为。配置后默认保留原 SSE 以接收后端取消事件；调用参数中的 `abort()` 可立即终止本地流。未配置时仍采用立即本地终止。
 - `responseParser` 的入参类型修正为单个 SSE `data` 字符串；自定义解析器需要相应调整。
@@ -762,3 +768,12 @@ export default config;
 
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat/components/AgentScopeRuntimeWebUI
+
+### Run 生命周期与会话身份
+
+- `execute(data, { sessionId })` 的 `sessionId` 是 SDK Chat ID；`data.session_id` 是提交给后端的 Runtime 会话 ID。`api.fetch` / `api.cancel` / `api.reconnect` 的 `session_id` 统一使用这份后端身份快照，SDK Chat ID 通过独立的 `chatSessionId` 提供。显式 Runtime ID 会原样保留，未提供时才使用 SDK Chat ID 兼容旧接入；此前在取消/重连接口把 `session_id` 当 SDK Chat ID 映射的适配器应改用 `chatSessionId`。
+- 只有 Runtime response 的 `completed`、`failed`、`canceled` 才是服务端终态；某条 message/content 完成、HTTP 2xx、空响应体或流 EOF 都不代表 Run 完成。无终态的断流保留 `disconnected`，已接受输入不得重新 POST。
+- 收到终态后，先更新消息状态并等待会话保存，再发布 terminal 事件和 resolve `completion`。保存失败会记录错误，不会把已知终态误报为断流；`completion` 不代替宿主对存储可靠性的监控。
+- 内置 Stop 和公开取消都在本地收尾后结算对应 Run；自定义 `api.cancel` 不调用 `abort()` 时，内置 Stop 仍保留 SSE，等待服务端终态。`canceled` 表示本地执行结束，不代替宿主对服务端停止成功的确认。
+- 同一组件实例内，SessionLoader 自动重连与 `execution.resume` 关联同一个 Run，沿用原始路由快照和 API 适配器；适配器若需要刷新鉴权，应在内部获取最新凭证。旧连接的退出不能覆盖新连接状态。完整页面刷新后通过 `resume({ sessionId, requestContext })` 获取句柄，`requestContext` 传入持久化的 `session_id`、`context` 等字段；未提供时只能按 SDK Chat ID 兼容回退，SDK 不会从消息内容推断后端身份。
+- 取消已切走的 Run 按其消息和会话身份收尾，不修改另一会话或同会话中新 Run 的 loading。Runtime 终态、主动中止和消费异常会释放 SSE reader 并取消上游读取。

@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom';
 import { useContextSelector } from 'use-context-selector';
 import { v4 as uuid } from 'uuid';
 import sleep from '../../../../Util/sleep';
-import AgentScopeRuntimeResponseBuilder from '../../AgentScopeRuntime/Response/Builder';
 import type { IAgentScopeRuntimeMessage } from '../../AgentScopeRuntime/types';
 import { ChatAnywhereInputContext } from '../../Context/ChatAnywhereInputContext';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
@@ -11,11 +10,17 @@ import { ChatAnywhereSessionsContext } from '../../Context/ChatAnywhereSessionsC
 import useChatAnywhereEventEmitter, {
   useChatAnywhereExecutionEventPublisher,
 } from '../../Context/useChatAnywhereEventEmitter';
+import { finalizeRunResponse } from '../../Execution/finalizeResponse';
+import {
+  getRunTransportContext,
+  type ChatRunContext,
+} from '../../Execution/runContext';
 import { ChatRunLifecycle } from '../../Execution/runLifecycle';
 import type {
   IAgentScopeRuntimeWebUICancelResult,
   IAgentScopeRuntimeWebUIExecuteOptions,
   IAgentScopeRuntimeWebUIMessage,
+  IAgentScopeRuntimeWebUIQueueRequestContext,
   IAgentScopeRuntimeWebUIResumeOptions,
   IAgentScopeRuntimeWebUIRunHandle,
   IAgentScopeRuntimeWebUIRunTarget,
@@ -28,8 +33,8 @@ import {
   patchChatMessageSnapshot,
 } from '../submission';
 import {
-  type ChatControllerCurrentQA,
   findGeneratingResponse,
+  type ChatControllerCurrentQA,
 } from './runtimeState';
 import useChatMessageHandler from './useChatMessageHandler';
 import useChatRequest from './useChatRequest';
@@ -76,6 +81,7 @@ export default function useChatController() {
 
   const currentQARef = useRef<ChatControllerCurrentQA>({ activeRequestId: 0 });
   const runLifecyclesRef = useRef(new Map<string, ChatRunLifecycle>());
+  const sessionExecutionsRef = useRef(new Map<string, ChatRunContext>());
   const currentSessionIdRef = useRef(currentSessionId);
   const submitNowRef = useRef<QueueSubmitNow | null>(null);
   const handleCancelRef = useRef<(() => void) | null>(null);
@@ -128,8 +134,39 @@ export default function useChatController() {
     handleReconnectRef,
   });
 
+  const createExecution = useCallback(
+    (
+      sessionId: string,
+      data?: Parameters<typeof createChatSubmissionRequest>[0],
+      lifecycle?: ChatRunLifecycle,
+    ): ChatRunContext => {
+      const execution: ChatRunContext = {
+        sessionId,
+        request: createChatSubmissionRequest(data, sessionId),
+        api: { ...apiOptionsRef.current },
+        runId: lifecycle?.handle.runId,
+        clientRequestId: lifecycle?.handle.clientRequestId,
+        saveMessages: (messages) =>
+          sessionHandler.syncSessionMessages(messages, sessionId),
+      };
+      sessionExecutionsRef.current.delete(sessionId);
+      sessionExecutionsRef.current.set(sessionId, execution);
+      // Active public Runs retain their own context even after cache eviction.
+      if (sessionExecutionsRef.current.size > 100) {
+        sessionExecutionsRef.current.delete(
+          sessionExecutionsRef.current.keys().next().value,
+        );
+      }
+      if (lifecycle) lifecycle.execution = execution;
+      return execution;
+    },
+    [sessionHandler],
+  );
+
   const updateMessageAndSync = useCallback(
     (message: IAgentScopeRuntimeWebUIMessage, sessionId: string) => {
+      const execution = currentQARef.current.execution;
+      if (execution?.response?.id === message.id) execution.response = message;
       messageHandler.updateMessage(message, sessionId);
       syncMessagesToPeerTabs(
         sessionId,
@@ -142,58 +179,53 @@ export default function useChatController() {
     [messageHandler, syncMessagesToPeerTabs],
   );
 
+  const finishExecution = useCallback(
+    (execution: ChatRunContext, status: 'finished' | 'interrupted') =>
+      finalizeRunResponse(execution, status, {
+        getMessages: messageHandler.getSessionMessages,
+        updateMessage: (message, sessionId) => {
+          if (currentQARef.current.execution === execution)
+            currentQARef.current.response = message;
+          ReactDOM.flushSync(() =>
+            messageHandler.updateMessage(message, sessionId),
+          );
+        },
+        syncMessages: syncMessagesToPeerTabs,
+        settled: () => {
+          // Canceling an older Run must not clear a newer Run's loading state.
+          if (
+            sessionExecutionsRef.current.get(execution.sessionId) === execution
+          ) {
+            setSessionLoading(execution.sessionId, false);
+            markQueueSessionIdle(resolveQueueSessionId(execution.sessionId));
+          }
+        },
+      }),
+    [
+      messageHandler,
+      syncMessagesToPeerTabs,
+      setSessionLoading,
+      markQueueSessionIdle,
+      resolveQueueSessionId,
+    ],
+  );
+
   const finishResponse = useCallback(
-    (
+    async (
       sessionId: string,
       requestId: number,
       status: 'finished' | 'interrupted' = 'finished',
     ) => {
       if (currentQARef.current.activeRequestId !== requestId) return;
-      const response = currentQARef.current.response;
-      setSessionLoading(sessionId, false);
       currentQARef.current.cancelRequestedRequestId = undefined;
-      if (!response) {
+      const execution = currentQARef.current.execution;
+      if (execution) await finishExecution(execution, status);
+      else setSessionLoading(sessionId, false);
+      if (currentQARef.current.activeRequestId === requestId) {
         handleResponseFinished(sessionId);
-        return;
       }
-
-      const nextResponse = {
-        ...response,
-        msgStatus: status,
-        cards:
-          status === 'interrupted'
-            ? (response.cards || []).map((card) =>
-                card.code === 'AgentScopeRuntimeResponseCard'
-                  ? {
-                      ...card,
-                      data: AgentScopeRuntimeResponseBuilder.cancelResponse(
-                        card.data,
-                      ),
-                    }
-                  : card,
-              )
-            : response.cards,
-      } as IAgentScopeRuntimeWebUIMessage;
-      currentQARef.current.response = nextResponse;
-      ReactDOM.flushSync(() => {
-        messageHandler.updateMessage(nextResponse, sessionId);
-      });
-
-      const nextMessages = patchChatMessageSnapshot(
-        messageHandler.getSessionMessages(sessionId),
-        nextResponse,
-      );
-      syncMessagesToPeerTabs(sessionId, nextMessages);
-      sessionHandler.syncSessionMessages(nextMessages, sessionId);
-      handleResponseFinished(sessionId);
     },
-    [
-      handleResponseFinished,
-      messageHandler,
-      sessionHandler,
-      setSessionLoading,
-      syncMessagesToPeerTabs,
-    ],
+    [handleResponseFinished, finishExecution, setSessionLoading],
   );
 
   const { request, reconnect } = useChatRequest({
@@ -206,6 +238,9 @@ export default function useChatController() {
   const submitNow = useCallback<QueueSubmitNow>(
     async (data: Parameters<InputProps['onSubmit']>[0], options) => {
       assertInputAttachmentsReady(data);
+      // Capture metadata before ensureSession or any other asynchronous work.
+      // An unresolved SDK id is filled in when the session becomes available.
+      const requestSnapshot = createChatSubmissionRequest(data, '');
       const queuedSubmitSessionId = options?.queueSessionId
         ? getChatSessionIdForQueue(options.queueSessionId, options.sessionId)
         : undefined;
@@ -217,6 +252,7 @@ export default function useChatController() {
       const myRequestId = ++currentQARef.current.activeRequestId;
       currentQARef.current.cancelRequestedRequestId = undefined;
       currentQARef.current.activeRunId = options?.runId;
+      currentQARef.current.execution = undefined;
       const assertActive = () => {
         if (myRequestId !== currentQARef.current.activeRequestId) {
           throw new Error('chat request aborted');
@@ -226,8 +262,8 @@ export default function useChatController() {
       const sessionIdSnapshot =
         queuedSubmitSessionId ||
         options?.sessionId ||
-        data.session_id ||
-        sessionHandler.getCurrentSessionId();
+        sessionHandler.getCurrentSessionId() ||
+        data.session_id;
       currentQARef.current.activeSessionId = sessionIdSnapshot;
       const submitSessionId =
         sessionIdSnapshot || (await sessionHandler.ensureSession(data.query));
@@ -235,8 +271,16 @@ export default function useChatController() {
       if (!submitSessionId) {
         throw new Error('chat session is not ready');
       }
+      const execution = createExecution(
+        submitSessionId,
+        requestSnapshot,
+        options?.runId
+          ? runLifecyclesRef.current.get(options.runId)
+          : undefined,
+      );
+      currentQARef.current.execution = execution;
       await options?.onSessionResolved?.(submitSessionId);
-      const submissionData = createChatSubmissionRequest(data, submitSessionId);
+      const submissionData = execution.request;
       currentQARef.current.activeSessionId = submitSessionId;
 
       const resolvedSubmitQueueSessionId =
@@ -277,6 +321,7 @@ export default function useChatController() {
           submitSessionId,
         );
         const requestSignal = currentQARef.current.abortController?.signal;
+        execution.abortController = currentQARef.current.abortController;
         syncMessagesToPeerTabs(
           submitSessionId,
           messageHandler.getSessionMessages(submitSessionId),
@@ -286,6 +331,7 @@ export default function useChatController() {
         assertActive();
 
         responseMessage = messageHandler.createResponseMessage(submitSessionId);
+        execution.response = responseMessage;
         syncMessagesToPeerTabs(
           submitSessionId,
           patchChatMessageSnapshot(
@@ -306,6 +352,9 @@ export default function useChatController() {
           requestId: myRequestId,
           sessionId: submitSessionId,
           signal: requestSignal,
+          apiOptions: execution.api,
+          transportContext: getRunTransportContext(execution),
+          onDispatched: options?.onRequestDispatched,
           onAccepted: async () => {
             requestAccepted = true;
             await options?.onRequestAccepted?.();
@@ -313,14 +362,19 @@ export default function useChatController() {
           onStreaming: options?.onRequestStreaming,
           onFinished: options?.onRequestFinished,
           onFailed: options?.onRequestFailed,
-          onDisconnected: options?.onRequestDisconnected
-            ? async (error) => {
-                await options.onRequestDisconnected?.(error);
-                if (currentQARef.current.activeRequestId === myRequestId) {
-                  setSessionLoading(submitSessionId, false);
-                }
-              }
-            : undefined,
+          onDisconnected: async (error) => {
+            // An old transport must not disconnect its resumed Run.
+            if (
+              options?.runId &&
+              currentQARef.current.activeRunId === options.runId &&
+              currentQARef.current.activeRequestId !== myRequestId
+            )
+              return;
+            await options?.onRequestDisconnected?.(error);
+            if (currentQARef.current.activeRequestId === myRequestId) {
+              setSessionLoading(submitSessionId, false);
+            }
+          },
           submission: options?.submission,
           queueItemId: options?.queueItemId,
         });
@@ -391,6 +445,7 @@ export default function useChatController() {
     },
     [
       assignOwnerForSubmit,
+      createExecution,
       getChatSessionIdForQueue,
       markQueueSessionActive,
       markQueueSessionIdle,
@@ -413,9 +468,16 @@ export default function useChatController() {
       currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
       currentQARef.current.cancelRequestedRequestId = undefined;
+      currentQARef.current.activeRunId = undefined;
+      const execution = createExecution(
+        sessionId,
+        sessionExecutionsRef.current.get(sessionId)?.request,
+      );
+      currentQARef.current.execution = execution;
 
       messageHandler.createApprovalMessage(input, sessionId);
       const requestSignal = currentQARef.current.abortController?.signal;
+      execution.abortController = currentQARef.current.abortController;
 
       setSessionLoading(sessionId, true);
       await sleep(100);
@@ -426,6 +488,7 @@ export default function useChatController() {
       }
 
       const responseMessage = messageHandler.createResponseMessage(sessionId);
+      execution.response = responseMessage;
       const historyMessages = messageHandler.getHistoryMessages(sessionId);
       await sessionHandler.syncSessionMessages(
         messageHandler.getSessionMessages(sessionId),
@@ -440,28 +503,76 @@ export default function useChatController() {
         return;
       }
 
-      await request(
-        historyMessages,
-        createChatSubmissionRequest(undefined, sessionId),
-        {
-          requestId: myRequestId,
-          sessionId,
-          signal: requestSignal,
-        },
-      );
+      await request(historyMessages, execution.request, {
+        requestId: myRequestId,
+        sessionId,
+        signal: requestSignal,
+        apiOptions: execution.api,
+        transportContext: getRunTransportContext(execution),
+      });
     },
-    [messageHandler, request, sessionHandler, setSessionLoading],
+    [
+      createExecution,
+      messageHandler,
+      request,
+      sessionHandler,
+      setSessionLoading,
+    ],
   );
 
   const abortActiveRequest = useCallback(
-    (requestId: number, sessionId?: string) => {
+    async (requestId: number, sessionId?: string) => {
       if (currentQARef.current.activeRequestId !== requestId) return;
-      if (sessionId) finishResponse(sessionId, requestId, 'interrupted');
+      const runId = currentQARef.current.activeRunId;
+      const lifecycle = runId ? runLifecyclesRef.current.get(runId) : undefined;
+      lifecycle?.markCanceling();
+      // Snapshot/flush synchronously, invalidate this transport immediately,
+      // then await persistence before releasing the public Run.
+      const finishing = sessionId
+        ? finishResponse(sessionId, requestId, 'interrupted')
+        : undefined;
       currentQARef.current.activeRequestId += 1;
       currentQARef.current.cancelRequestedRequestId = undefined;
       currentQARef.current.abortController?.abort();
+      await finishing;
+      if (
+        sessionId &&
+        currentQARef.current.activeRequestId === requestId + 1 &&
+        currentQARef.current.activeSessionId === sessionId
+      ) {
+        handleResponseFinished(sessionId);
+      }
+      lifecycle?.cancel();
     },
-    [finishResponse],
+    [finishResponse, handleResponseFinished],
+  );
+
+  const abortExecution = useCallback(
+    async (
+      execution: ChatRunContext | undefined,
+      requestId: number,
+      sessionId?: string,
+      runId?: string,
+    ) => {
+      // Resolve activity when abort is invoked, not before awaiting cancel API.
+      // The target may have detached or resumed while that API was pending.
+      const isActive = execution
+        ? currentQARef.current.execution === execution
+        : currentQARef.current.activeRequestId === requestId;
+      if (isActive) {
+        await abortActiveRequest(
+          currentQARef.current.activeRequestId,
+          sessionId,
+        );
+        return;
+      }
+      if (execution) {
+        execution.abortController?.abort();
+        await finishExecution(execution, 'interrupted');
+      }
+      if (runId) runLifecyclesRef.current.get(runId)?.cancel();
+    },
+    [abortActiveRequest, finishExecution],
   );
 
   const handleCancel = useCallback(() => {
@@ -469,15 +580,21 @@ export default function useChatController() {
     const sessionId = currentQARef.current.activeSessionId;
     if (currentQARef.current.cancelRequestedRequestId === requestId) return;
     currentQARef.current.cancelRequestedRequestId = requestId;
+    const runId = currentQARef.current.activeRunId;
+    if (runId) runLifecyclesRef.current.get(runId)?.markCanceling();
 
     const cancelSessionId = sessionId;
-    const cancelFn = apiOptionsRef.current.cancel;
+    const execution = currentQARef.current.execution;
+    const cancelFn = (execution?.api || apiOptionsRef.current).cancel;
     if (cancelFn && cancelSessionId) {
-      const abort = () => abortActiveRequest(requestId, sessionId);
+      const abort = () => {
+        void abortExecution(execution, requestId, sessionId, runId);
+      };
       try {
         void Promise.resolve(
           cancelFn({
             session_id: cancelSessionId,
+            ...(execution ? getRunTransportContext(execution) : {}),
             signal: currentQARef.current.abortController?.signal,
             abort,
           }),
@@ -492,8 +609,8 @@ export default function useChatController() {
       return;
     }
 
-    abortActiveRequest(requestId, sessionId);
-  }, [abortActiveRequest]);
+    void abortExecution(execution, requestId, sessionId, runId);
+  }, [abortExecution]);
 
   handleCancelRef.current = handleCancel;
 
@@ -532,23 +649,25 @@ export default function useChatController() {
 
       const { runId } = lifecycle.handle;
       const sessionId = lifecycle.getSessionId();
+      const execution = lifecycle.execution;
       lifecycle.markCanceling();
 
       const requestId = currentQARef.current.activeRequestId;
       const isActiveRequest = currentQARef.current.activeRunId === runId;
       let locallyCanceled = false;
+      let localFinish: Promise<void> | undefined;
       const abort = () => {
         if (locallyCanceled) return;
         locallyCanceled = true;
-        if (isActiveRequest) abortActiveRequest(requestId, sessionId);
-        lifecycle.cancel();
+        localFinish = abortExecution(execution, requestId, sessionId, runId);
       };
 
-      const cancelFn = apiOptionsRef.current.cancel;
+      const cancelFn = (execution?.api || apiOptionsRef.current).cancel;
       try {
         if (cancelFn && sessionId) {
           await cancelFn({
             session_id: sessionId,
+            ...(execution ? getRunTransportContext(execution) : {}),
             signal: isActiveRequest
               ? currentQARef.current.abortController?.signal
               : undefined,
@@ -558,6 +677,8 @@ export default function useChatController() {
         // The public Run contract is stronger than the legacy UI callback:
         // once cancel() resolves, local stream/message state is terminal too.
         abort();
+        await localFinish;
+        lifecycle.cancel();
         return {
           runId,
           sessionId,
@@ -567,6 +688,8 @@ export default function useChatController() {
       } catch (error) {
         console.error('cancel execution failed:', error);
         abort();
+        await localFinish;
+        lifecycle.cancel(error);
         return {
           runId,
           sessionId,
@@ -576,7 +699,7 @@ export default function useChatController() {
         };
       }
     },
-    [abortActiveRequest, findActiveRunLifecycle],
+    [abortExecution, findActiveRunLifecycle],
   );
 
   const createRunLifecycle = useCallback(
@@ -628,15 +751,18 @@ export default function useChatController() {
       });
       lifecycle.markSubmitting();
 
-      void submitNow(data, {
+      const submission = submitNow(data, {
         sessionId: options?.sessionId,
         runId: lifecycle.handle.runId,
         submission: {
           source,
+          runId: lifecycle.handle.runId,
+          clientRequestId: options?.clientRequestId,
           queueItemId:
             source === 'host-queue' ? options?.clientRequestId : undefined,
         },
         onSessionResolved: (sessionId) => lifecycle.resolveSession(sessionId),
+        onRequestDispatched: () => lifecycle.markDispatched(),
         onRequestAccepted: () => {
           const sessionId = lifecycle.getSessionId();
           if (sessionId) lifecycle.markAccepted(sessionId);
@@ -648,11 +774,16 @@ export default function useChatController() {
         },
         onRequestFailed: (error) => lifecycle.fail(error),
         onRequestDisconnected: (error) => lifecycle.markDisconnected(error),
-      })
+      });
+      const submittedRequestId = currentQARef.current.activeRequestId;
+      const hasNewConnection = () =>
+        currentQARef.current.activeRunId === lifecycle.handle.runId &&
+        currentQARef.current.activeRequestId !== submittedRequestId;
+      void submission
         .then(() => {
-          if (lifecycle.isTerminal()) return;
+          if (lifecycle.isTerminal() || hasNewConnection()) return;
           const state = lifecycle.getState();
-          if (state === 'canceling') lifecycle.cancel();
+          if (state === 'canceling') return;
           else if (state === 'preparing' || state === 'submitting') {
             lifecycle.fail(
               new Error('chat request ended before backend acceptance'),
@@ -664,9 +795,9 @@ export default function useChatController() {
           }
         })
         .catch((error) => {
-          if (lifecycle.isTerminal()) return;
+          if (lifecycle.isTerminal() || hasNewConnection()) return;
           const state = lifecycle.getState();
-          if (state === 'canceling') lifecycle.cancel(error);
+          if (state === 'canceling') return;
           else if (state === 'disconnected') return;
           else if (
             state === 'accepted' ||
@@ -691,30 +822,51 @@ export default function useChatController() {
       if (!sessionId) return;
       currentQARef.current.activeSessionId = sessionId;
       const myRequestId = ++currentQARef.current.activeRequestId;
+      currentQARef.current.activeRunId = undefined;
+      const execution = createExecution(
+        sessionId,
+        sessionExecutionsRef.current.get(sessionId)?.request,
+      );
+      currentQARef.current.execution = execution;
 
       setSessionLoading(sessionId, true);
 
       messageHandler.removeMessageById(messageId, sessionId);
       currentQARef.current.abortController = new AbortController();
+      execution.abortController = currentQARef.current.abortController;
       const requestSignal = currentQARef.current.abortController.signal;
-      messageHandler.createResponseMessage(sessionId);
+      execution.response = messageHandler.createResponseMessage(sessionId);
 
       const historyMessages = messageHandler.getHistoryMessages(sessionId);
-      await request(
-        historyMessages,
-        createChatSubmissionRequest(undefined, sessionId),
-        {
-          requestId: myRequestId,
-          sessionId,
-          signal: requestSignal,
-        },
-      );
+      await request(historyMessages, execution.request, {
+        requestId: myRequestId,
+        sessionId,
+        signal: requestSignal,
+        apiOptions: execution.api,
+        transportContext: getRunTransportContext(execution),
+      });
     },
-    [messageHandler, request, sessionHandler, setSessionLoading],
+    [
+      createExecution,
+      messageHandler,
+      request,
+      sessionHandler,
+      setSessionLoading,
+    ],
   );
 
   const handleReconnect = useCallback(
-    async (sessionId: string, lifecycle?: ChatRunLifecycle) => {
+    async (
+      sessionId: string,
+      existingLifecycle?: ChatRunLifecycle,
+      requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext,
+    ) => {
+      // SessionLoader and explicit resume must reconnect the same public Run.
+      const lifecycle =
+        existingLifecycle || findActiveRunLifecycle({ sessionId });
+      if (lifecycle?.getSessionId() && lifecycle.getSessionId() !== sessionId) {
+        throw new Error('Run does not belong to the requested SDK session');
+      }
       if (!sessionId || sessionId !== currentSessionIdRef.current) {
         lifecycle?.markDisconnected(
           new Error('chat session is not active for reconnect'),
@@ -736,6 +888,18 @@ export default function useChatController() {
       currentQARef.current.cancelRequestedRequestId = undefined;
       currentQARef.current.activeSessionId = sessionId;
       currentQARef.current.activeRunId = lifecycle?.handle.runId;
+      const execution =
+        lifecycle?.execution ||
+        createExecution(
+          sessionId,
+          requestContext ||
+            sessionExecutionsRef.current.get(sessionId)?.request,
+          lifecycle,
+        );
+      currentQARef.current.execution = execution;
+      execution.abortController = currentQARef.current.abortController;
+      sessionExecutionsRef.current.set(sessionId, execution);
+      lifecycle?.markReconnecting();
       markQueueSessionActive(queueSessionId);
       setSessionLoading(sessionId, true);
 
@@ -752,11 +916,12 @@ export default function useChatController() {
       } else {
         messageHandler.createResponseMessage(sessionId);
       }
+      execution.response = currentQARef.current.response;
 
-      const reconnected = await reconnect(
-        sessionId,
-        myRequestId,
-        lifecycle
+      const reconnected = await reconnect(sessionId, myRequestId, {
+        apiOptions: execution.api,
+        transportContext: getRunTransportContext(execution),
+        ...(lifecycle
           ? {
               onAccepted: () => {
                 if (lifecycle.getState() === 'preparing') {
@@ -770,14 +935,14 @@ export default function useChatController() {
               },
               onFailed: (error) => lifecycle.fail(error),
               onDisconnected: (error) => {
-                lifecycle.markDisconnected(error);
                 if (currentQARef.current.activeRequestId === myRequestId) {
+                  lifecycle.markDisconnected(error);
                   setSessionLoading(sessionId, false);
                 }
               },
             }
-          : undefined,
-      );
+          : {}),
+      });
 
       if (myRequestId !== currentQARef.current.activeRequestId) return false;
 
@@ -801,6 +966,8 @@ export default function useChatController() {
     },
     [
       handleReconnectSettledIdle,
+      createExecution,
+      findActiveRunLifecycle,
       markQueueSessionActive,
       messageHandler,
       prepareReconnect,
@@ -834,7 +1001,11 @@ export default function useChatController() {
       }
 
       lifecycle.markReconnecting();
-      void handleReconnect(options.sessionId, lifecycle).catch((error) => {
+      void handleReconnect(
+        options.sessionId,
+        lifecycle,
+        options.requestContext,
+      ).catch((error) => {
         lifecycle?.markDisconnected(error);
       });
       return lifecycle.handle;
