@@ -35,7 +35,8 @@
     "release": "node publish.js",
     "release:beta": "node publish-beta.js",
     "src:build": "father build",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "test:regression": "node --test scripts/check-chat-regressions.mjs"
   },
   "commitlint": {
     "extends": [

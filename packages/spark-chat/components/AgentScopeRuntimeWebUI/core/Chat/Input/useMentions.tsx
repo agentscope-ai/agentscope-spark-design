@@ -49,6 +49,7 @@ export default function useMentions(
   const cachedItemsRef = useRef<IAgentScopeRuntimeWebUISenderMentionItem[]>();
   const loadGenerationRef = useRef(0);
   const mentionIdRef = useRef(0);
+  const revisionRef = useRef(0);
   const pendingSelectionRef = useRef<number | null>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const trigger = options?.trigger || '@';
@@ -83,6 +84,7 @@ export default function useMentions(
 
   const updateSelectedMentions = useCallback(
     (nextMentions: SelectedMention[]) => {
+      revisionRef.current += 1;
       setSelectedMentions(nextMentions);
       options?.onChange?.(nextMentions.map((mention) => mention.item));
     },
@@ -209,6 +211,7 @@ export default function useMentions(
         if (membershipChanged) {
           updateSelectedMentions(nextMentions);
         } else if (rangesChanged) {
+          revisionRef.current += 1;
           setSelectedMentions(nextMentions);
         }
       }
@@ -321,6 +324,7 @@ export default function useMentions(
   }, [updateSelectedMentions]);
 
   const close = useCallback(() => setRange(null), []);
+  const getRevision = useCallback(() => revisionRef.current, []);
 
   const getQuery = useCallback(
     (currentValue = value) => {
@@ -432,6 +436,7 @@ export default function useMentions(
     clear,
     close,
     getQuery,
+    getRevision,
     handleKeyDown,
     handleSelectionChange,
     handleValueChange,

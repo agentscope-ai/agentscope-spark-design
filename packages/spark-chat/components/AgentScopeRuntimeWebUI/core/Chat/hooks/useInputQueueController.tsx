@@ -16,6 +16,7 @@ import type {
   IAgentScopeRuntimeWebUISubmissionContext,
 } from '../../types';
 import type { InputProps } from '../Input';
+import { assertInputAttachmentsReady } from '../Input/submission';
 import {
   assignInputQueueOwner,
   beginInputQueueStateSubmission,
@@ -732,6 +733,7 @@ export default function useInputQueueController(
         requestContext?: IAgentScopeRuntimeWebUIQueueRequestContext;
       },
     ): Promise<QueueEnqueueResult> => {
+      assertInputAttachmentsReady(data);
       const sessionId = requestSnapshot
         ? requestSnapshot.queueSessionId
         : getActiveQueueSessionId();
@@ -869,7 +871,8 @@ export default function useInputQueueController(
   }, [drainQueue]);
 
   const handleSubmit = useCallback<InputProps['onSubmit']>(
-    async (data) => {
+    async (data, submissionOptions) => {
+      assertInputAttachmentsReady(data);
       const sessionId = getActiveQueueSessionId();
       const queueState = sessionId
         ? readQueueState(sessionId)
@@ -895,6 +898,7 @@ export default function useInputQueueController(
       if (!queueEnabled) {
         return submitNow(submissionData, {
           sessionId: submissionData.session_id,
+          onRequestAccepted: submissionOptions?.onAccepted,
         });
       }
       const sessionRunning = await isHostSessionRunning({
@@ -922,6 +926,7 @@ export default function useInputQueueController(
       if (!sessionId) {
         return submitNow(submissionData, {
           sessionId: submissionData.session_id,
+          onRequestAccepted: submissionOptions?.onAccepted,
         });
       }
 
@@ -951,6 +956,7 @@ export default function useInputQueueController(
 
         await submitNow(submissionData, {
           sessionId: submissionData.session_id,
+          onRequestAccepted: submissionOptions?.onAccepted,
         });
         return true;
       });

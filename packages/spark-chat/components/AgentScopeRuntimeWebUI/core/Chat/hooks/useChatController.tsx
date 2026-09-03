@@ -21,6 +21,7 @@ import type {
   IAgentScopeRuntimeWebUIRunTarget,
 } from '../../types';
 import type { InputProps } from '../Input';
+import { assertInputAttachmentsReady } from '../Input/submission';
 import { registerInputQueueSubmission } from '../InputQueue/submission';
 import {
   createChatSubmissionRequest,
@@ -204,6 +205,7 @@ export default function useChatController() {
 
   const submitNow = useCallback<QueueSubmitNow>(
     async (data: Parameters<InputProps['onSubmit']>[0], options) => {
+      assertInputAttachmentsReady(data);
       const queuedSubmitSessionId = options?.queueSessionId
         ? getChatSessionIdForQueue(options.queueSessionId, options.sessionId)
         : undefined;
@@ -322,7 +324,9 @@ export default function useChatController() {
           submission: options?.submission,
           queueItemId: options?.queueItemId,
         });
-        if (!accepted) {
+        // A route/connection change may end an already accepted stream. The
+        // input was consumed by the backend and must not become an unsent draft.
+        if (!accepted && !requestAccepted) {
           throw new Error('chat request aborted');
         }
       } catch (error) {

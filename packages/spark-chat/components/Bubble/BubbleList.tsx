@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import { useProviderContext } from '../Provider';
 import Bubble from './Bubble';
+import { isLatestBubble } from './bubbleListOrder';
 import type { BubbleProps } from './interface';
 import ScrollToBottom from './ScrollToBottom';
 import Style from './style/list';
@@ -171,7 +172,7 @@ function BubbleListContent(props: BubbleListContentProps) {
       {children
         ? children
         : paginationItems.map(({ key, ...bubble }, index) => {
-            const isLast = index === paginationItems.length - 1;
+            const isLast = isLatestBubble(index, paginationItems.length, order);
             return (
               <Bubble
                 {...bubble}
