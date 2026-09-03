@@ -52,6 +52,9 @@ const messages = {
     // Actions
     'actions.regenerate': '重新生成',
 
+    // User message navigation
+    'messageAnchors.title': '导航 ({count})',
+
     // Message import
     'messageImport.title': 'Sessions 数据导入',
     'messageImport.placeholder': '输入 JSON 数据以覆盖当前 sessions',
@@ -103,6 +106,9 @@ const messages = {
 
     // Actions related
     'actions.regenerate': 'Regenerate',
+
+    // User message navigation
+    'messageAnchors.title': 'Navigation ({count})',
 
     // MessageImport related
     'messageImport.title': 'Import Sessions Data',

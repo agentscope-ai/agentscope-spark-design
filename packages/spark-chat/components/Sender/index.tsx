@@ -670,10 +670,8 @@ const ForwardSender = React.forwardRef<SenderRef, SenderProps>((props, ref) => {
       (node): node is React.ReactNode => node !== undefined && node !== null,
     );
   }, [props.prefix]);
-  const count = Math.min(
-    innerValue.length,
-    props.maxLength || Number.MAX_SAFE_INTEGER,
-  );
+  // Count the actual value, including text restored after an upload failure.
+  const count = innerValue.length;
   const actionInfo = React.useMemo<SenderActionInfo>(
     () => ({
       value: innerValue,

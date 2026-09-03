@@ -7,6 +7,7 @@ import {
   LocateFixed,
 } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from '../../../Context/ChatAnywhereI18nContext';
 import {
   areAnchorPositionsEqual,
   clamp,
@@ -230,6 +231,7 @@ function UserMessageAnchorDirectory(props: {
 }) {
   const { anchors, activeAnchorId, openVersion, prefixCls, onAnchorClick } =
     props;
+  const { t } = useTranslation();
   const activeItemRef = React.useRef<HTMLButtonElement | null>(null);
   const listRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -262,7 +264,10 @@ function UserMessageAnchorDirectory(props: {
   return (
     <div className={`${prefixCls}-anchor-directory`}>
       <div className={`${prefixCls}-anchor-directory-title`}>
-        <span>导航 ({anchors.length})</span>
+        <span>
+          {t?.('messageAnchors.title', { count: anchors.length }) ||
+            `Navigation (${anchors.length})`}
+        </span>
         <button
           aria-label="Scroll directory to active user message"
           className={`${prefixCls}-anchor-directory-locate`}
