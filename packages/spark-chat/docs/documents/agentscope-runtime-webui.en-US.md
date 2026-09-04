@@ -280,10 +280,18 @@ const options = {
     },
     bubbleList: {
       pagination: true,
+      userMessageAnchors: {
+        enabled: true,
+        variant: 'navigator',
+        minCount: 3,
+        badgeMaxCount: 99,
+      },
     },
   },
 };
 ```
+
+`theme.locale` controls the language of built-in WebUI copy. It accepts `'en'` or `'cn'` and defaults to `'en'`; built-in text such as the user-message navigation title follows this setting. Use `bubbleList.userMessageAnchors` to configure user-message anchors. Set `variant` to `'minimap'` for right-side bars or `'navigator'` for up/directory/down controls.
 
 ### Welcome Page Configuration
 
@@ -326,6 +334,9 @@ const options = {
   sender: {
     placeholder: 'Type your question...',
     maxLength: 5000,
+    showCharacterCount: true,
+    characterCountRender: ({ count, maxLength }) =>
+      `${count}/${maxLength ?? '-'}`,
     disclaimer:
       'AI-generated content may contain errors. Please verify carefully.',
     allowSpeech: true,
@@ -362,6 +373,8 @@ const options = {
   },
 };
 ```
+
+Setting `sender.maxLength` displays the character count by default; use `showCharacterCount` to control it explicitly. `characterCountRender` customizes the counter and receives `value`, `count`, `maxLength`, `loading`, `disabled`, and `sendDisabled`. `count` is always the actual length of the current input, even when it exceeds `maxLength`; it is not capped at the threshold.
 
 When `longTextUpload` is enabled, `sender.maxLength` is used as the overlong text threshold. If typed or pasted content exceeds that threshold, WebUI automatically creates and uploads a txt attachment, then replaces the input content with `prompt`. `prompt` supports either a string or a `() => string` function for i18n. When an external language switch updates the `prompt` config, WebUI refreshes the input content only if it is still the auto-generated prompt; user-edited input is not overwritten. If `prompt` is omitted, it defaults to `please read the file as prompt then answer it`. When `customRequest` is omitted, `attachments.customRequest` is reused.
 

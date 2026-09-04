@@ -280,10 +280,18 @@ const options = {
     },
     bubbleList: {
       pagination: true,
+      userMessageAnchors: {
+        enabled: true,
+        variant: 'navigator',
+        minCount: 3,
+        badgeMaxCount: 99,
+      },
     },
   },
 };
 ```
+
+`theme.locale` 控制 WebUI 内置文案的语言，可选值为 `'en'` 和 `'cn'`，默认值为 `'en'`；用户消息导航的标题等内置文案会随该配置切换。`bubbleList.userMessageAnchors` 用于配置用户消息锚点，`variant` 可设为右侧横杠缩略图 `'minimap'` 或上/目录/下按钮导航 `'navigator'`。
 
 ### 欢迎页配置
 
@@ -325,6 +333,9 @@ const options = {
   sender: {
     placeholder: '请输入你的问题...',
     maxLength: 5000,
+    showCharacterCount: true,
+    characterCountRender: ({ count, maxLength }) =>
+      `${count}/${maxLength ?? '-'}`,
     disclaimer: 'AI 生成的内容可能存在错误，请注意甄别。',
     allowSpeech: true,
     suggestions: [
@@ -360,6 +371,8 @@ const options = {
   },
 };
 ```
+
+设置 `sender.maxLength` 后默认显示字符数，也可以通过 `showCharacterCount` 显式控制。`characterCountRender` 可自定义计数区域，其参数包含 `value`、`count`、`maxLength`、`loading`、`disabled` 和 `sendDisabled`；其中 `count` 始终是输入框当前内容的实际字符数，即使内容超过 `maxLength` 也不会被截断为阈值。
 
 开启 `longTextUpload` 后，`sender.maxLength` 会作为超长文本阈值；当输入或粘贴内容超过该阈值时，WebUI 会自动生成 txt 附件并上传，然后把输入框内容替换为 `prompt`。`prompt` 支持字符串，也支持 `() => string` 方法用于国际化。外部语言切换导致 `prompt` 配置更新时，如果输入框内容仍是自动生成的 prompt，WebUI 会同步刷新；如果用户已经手动编辑过输入框，则不会覆盖。未传 `prompt` 时默认使用 `please read the file as prompt then answer it`。`customRequest` 不传时会复用 `attachments.customRequest`。
 
