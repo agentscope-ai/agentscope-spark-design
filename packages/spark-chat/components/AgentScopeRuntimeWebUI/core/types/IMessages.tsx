@@ -43,6 +43,15 @@ export interface IAgentScopeRuntimeWebUIMessage<T = string | any> {
    * @descriptionEn Processing status of the message, affects display effects
    */
   msgStatus?: 'finished' | 'interrupted' | 'generating' | 'error';
+  /**
+   * @description 是否为已加载的历史消息（会话首屏加载或 onLoadMore 追加），
+   * 用于模拟分页/真实分页两种模式区分"当前新消息"与"历史消息"
+   * @descriptionEn Whether this is an already-loaded history message (from
+   * the initial session load or an onLoadMore page), used to distinguish
+   * "current new messages" from "history" in both the simulated and real
+   * pagination modes
+   */
+  history?: boolean;
 }
 
 export interface IAgentScopeRuntimeWebUIMessagesContext {

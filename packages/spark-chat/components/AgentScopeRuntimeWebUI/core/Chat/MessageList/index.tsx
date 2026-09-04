@@ -2,13 +2,14 @@ import { Bubble, useProviderContext } from "@agentscope-ai/chat";
 import { IAgentScopeRuntimeWebUIMessage } from "../../types/IMessages";
 import { ChatAnywhereMessagesContext } from "../../Context/ChatAnywhereMessagesContext";
 import { useContextSelector } from "use-context-selector";
-import { ChatAnywhereSessionsContext } from "../../Context/ChatAnywhereSessionsContext";
+import { ChatAnywhereSessionsContext, useChatAnywhereLoadMoreHistory } from "../../Context/ChatAnywhereSessionsContext";
 import { useChatAnywhereOptions } from "../../Context/ChatAnywhereOptionsContext";
 import cls from 'classnames';
 import Welcome from "../Welcome";
 import React, { useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import UserMessageAnchors from "./UserMessageAnchors";
+import WindowedBubbleList from "./WindowedBubbleList";
 
 const PAGE_SIZE = 10;
 const ANCHOR_JUMP_WINDOW_BEFORE = 24;
@@ -139,15 +140,44 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
   const listRef = React.useRef<{ scrollToBottom: () => void } | null>(null);
   const prevMessagesLengthRef = React.useRef(safeMessages.length);
 
-  const { visibleMessages, noMore, loadMore, ensureMessageVisible } = useSimulatedMessagePagination(safeMessages, currentSessionId);
-  const renderedItemsKey = useMemo(() => visibleMessages.map((message) => message.id).join('|'), [visibleMessages]);
+  const {
+    visibleMessages,
+    noMore: simulatedNoMore,
+    loadMore: simulatedLoadMore,
+    ensureMessageVisible,
+  } = useSimulatedMessagePagination(safeMessages, currentSessionId);
+  // Real backend-driven pagination (patch addition) takes priority when the
+  // host app supplies options.session.onLoadMore: the full already-loaded
+  // array is shown as-is (no client-side reveal windowing — the network
+  // page size already bounds what's in memory), and "load more" fetches an
+  // actual older page instead of just revealing more of what's in memory.
+  const {
+    loadMore: realLoadMore,
+    noMore: realNoMore,
+    hasRealLoadMore,
+  } = useChatAnywhereLoadMoreHistory();
+  const displayMessages = hasRealLoadMore ? safeMessages : visibleMessages;
+  const noMore = hasRealLoadMore ? realNoMore : simulatedNoMore;
+  const loadMore = hasRealLoadMore ? realLoadMore : simulatedLoadMore;
+  const renderedItemsKey = useMemo(() => displayMessages.map((message) => message.id).join('|'), [displayMessages]);
 
+  // Auto-scroll to bottom only when a genuinely new message arrives at the
+  // end — not merely when the array grows for any reason. A loadMore
+  // prepend also grows safeMessages.length, but the newest message (index
+  // 0 of the reversed/desc array) is unchanged; without this distinction
+  // the length-only check below used to yank the view back to the bottom
+  // right after the user scrolled up to load older history (patch fix).
+  const prevNewestIdRef = React.useRef(safeMessages[0]?.id);
   React.useEffect(() => {
-    if (safeMessages.length > prevMessagesLengthRef.current) {
+    const newestId = safeMessages[0]?.id;
+    const grew = safeMessages.length > prevMessagesLengthRef.current;
+    const newestChanged = newestId !== prevNewestIdRef.current;
+    if (grew && newestChanged) {
       listRef.current?.scrollToBottom();
     }
     prevMessagesLengthRef.current = safeMessages.length;
-  }, [safeMessages.length]);
+    prevNewestIdRef.current = newestId;
+  }, [safeMessages]);
 
   if (safeMessages.length === 0) return <div className={cls(prefixCls, `${prefixCls}-welcome`)}>
     <Welcome onSubmit={props.onSubmit} />
@@ -164,8 +194,15 @@ export default function MessageList(props: { onSubmit: (data: { query: string; f
         wrapper: `${prefixCls}-bubble-wrapper`,
         list: scrollContainerClassName,
       }}
-      items={visibleMessages}
-    />
+      items={displayMessages}
+    >
+      {/* Virtualize only the real-backend-pagination path: there the list
+        * grows without bound as older pages load, and mounting every bubble
+        * on each prepend is what stalls the main thread. The simulated path
+        * already hands us a small pre-windowed slice, so it renders inline
+        * exactly as before (children undefined ⇒ Bubble.List's own map). */}
+      {hasRealLoadMore ? <WindowedBubbleList items={displayMessages} /> : undefined}
+    </Bubble.List>
     <UserMessageAnchors
       badgeMaxCount={userMessageAnchorsOptions?.badgeMaxCount}
       enabled={userMessageAnchorsOptions?.enabled !== false}

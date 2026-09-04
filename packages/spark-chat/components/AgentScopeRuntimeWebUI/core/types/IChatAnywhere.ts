@@ -6,6 +6,7 @@ import {
   IContent,
 } from '../AgentScopeRuntime/types';
 import { IAgentScopeRuntimeWebUISession } from './ISessions';
+import { IAgentScopeRuntimeWebUIMessage } from './IMessages';
 
 /**
  * @description API 配置选项
@@ -431,6 +432,20 @@ export interface IAgentScopeRuntimeWebUISessionOptions {
    * @descriptionEn Session API interface
    */
   api?: IAgentScopeRuntimeWebUISessionAPI;
+  /**
+   * @description 加载更早历史消息的回调（补丁新增）。提供时，MessageList 使用
+   * 真实网络分页并在触底/点击时前插返回的消息；不提供时退回原有的模拟分页
+   * （揭示已加载数组）。
+   * @descriptionEn Callback to load older history messages (patch addition).
+   * When provided, MessageList uses real network-backed pagination and
+   * prepends the returned messages; when omitted, falls back to the
+   * original simulated pagination (revealing more of an already-loaded
+   * array).
+   */
+  onLoadMore?: (sessionId: string) => Promise<{
+    messages: IAgentScopeRuntimeWebUIMessage[];
+    noMore: boolean;
+  }>;
 }
 
 /**
