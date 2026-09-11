@@ -680,6 +680,11 @@ export interface IAgentScopeRuntimeWebUIQueueOptions {
     context: IAgentScopeRuntimeWebUIQueueErrorContext,
   ) => boolean | Promise<boolean>;
   /**
+   * @description 输入成功入队后在发起入队的实例中调用，可用于重置输入区开关。入队失败、直接发送或队列恢复时不调用。
+   * @descriptionEn Called in the enqueuing instance after an input is successfully queued, for example to reset composer toggles. Not called for failed enqueue attempts, direct sends, or queue restoration.
+   */
+  onInputEnqueued?: (item: IAgentScopeRuntimeWebUIQueuedInputItem) => void;
+  /**
    * @description 队列满时的回调
    * @descriptionEn Called when the queue reaches maxSize
    */

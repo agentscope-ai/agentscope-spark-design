@@ -399,6 +399,10 @@ const options = {
       // Use a stable unique namespace on multi-agent/multi-tenant pages
       scope: `${tenantId}:${agentId}`,
       maxSize: 50,
+      onInputEnqueued: (item) => {
+        // item.data preserves the queued input and its request context
+        setCoffeeEnabled(false);
+      },
       // A queue key must identify one chat; do not return the backend session_id
       getQueueKey: (chatSessionId) => chatSessionId,
       getRequestContext: (sessionId) => ({
@@ -423,6 +427,8 @@ const options = {
 `getQueueKey` receives the SDK chat session id and returns the opaque key used for persistence and cross-tab communication. Chats that share one backend runtime `session_id` must still return different queue keys; request-routing fields belong only in `getRequestContext`. The legacy `getSessionId` option remains compatible but is deprecated.
 
 Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks (with a local lease fallback), a `scope`-isolated `BroadcastChannel`, and versioned `localStorage` state coordinate sending. Persistence keeps only JSON-compatible request fields and attachment references, and state expires after 24 hours without an update. Multi-agent or multi-tenant pages must provide a stable unique `scope`. Host-specific semantics remain in the callbacks above. For external migration or cleanup, use the exported `resolveInputQueueKey(chatSessionId, { scope, getQueueKey })` to generate exactly the same key as the SDK instead of duplicating its internal format.
+
+`sender.queue.onInputEnqueued(item)` fires once after an input is successfully queued and the queue state update completes. It receives the new queue item (including `id`, `data`, and `status`) and can reset composer toggles such as Coffee. It does not fire when the queue is full, the session is not ready, attachments are still uploading, or the queue update fails. Direct sends, persisted queue restoration, cross-tab synchronization, and retries of existing items do not trigger it either. Only the enqueuing instance is notified, without waiting for draining or request completion. Synchronous callback errors are logged without changing the successful enqueue result.
 
 #### Host-managed Delayed Queues
 

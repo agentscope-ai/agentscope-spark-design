@@ -171,6 +171,7 @@ export default function useInputQueueController(
   const getQueueRequestContext = queueConfig.getRequestContext;
   const isQueueSessionRunning = queueConfig.isSessionRunning;
   const shouldRestoreOnError = queueConfig.shouldRestoreOnError;
+  const onInputEnqueued = queueConfig.onInputEnqueued;
   const onQueueFull = queueConfig.onFull;
   const onQueueSessionNotReady = queueConfig.onSessionNotReady;
   const apiOptionsRef = useRef(apiOptions);
@@ -794,12 +795,22 @@ export default function useInputQueueController(
         releasePeerTakeoverBlockRef.current?.(sessionId, nextQueueState);
       }
 
+      if (queuedItem) {
+        try {
+          onInputEnqueued?.(queuedItem);
+        } catch (error) {
+          // A host notification failure must not turn an accepted input into a retry.
+          console.error('input queue enqueue callback failed:', error);
+        }
+      }
+
       return { ok: true, item: queuedItem };
     },
     [
       getActiveChatSessionId,
       getActiveQueueSessionId,
       getQueueRequestContext,
+      onInputEnqueued,
       onQueueFull,
       onQueueSessionNotReady,
       queueMaxSize,
