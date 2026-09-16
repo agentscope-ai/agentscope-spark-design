@@ -40,10 +40,28 @@ export function ChatAnywhereSessionsContextProvider(props: {
   const [sessions, setSessions, getSessions] = useGetState<
     IAgentScopeRuntimeWebUISession[]
   >([]);
-  const [currentSessionId, setCurrentSessionId, getCurrentSessionId] =
-    useGetState<string | undefined>(
-      isCurrentSessionControlled ? options.currentSessionId : undefined,
-    );
+  const [currentSessionId, setSessionId, getCurrentSessionId] = useGetState<
+    string | undefined
+  >(isCurrentSessionControlled ? options.currentSessionId : undefined);
+  // A visit changes even when the user explicitly selects the blank page again.
+  // Keep this outside render state so pending async work observes intent immediately.
+  const selectionVersionRef = React.useRef(0);
+  const creationVersionRef = React.useRef(0);
+  const mountedRef = React.useRef(true);
+  React.useLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      selectionVersionRef.current++;
+    };
+  }, []);
+  const setCurrentSessionId = React.useCallback(
+    (id: string | undefined) => {
+      selectionVersionRef.current++;
+      setSessionId(id);
+    },
+    [setSessionId],
+  );
   const skipNextSessionLoadIdRef = React.useRef<string | undefined>(undefined);
   // In controlled mode, createSession can resolve before the external route
   // passes the new currentSessionId back in.
@@ -62,14 +80,20 @@ export function ChatAnywhereSessionsContextProvider(props: {
 
   React.useEffect(() => {
     let cancelled = false;
+    const initialSelectionVersion = selectionVersionRef.current;
+    const initialCreationVersion = creationVersionRef.current;
     void initialSessionApiRef.current
       .getSessionList()
       .then((sessionList) => {
-        if (cancelled) return;
+        if (cancelled || creationVersionRef.current !== initialCreationVersion)
+          return;
         setSessions(sessionList);
         // In controlled mode the route owns the active session. This keeps
         // /chat as an empty page instead of selecting the first history item.
-        if (!isCurrentSessionControlledRef.current) {
+        if (
+          !isCurrentSessionControlledRef.current &&
+          selectionVersionRef.current === initialSelectionVersion
+        ) {
           setCurrentSessionId(sessionList[0]?.id);
         }
       })
@@ -82,7 +106,7 @@ export function ChatAnywhereSessionsContextProvider(props: {
     };
   }, [setCurrentSessionId, setSessions]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     const controlModeChanged =
       wasCurrentSessionControlledRef.current !== isCurrentSessionControlled;
     wasCurrentSessionControlledRef.current = isCurrentSessionControlled;
@@ -118,6 +142,9 @@ export function ChatAnywhereSessionsContextProvider(props: {
       skipNextSessionLoadIdRef,
       pendingRouteSessionIdRef,
       isCurrentSessionControlled,
+      selectionVersionRef,
+      creationVersionRef,
+      mountedRef,
     }),
     [
       currentSessionId,
@@ -319,6 +346,19 @@ export const useChatAnywhereSessions = (): SessionActions => {
     (v) => v.clearSessionMessages,
   );
 
+  const selectionVersionRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.selectionVersionRef,
+  );
+  const creationVersionRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.creationVersionRef,
+  );
+  const mountedRef = useContextSelector(
+    ChatAnywhereSessionsContext,
+    (v) => v.mountedRef,
+  );
+
   const setActiveSessionId = React.useCallback(
     (sessionId: string | undefined) => {
       if (isCurrentSessionControlled) {
@@ -376,6 +416,10 @@ export const useChatAnywhereSessions = (): SessionActions => {
 
   const createSession = React.useCallback(
     async (data?: { name?: string }): Promise<string | undefined> => {
+      const selectionVersion = selectionVersionRef?.current;
+      const creationVersion = creationVersionRef
+        ? ++creationVersionRef.current
+        : undefined;
       const previousSessions = getSessions();
       const prevIds = new Set(previousSessions.map((session) => session.id));
       const sessionDraft: Partial<IAgentScopeRuntimeWebUISession> = {
@@ -392,6 +436,21 @@ export const useChatAnywhereSessions = (): SessionActions => {
         sessionDraft.id,
         creation.session,
       );
+      // A host may commit the newly allocated route before returning its result.
+      // Allow that one acknowledgement, but never A -> B -> A or a newer create.
+      const ownRouteAcknowledged =
+        selectionVersionRef &&
+        selectionVersionRef.current === selectionVersion + 1 &&
+        !!session?.id &&
+        getCurrentSessionId() === session.id;
+      if (
+        mountedRef?.current === false ||
+        creationVersionRef?.current !== creationVersion ||
+        (selectionVersionRef?.current !== selectionVersion &&
+          !ownRouteAcknowledged)
+      ) {
+        throw new DOMException('Session creation superseded', 'AbortError');
+      }
       // Some adapters reuse an unresolved draft and return a shallow copy of
       // the unchanged list. Avoid publishing that no-op update: consumers may
       // synchronize URL state from session-list changes while the new-chat
@@ -419,6 +478,10 @@ export const useChatAnywhereSessions = (): SessionActions => {
     },
     [
       getSessions,
+      getCurrentSessionId,
+      selectionVersionRef,
+      creationVersionRef,
+      mountedRef,
       options.api,
       setActiveSessionId,
       setSessionMessages,

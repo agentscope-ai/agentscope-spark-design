@@ -127,7 +127,7 @@ export class ChatRunLifecycle {
   }
 
   markDisconnected(error?: unknown) {
-    if (this.terminal || this.state === 'canceling') return;
+    if (this.terminal) return;
     this.transition('disconnected', error);
   }
 
@@ -153,6 +153,11 @@ export class ChatRunLifecycle {
 
   private transition(state: IAgentScopeRuntimeWebUIRunState, error?: unknown) {
     if (this.terminal || this.state === state) return;
+    if (
+      this.state === 'canceling' &&
+      (state === 'accepted' || state === 'streaming')
+    )
+      return;
     const previousState = this.state;
     this.state = state;
     this.emit(previousState, error);

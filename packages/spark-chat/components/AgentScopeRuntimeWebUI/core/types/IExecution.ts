@@ -129,6 +129,7 @@ export interface IAgentScopeRuntimeWebUIExecutionController {
     data: IAgentScopeRuntimeWebUIInputData,
     options?: IAgentScopeRuntimeWebUIExecuteOptions,
   ) => Promise<IAgentScopeRuntimeWebUIRunHandle>;
+  /** Custom cancel retains SSE until terminal cleanup; cancelTimeoutMs bounds the wait. */
   cancel: (
     target?: IAgentScopeRuntimeWebUIRunTarget,
   ) => Promise<IAgentScopeRuntimeWebUICancelResult>;

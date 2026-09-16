@@ -796,3 +796,12 @@ export default config;
 - 内置 Stop 和公开取消都在本地收尾后结算对应 Run；自定义 `api.cancel` 不调用 `abort()` 时，内置 Stop 仍保留 SSE，等待服务端终态。`canceled` 表示本地执行结束，不代替宿主对服务端停止成功的确认。
 - 同一组件实例内，SessionLoader 自动重连与 `execution.resume` 关联同一个 Run，沿用原始路由快照和 API 适配器；适配器若需要刷新鉴权，应在内部获取最新凭证。旧连接的退出不能覆盖新连接状态。完整页面刷新后通过 `resume({ sessionId, requestContext })` 获取句柄，`requestContext` 传入持久化的 `session_id`、`context` 等字段；未提供时只能按 SDK Chat ID 兼容回退，SDK 不会从消息内容推断后端身份。
 - 取消已切走的 Run 按其消息和会话身份收尾，不修改另一会话或同会话中新 Run 的 loading。Runtime 终态、主动中止和消费异常会释放 SSE reader 并取消上游读取。
+
+
+### 异步创建与取消的时序约定
+
+- 用户在创建完成前切换会话、再次选择空白新会话或卸载组件后，SDK 会拒绝过期创建结果（`AbortError`），不会再激活该会话或发送原始首条消息。服务端已经创建的记录不会自动删除，可在后续列表刷新中显示。
+- 自定义 `session.api.createSession` 应只负责创建与返回结果，使用 `session.onCurrentSessionChange` 同步导航。如果宿主在创建接口内部自行导航、迁移草稿或队列，必须自行校验原始会话访问是否仍有效；SDK 无法撤销接口已经产生的宿主副作用。受控宿主在返回结果前同步到本次新建 ID 的单次路由确认仍被支持。
+- 自定义 `api.cancel` 不调用 `abort()` 时，公开的 `execution.cancel()` / `run.cancel()` 保留 SSE，等待 Runtime 终态以及消息保存尝试完成后返回。内置停止按钮取消同一个公开 Run 时使用相同流程。
+- `api.cancelTimeoutMs` 设置公开 Run 取消请求与等待终态的上限（默认 30000 毫秒）。超时或取消接口抛错后执行本地收尾，并返回 `status: 'failed'`；连接已经断开或等待期间断开时，在取消接口成功后执行本地收尾。`locallyCanceled: true` 只表示执行了本地终止，不证明后端已停止。
+- 不要先调用 `abort()` 再请求后端停止，也不要在 HTTP 停止响应返回后立即 `abort()`，否则仍会丢失尚未消费的取消事件。后端不会提供终态时，宿主可以明确调用 `abort()`。

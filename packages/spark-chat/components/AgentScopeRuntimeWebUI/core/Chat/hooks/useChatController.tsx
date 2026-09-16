@@ -16,6 +16,7 @@ import {
   type ChatRunContext,
 } from '../../Execution/runContext';
 import { ChatRunLifecycle } from '../../Execution/runLifecycle';
+import { waitForRunCancellation } from '../../Execution/waitForCancellation';
 import type {
   IAgentScopeRuntimeWebUICancelResult,
   IAgentScopeRuntimeWebUIExecuteOptions,
@@ -575,45 +576,6 @@ export default function useChatController() {
     [abortActiveRequest, finishExecution],
   );
 
-  const handleCancel = useCallback(() => {
-    const requestId = currentQARef.current.activeRequestId;
-    const sessionId = currentQARef.current.activeSessionId;
-    if (currentQARef.current.cancelRequestedRequestId === requestId) return;
-    currentQARef.current.cancelRequestedRequestId = requestId;
-    const runId = currentQARef.current.activeRunId;
-    if (runId) runLifecyclesRef.current.get(runId)?.markCanceling();
-
-    const cancelSessionId = sessionId;
-    const execution = currentQARef.current.execution;
-    const cancelFn = (execution?.api || apiOptionsRef.current).cancel;
-    if (cancelFn && cancelSessionId) {
-      const abort = () => {
-        void abortExecution(execution, requestId, sessionId, runId);
-      };
-      try {
-        void Promise.resolve(
-          cancelFn({
-            session_id: cancelSessionId,
-            ...(execution ? getRunTransportContext(execution) : {}),
-            signal: currentQARef.current.abortController?.signal,
-            abort,
-          }),
-        ).catch((error) => {
-          console.error('cancel api failed:', error);
-          abort();
-        });
-      } catch (error) {
-        console.error('cancel api failed:', error);
-        abort();
-      }
-      return;
-    }
-
-    void abortExecution(execution, requestId, sessionId, runId);
-  }, [abortExecution]);
-
-  handleCancelRef.current = handleCancel;
-
   const findActiveRunLifecycle = useCallback(
     (target?: IAgentScopeRuntimeWebUIRunTarget) => {
       if (target?.runId) {
@@ -665,17 +627,37 @@ export default function useChatController() {
       const cancelFn = (execution?.api || apiOptionsRef.current).cancel;
       try {
         if (cancelFn && sessionId) {
-          await cancelFn({
-            session_id: sessionId,
-            ...(execution ? getRunTransportContext(execution) : {}),
-            signal: isActiveRequest
+          const signal =
+            execution?.abortController?.signal ||
+            (isActiveRequest
               ? currentQARef.current.abortController?.signal
-              : undefined,
-            abort,
-          });
+              : undefined);
+          const terminal = await waitForRunCancellation(
+            lifecycle,
+            () =>
+              cancelFn({
+                session_id: sessionId,
+                ...(execution ? getRunTransportContext(execution) : {}),
+                signal,
+                abort,
+              }),
+            signal,
+            (execution?.api || apiOptionsRef.current).cancelTimeoutMs,
+          );
+          if (terminal) {
+            await localFinish;
+            const result = await lifecycle.handle.completion;
+            return {
+              runId,
+              sessionId,
+              status: result.status === 'failed' ? 'failed' : 'canceled',
+              locallyCanceled,
+              ...(result.error ? { error: result.error } : {}),
+            };
+          }
         }
-        // The public Run contract is stronger than the legacy UI callback:
-        // once cancel() resolves, local stream/message state is terminal too.
+        // No custom cancellation or no live transport remains. Finish only
+        // the captured Run; a later session must never be aborted here.
         abort();
         await localFinish;
         lifecycle.cancel();
@@ -701,6 +683,48 @@ export default function useChatController() {
     },
     [abortExecution, findActiveRunLifecycle],
   );
+
+  const handleCancel = useCallback(() => {
+    const requestId = currentQARef.current.activeRequestId;
+    const sessionId = currentQARef.current.activeSessionId;
+    if (currentQARef.current.cancelRequestedRequestId === requestId) return;
+    currentQARef.current.cancelRequestedRequestId = requestId;
+    const runId = currentQARef.current.activeRunId;
+    if (runId) {
+      void cancelExecution({ runId });
+      return;
+    }
+
+    const cancelSessionId = sessionId;
+    const execution = currentQARef.current.execution;
+    const cancelFn = (execution?.api || apiOptionsRef.current).cancel;
+    if (cancelFn && cancelSessionId) {
+      const abort = () => {
+        void abortExecution(execution, requestId, sessionId, runId);
+      };
+      try {
+        void Promise.resolve(
+          cancelFn({
+            session_id: cancelSessionId,
+            ...(execution ? getRunTransportContext(execution) : {}),
+            signal: currentQARef.current.abortController?.signal,
+            abort,
+          }),
+        ).catch((error) => {
+          console.error('cancel api failed:', error);
+          abort();
+        });
+      } catch (error) {
+        console.error('cancel api failed:', error);
+        abort();
+      }
+      return;
+    }
+
+    void abortExecution(execution, requestId, sessionId, runId);
+  }, [abortExecution, cancelExecution]);
+
+  handleCancelRef.current = handleCancel;
 
   const createRunLifecycle = useCallback(
     (options: {

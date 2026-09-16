@@ -53,6 +53,10 @@ export interface IAgentScopeRuntimeWebUISessionsContext {
   skipNextSessionLoadIdRef?: MutableRefObject<string | undefined>;
   pendingRouteSessionIdRef?: MutableRefObject<string | undefined>;
   isCurrentSessionControlled?: boolean;
+  /** Internal async creation ownership; selection advances on explicit blank selection too. */
+  selectionVersionRef?: MutableRefObject<number>;
+  creationVersionRef?: MutableRefObject<number>;
+  mountedRef?: MutableRefObject<boolean>;
 }
 
 /** Explicit public return type preserves nullable ids in non-strict builds. */

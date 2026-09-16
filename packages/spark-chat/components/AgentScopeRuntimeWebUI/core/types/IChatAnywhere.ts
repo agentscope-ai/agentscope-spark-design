@@ -70,6 +70,12 @@ export interface IAgentScopeRuntimeWebUIAPIOptions {
   ) => void | Promise<void>;
 
   /**
+   * @description 公开 Run 取消等待上限（毫秒，默认 30000），包含自定义 cancel 请求及 SSE 终态等待；超时后本地终止并返回 failed。
+   * @descriptionEn Public Run cancellation timeout in ms (default 30000), including custom cancel and waiting for an SSE terminal. Timeout aborts locally and returns failed.
+   */
+  cancelTimeoutMs?: number;
+
+  /**
    * @description 重连会话流式响应
    * @descriptionEn Reconnect session stream response
    */
