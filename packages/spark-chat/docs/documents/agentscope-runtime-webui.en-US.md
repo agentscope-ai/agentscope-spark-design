@@ -806,3 +806,25 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 - When custom `api.cancel` does not call `abort()`, public `execution.cancel()` / `run.cancel()` retain SSE and resolve after the Runtime terminal and the message save attempt. The built-in Stop button uses the same path when canceling a public Run.
 - `api.cancelTimeoutMs` bounds the public Run cancel request and terminal wait (default 30000 ms). A timeout or rejected cancel API triggers local cleanup and returns `status: 'failed'`. If the connection is already disconnected or disconnects while waiting, a successful cancel API is followed by local cleanup. `locallyCanceled: true` indicates local termination, not proof that the backend stopped.
 - Do not call `abort()` before requesting backend cancellation or immediately after the HTTP stop response: unread cancellation events would still be lost. Hosts whose backend provides no terminal event can explicitly call `abort()`.
+
+## Typewriter rendering for live responses
+
+Enable the SDK's default text renderer with `options.response.typing` (off by default):
+
+```tsx
+<AgentScopeRuntimeWebUI
+  options={{
+    ...options,
+    response: {
+      ...options.response,
+      typing: 15, // true: 5ms per Unicode code point; positive number: interval in ms
+    },
+  }}
+/>
+```
+
+Only text observed in `in_progress` animates. Completed history renders immediately. Waiting for chunks never accumulates display credit. Completion drains the received text; cancellation, failure, rejection, or disabling typing flushes it immediately. Unmounting or switching messages clears timers. UTF-16 emoji surrogate pairs remain intact; combining sequences advance by Unicode code point.
+
+This changes presentation only, not SSE, persistence, or business completion status. Long backlogs may continue displaying after completion. Reasoning cards, tool cards, and media are unaffected. Custom `response.render` must call `fallback()` or reuse the SDK Message renderer to honor this option. Fully custom text can use the exported `<Markdown typing={15} content={text} />`.
+
+Standalone Markdown's `animation` fades incoming chunks and takes precedence over `typing`; do not enable both for character-by-character rendering.

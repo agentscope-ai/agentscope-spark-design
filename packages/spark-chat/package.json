@@ -36,7 +36,7 @@
     "release:beta": "node publish-beta.js",
     "src:build": "father build",
     "start": "npm run dev",
-    "test:regression": "node --test scripts/check-chat-regressions.mjs scripts/check-controller-regressions.mjs scripts/check-session-creation-regressions.mjs"
+    "test:regression": "node --test scripts/check-chat-regressions.mjs scripts/check-controller-regressions.mjs scripts/check-session-creation-regressions.mjs scripts/check-typing-regressions.mjs"
   },
   "commitlint": {
     "extends": [

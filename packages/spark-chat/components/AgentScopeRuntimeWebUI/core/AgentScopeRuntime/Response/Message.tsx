@@ -4,12 +4,47 @@ import Files from '../../../../DefaultCards/Files';
 import Images from '../../../../DefaultCards/Images';
 import Videos from '../../../../DefaultCards/Videos';
 import Markdown from '../../../../Markdown';
+import useTyping from '../../../../Markdown/core/hooks/useTyping';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import {
   AgentScopeRuntimeContentType,
   AgentScopeRuntimeRunStatus,
   IAgentScopeRuntimeMessage,
 } from '../types';
+
+/** Remember live content so a completed event does not skip the queued tail. */
+function StreamingText({
+  text,
+  status,
+  messageStatus,
+}: {
+  text?: string;
+  status: AgentScopeRuntimeRunStatus;
+  messageStatus: AgentScopeRuntimeRunStatus;
+}) {
+  const typing = useChatAnywhereOptions((v) => v.response?.typing);
+  const streaming = status === AgentScopeRuntimeRunStatus.InProgress;
+  const [wasStreaming, setWasStreaming] = React.useState(streaming);
+  React.useEffect(() => {
+    if (streaming) setWasStreaming(true);
+  }, [streaming]);
+  const interrupted = [status, messageStatus].some(
+    (value) =>
+      value === AgentScopeRuntimeRunStatus.Canceled ||
+      value === AgentScopeRuntimeRunStatus.Failed ||
+      value === AgentScopeRuntimeRunStatus.Rejected,
+  );
+  const content = useTyping({
+    content: text,
+    typing: (streaming || wasStreaming) && !interrupted ? typing : false,
+  });
+  return (
+    <Markdown
+      content={content}
+      cursor={!interrupted && (streaming || content !== text)}
+    />
+  );
+}
 
 const Message = React.memo(function ({
   data,
@@ -34,15 +69,12 @@ const Message = React.memo(function ({
         switch (item.type) {
           case AgentScopeRuntimeContentType.TEXT:
             return (
-              <Markdown
-                key={index}
-                content={item.text}
-                cursor={
-                  item.status === AgentScopeRuntimeRunStatus.InProgress
-                    ? true
-                    : false
-                }
-              ></Markdown>
+              <StreamingText
+                key={`${data.id}:${index}`}
+                text={item.text}
+                status={item.status}
+                messageStatus={data.status}
+              />
             );
           case AgentScopeRuntimeContentType.REFUSAL:
             return <Markdown raw key={index} content={item.refusal}></Markdown>;
