@@ -1,5 +1,9 @@
 import { XMarkdownProps } from '@ant-design/x-markdown';
 
+export interface MarkdownAnimationConfig {
+  /** Character reveal interval in ms. Default 5; larger values reveal more slowly. Zero fades each incoming chunk together. */
+  characterInterval?: number;
+}
 
 export interface MarkdownProps {
   /**
@@ -32,7 +36,7 @@ export interface MarkdownProps {
   /**
    * @description 是否禁用图片渲染
    * @descriptionEn Whether to disable image rendering
-  */
+   */
   disableImage?: boolean;
 
   /**
@@ -47,7 +51,6 @@ export interface MarkdownProps {
    */
   typing?: boolean | number;
 
-
   /**
    * @description 组件的CSS类名
    * @descriptionEn CSS class name for the component
@@ -55,11 +58,11 @@ export interface MarkdownProps {
   className?: string;
   animation?: boolean;
   /**
-   * @description 淡入动画配置，仅 animation 开启时生效；fadeDuration 单位为毫秒（默认 200），easing 默认 ease-in-out。
-   * @descriptionEn Fade-in options, effective only when animation is enabled; fadeDuration is in milliseconds (default 200), easing defaults to ease-in-out.
+   * @description 逐字渐显速度配置，仅 animation 开启时生效。
+   * @descriptionEn Character reveal speed, effective only with animation enabled.
    */
-  animationConfig?: NonNullable<XMarkdownProps['streaming']>['animationConfig'];
-  
+  animationConfig?: MarkdownAnimationConfig;
+
   components?: XMarkdownProps['components'];
   citations?: {
     title?: string;
@@ -87,7 +90,6 @@ export interface MarkdownProps {
     }
   >;
 }
-
 
 export interface InnerMarkdownXProps extends XMarkdownProps {
   /**

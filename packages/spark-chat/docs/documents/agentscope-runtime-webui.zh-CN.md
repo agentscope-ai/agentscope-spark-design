@@ -808,40 +808,19 @@ export default config;
 
 ## 实时回答内容渐显
 
-`options.response.animation` 复用 Markdown 内置的渐显效果：流式正文每次新增的文本块以默认 200ms 淡入，已展示的文本不重复播放。不逐字排队，也不额外延迟显示。默认关闭；仅正文处于 `in_progress` 且消息未取消、失败或拒绝时播放，历史正文和终态直接展示。
-
-自定义 `response.render` 需调用 `fallback()` 或复用 SDK Message；思考卡片、工具卡片和媒体不受影响。
+`options.response.animation` 让流式正文从左到右逐字淡入。SSE 正常接收，CSS 独立播放动画，不为每个字重新解析 Markdown。默认关闭；历史消息直接展示，正常结束时等待最后的文字动画收尾，取消、失败或拒绝时立即补齐。容器高度使用自然布局，不播放高度动画。
 
 ```tsx
-<AgentScopeRuntimeWebUI
-  options={{
-    ...options,
-    response: {
-      ...options.response,
-      animation: true,
-      animationConfig: { fadeDuration: 120, easing: 'ease-out' },
-    },
-  }}
-/>
+response: {
+  animation: true,
+  animationConfig: {
+    characterInterval: 12,
+  },
+}
 ```
 
-`options.response.animationConfig` 可配置淡入时长 `fadeDuration`（毫秒，默认 `200`）和 CSS 缓动函数 `easing`（默认 `ease-in-out`）。仅 `animation: true` 时生效；单独传配置不会开启动画，也不改变逐字输出速度。省略配置保持原有行为。
+`characterInterval` 是相邻文字开始淡入的间隔，单位为毫秒，默认 `5`，值越大越慢。例如 `12` 较舒缓，`20` 更慢；`0` 表示新增文本同时淡入。只传配置不会开启动画。非有限值使用默认值，负数按 `0` 处理，上限为 `100`。实际绘制按屏幕刷新率进行，5ms 不代表每 5ms 重绘页面。
 
-### 打字机效果
+SDK 内部限制动画积压与临时节点数量。大段突发内容会自动缩短间隔或合并字符组；慢速配置也不会无限排队。每个 Markdown 最多保留 384 个活动动画 span，额度耗尽时新增内容直接展示，动画结束后合并为普通文本。尊重系统“减少动态效果”设置。代码、公式、媒体和自定义组件保留自身渲染方式。
 
-`options.response.typing` 支持 `true`（默认每字 5ms）或正数（每字间隔毫秒）。数值越小越快；`false`、`0`、负数或非有限值关闭效果。默认不启用。
-
-```tsx
-<AgentScopeRuntimeWebUI
-  options={{
-    ...options,
-    response: {
-      ...options.response,
-      animation: false,
-      typing: 5,
-    },
-  }}
-/>
-```
-
-`animation: true` 优先于 `typing`，使用打字机效果时需关闭渐显。仅正在生成的正文逐字显示；历史消息直接显示，正常完成后继续打完剩余文字；取消、失败或拒绝时立即补齐并停止定时器。自定义 `response.render` 需调用 `fallback()` 或复用 SDK `Message`。`ChatAnywhere` 的 Text 卡片和独立 `Markdown` 已支持同名 `typing` 属性。
+自定义 `response.render` 需调用 `fallback()` 或复用 SDK `Message`。独立 `Markdown` 和 ChatAnywhere Text 卡片支持相同的 `animation` 与 `animationConfig.characterInterval` 配置。

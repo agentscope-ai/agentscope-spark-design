@@ -33,7 +33,7 @@ import { Markdown } from '@agentscope-ai/chat';
   content={content}
   cursor={isStreaming}
   animation
-  animationConfig={{ fadeDuration: 120, easing: 'ease-out' }}
+  animationConfig={{ characterInterval: 12 }}
 />
 ```
-`fadeDuration` 单位为毫秒，默认 `200`；`easing` 默认 `ease-in-out`。仅启用 `animation` 且正在流式输出时生效，不控制逐字输出速度。ChatAnywhere 的 Text 卡片可在 `data.animationConfig` 中传入相同配置。
+`animationConfig.characterInterval` 控制相邻文字开始渐显的间隔（毫秒，默认 `5`）。值越大越慢，可设为 `12` 或 `20`；`0` 同时淡入新增内容。大段突发内容会自动加快以限制积压，实际画面按屏幕刷新率绘制。容器使用自然高度，不播放高度动画；尊重减少动态效果设置。ChatAnywhere Text 卡片可传入相同配置。

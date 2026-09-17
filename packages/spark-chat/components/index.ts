@@ -95,6 +95,7 @@ export {
   default as Markdown,
   type MarkdownProps as IMarkdownProps,
   type MarkdownProps,
+  type MarkdownAnimationConfig,
 } from './Markdown';
 
 export { default as AIGC } from './AIGC';

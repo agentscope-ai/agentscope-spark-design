@@ -36,7 +36,7 @@
     "release:beta": "node publish-beta.js",
     "src:build": "father build",
     "start": "npm run dev",
-    "test:regression": "node --test scripts/check-chat-regressions.mjs scripts/check-controller-regressions.mjs scripts/check-session-creation-regressions.mjs scripts/check-typing-regressions.mjs"
+    "test:regression": "node --test scripts/check-chat-regressions.mjs scripts/check-controller-regressions.mjs scripts/check-session-creation-regressions.mjs"
   },
   "commitlint": {
     "extends": [
@@ -76,6 +76,7 @@
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.7",
     "dompurify": "^3.2.6",
+    "html-react-parser": "^5.2.13",
     "immer": "^10.1.1",
     "lodash": "^4.17.21",
     "marked": "~15.0.12",

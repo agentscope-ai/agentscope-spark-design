@@ -917,18 +917,13 @@ export interface IAgentScopeRuntimeWebUIResponseSlot {
  */
 export interface IAgentScopeRuntimeWebUIResponseOptions {
   /**
-   * @description 实时正文打字机效果，默认关闭。true 为每字 5ms，正数为每字间隔毫秒；非正数或非有限值关闭。animation 为 true 时优先渐显。历史消息直接显示，正常完成后继续显示剩余文字，中断时立即补齐。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
-   * @descriptionEn Typewriter effect for live text, off by default. true uses 5ms per character; a positive number sets the interval in milliseconds. Non-positive or non-finite values disable it. animation takes precedence. History renders immediately; normal completion drains pending text; interruption flushes it. Custom renderers must use fallback() or the SDK Message component.
-   */
-  typing?: MarkdownProps['typing'];
-  /**
-   * @description 实时正文按新增文本块渐显，默认关闭。复用 Markdown 的 animation，不逐字排队。历史消息及终态不播放动画。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
-   * @descriptionEn Fade in incoming live text chunks, off by default. Reuses Markdown animation without a character queue. History and terminal states do not animate. Custom renderers must use fallback() or the SDK Message component.
+   * @description 实时正文从左到右按字渐显，默认关闭。SSE 正常接收，CSS 独立播放；历史消息直接展示，正常结束等待动画收尾，中断立即补齐。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
+   * @descriptionEn Reveal incoming text from left to right with configurable speed, off by default. CSS animates independently of SSE reception; history displays immediately, completion drains animations, interruption flushes them. Custom renderers must use fallback() or the SDK Message component.
    */
   animation?: boolean;
   /**
-   * @description 正文淡入动画配置，仅 animation 为 true 时生效。fadeDuration 为毫秒（默认 200），easing 为 CSS 缓动函数（默认 ease-in-out）。不控制逐字输出速度。
-   * @descriptionEn Live text fade-in options, effective only when animation is true. fadeDuration is in milliseconds (default 200); easing is a CSS easing function (default ease-in-out). Does not control typing speed.
+   * @description 正文动画配置，仅 animation 为 true 时生效。characterInterval 为逐字渐显间隔（毫秒，默认 5），值越大越慢；0 为新增文本同时淡入。
+   * @descriptionEn Live text animation options, effective only with animation: true. characterInterval sets the stagger in milliseconds (default 5); larger values are slower, zero fades incoming text simultaneously.
    */
   animationConfig?: MarkdownProps['animationConfig'];
 

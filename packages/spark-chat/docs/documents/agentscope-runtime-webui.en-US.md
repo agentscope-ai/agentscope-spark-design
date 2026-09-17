@@ -809,40 +809,19 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 
 ## Fade-in animation for live responses
 
-`options.response.animation` reuses Markdown's built-in fade-in: each incoming text chunk fades in over the default 200ms, while previously rendered text is preserved. There is no character queue or extra display delay. Disabled by default; active only for `in_progress` text whose message is not canceled, failed, or rejected. History and terminal states render immediately.
-
-Custom `response.render` must call `fallback()` or reuse the SDK Message renderer. Reasoning cards, tool cards, and media are unaffected.
+`options.response.animation` reveals streaming text character by character from left to right. SSE reception proceeds normally and CSS plays the animation without reparsing Markdown per character. Off by default. History displays immediately, normal completion lets pending characters settle, and cancellation/failure/rejection flushes them. Container height uses natural layout without animation.
 
 ```tsx
-<AgentScopeRuntimeWebUI
-  options={{
-    ...options,
-    response: {
-      ...options.response,
-      animation: true,
-      animationConfig: { fadeDuration: 120, easing: 'ease-out' },
-    },
-  }}
-/>
+response: {
+  animation: true,
+  animationConfig: {
+    characterInterval: 12,
+  },
+}
 ```
 
-`options.response.animationConfig` accepts `fadeDuration` (milliseconds, default `200`) and the CSS `easing` function (default `ease-in-out`). It only takes effect with `animation: true`; passing the config alone does not enable animation or change typing speed. Omitting it preserves existing behavior.
+`characterInterval` is the delay in milliseconds between successive characters beginning to fade in. Default `5`; larger values are slower, for example `12` for a gentler reveal or `20` for a slower one. `0` fades incoming text simultaneously. Configuration alone does not enable animation. Non-finite values use the default, negatives become zero and values are capped at `100`. Screen refresh rate determines actual paints; a 5ms interval does not imply a repaint every 5ms.
 
-### Typewriter effect
+The SDK bounds animation backlog and temporary nodes. Large bursts shorten intervals or group characters, even with a slow setting. Each Markdown keeps at most 384 active animated spans; new text displays immediately when the budget is exhausted, and settled spans compact into plain text. Reduced motion is respected. Code, math, media and custom renderers retain their own behavior.
 
-`options.response.typing` accepts `true` (5ms per character by default) or a positive number (interval in milliseconds). Smaller values are faster. `false`, `0`, negative or non-finite values disable the effect. It is off by default.
-
-```tsx
-<AgentScopeRuntimeWebUI
-  options={{
-    ...options,
-    response: {
-      ...options.response,
-      animation: false,
-      typing: 5,
-    },
-  }}
-/>
-```
-
-`animation: true` takes precedence over `typing`, so disable fading to use the typewriter effect. Only live, in-progress text is typed. History renders immediately; normal completion continues typing the remaining text; cancellation, failure or rejection flushes it and stops its timer. Custom `response.render` implementations must call `fallback()` or reuse the SDK `Message` component. `ChatAnywhere` Text cards and standalone `Markdown` already support the same `typing` property.
+Custom `response.render` must call `fallback()` or reuse the SDK `Message`. Standalone `Markdown` and ChatAnywhere Text cards accept the same `animation` and `animationConfig.characterInterval` configuration.

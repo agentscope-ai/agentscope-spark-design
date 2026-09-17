@@ -32,7 +32,7 @@ import { Markdown } from '@agentscope-ai/chat';
   content={content}
   cursor={isStreaming}
   animation
-  animationConfig={{ fadeDuration: 120, easing: 'ease-out' }}
+  animationConfig={{ characterInterval: 12 }}
 />
 ```
-`fadeDuration` is in milliseconds (default `200`); `easing` defaults to `ease-in-out`. Effective only with animation enabled during streaming; this does not control typing speed. ChatAnywhere Text cards accept the same options in `data.animationConfig`.
+`animationConfig.characterInterval` controls the stagger in milliseconds (default `5`). Larger values are slower: try `12` or `20`; `0` fades incoming text simultaneously. Large bursts accelerate to bound backlog; actual paints follow screen refresh rate. Container height remains natural with no height animation. Reduced motion is respected. ChatAnywhere Text cards accept the same configuration.

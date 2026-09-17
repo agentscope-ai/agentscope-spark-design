@@ -1,30 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import { createTypingController } from './typingController';
 
-const useTyping = ({
-  content,
-  typing,
-}: {
-  content?: string;
-  typing?: boolean | number;
-}) => {
-  const [visible, setVisible] = useState('');
-  const controller = useRef<ReturnType<typeof createTypingController>>();
-  if (!controller.current)
-    controller.current = createTypingController(setVisible);
+const useTyping = ({ content, typing }) => {
+  const [index, setIndex] = useState(0);
+  const timer = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    controller.current!.update(content || '', typing);
-  }, [content, typing]);
+    if (typing) {
+      timer.current = setInterval(() => {
+        setIndex((v) => v + 1);
+      }, typeof typing === 'number' ? typing : 5);
+    } else {
+      timer.current && clearInterval(timer.current);
+    }
 
-  useEffect(() => () => controller.current!.stop(), []);
+    return () => clearInterval(timer.current);
+  }, [typing]);
 
-  const enabled =
-    typing === true ||
-    (typeof typing === 'number' && Number.isFinite(typing) && typing > 0);
-  if (!enabled) return content;
-  // Never render stale text for a replacement while its effect is pending.
-  return (content || '').startsWith(visible) ? visible : '';
+  if (!typing) return content;
+
+  return content.slice(0, index);
 };
+
 
 export default useTyping;

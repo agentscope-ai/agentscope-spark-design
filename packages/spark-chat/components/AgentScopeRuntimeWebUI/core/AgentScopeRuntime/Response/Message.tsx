@@ -11,7 +11,7 @@ import {
   IAgentScopeRuntimeMessage,
 } from '../types';
 
-/** Apply configured text effects only while live content is streaming. */
+/** Animate live text and let the last characters settle after normal completion. */
 function StreamingText({
   text,
   status,
@@ -21,7 +21,6 @@ function StreamingText({
   status: AgentScopeRuntimeRunStatus;
   messageStatus: AgentScopeRuntimeRunStatus;
 }) {
-  const typing = useChatAnywhereOptions((v) => v.response?.typing);
   const animation = useChatAnywhereOptions((v) => v.response?.animation);
   const animationConfig = useChatAnywhereOptions((v) => v.response?.animationConfig);
   const streaming = status === AgentScopeRuntimeRunStatus.InProgress;
@@ -38,8 +37,7 @@ function StreamingText({
   return (
     <Markdown
       content={text}
-      typing={(streaming || wasStreaming) && !interrupted ? typing : false}
-      animation={Boolean(animation && streaming && !interrupted)}
+      animation={Boolean(animation && (streaming || wasStreaming) && !interrupted)}
       animationConfig={animationConfig}
       cursor={!interrupted && streaming}
     />
