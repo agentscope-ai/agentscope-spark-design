@@ -307,3 +307,29 @@ test('acceptance callbacks do not swallow request or consumer exceptions', async
     (error) => error === consumeError,
   );
 });
+
+
+const { shouldScrollForMessageUpdate } = await loadSource(
+  '../components/AgentScopeRuntimeWebUI/core/Chat/MessageList/messageScrollPolicy.ts',
+);
+const identities = (...ids) => ids.map(id => ({ id }));
+
+test('history pagination and trace backfills never request a scroll to latest', () => {
+  const previous = identities('reply-32', 'request-32', 'reply-18', 'request-18');
+  assert.equal(shouldScrollForMessageUpdate(previous,
+    [...previous, ...identities('reply-17', 'request-17')], 's1', 's1'), false);
+  assert.equal(shouldScrollForMessageUpdate(previous,
+    identities('reply-32', 'trace-32', 'request-32', 'reply-18', 'request-18'), 's1', 's1'), false);
+  assert.equal(shouldScrollForMessageUpdate(previous,
+    previous.map(message => ({ ...message, text: 'stream update' })), 's1', 's1'), false);
+});
+
+test('initial load, session switches and new messages retain scroll behavior', () => {
+  const previous = identities('reply-32', 'request-32');
+  assert.equal(shouldScrollForMessageUpdate([], previous, 's1', 's1'), true);
+  assert.equal(shouldScrollForMessageUpdate(previous, identities('reply-1'), 's1', 's2'), true);
+  assert.equal(shouldScrollForMessageUpdate(previous,
+    [...identities('request-33'), ...previous], 's1', 's1'), true);
+  assert.equal(shouldScrollForMessageUpdate(previous, [], 's1', 's1'), false);
+  assert.equal(shouldScrollForMessageUpdate(previous, identities('request-32'), 's1', 's1'), false);
+});

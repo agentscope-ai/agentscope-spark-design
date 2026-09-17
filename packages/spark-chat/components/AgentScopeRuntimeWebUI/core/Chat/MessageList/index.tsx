@@ -10,6 +10,7 @@ import { ChatAnywhereSessionsContext } from '../../Context/ChatAnywhereSessionsC
 import { IAgentScopeRuntimeWebUIMessage } from '../../types/IMessages';
 import Welcome from '../Welcome';
 import UserMessageAnchors from './UserMessageAnchors';
+import { shouldScrollForMessageUpdate } from './messageScrollPolicy';
 
 const PAGE_SIZE = 10;
 const ANCHOR_JUMP_WINDOW_BEFORE = 24;
@@ -49,6 +50,7 @@ function areHistoryRangesEqual(prev: HistoryRange, next: HistoryRange) {
 function useSimulatedMessagePagination(
   allMessages: MessageWithHistory[],
   sessionId: string | undefined,
+  pagination: boolean,
 ) {
   const [historyRange, setHistoryRangeState] = useState<HistoryRange>(
     INITIAL_HISTORY_RANGE,
@@ -92,12 +94,12 @@ function useSimulatedMessagePagination(
     historyRange.start,
     historyRange.end,
   );
-  const noMore = historyRange.end >= historyMessages.length;
+  const noMore = !pagination || historyRange.end >= historyMessages.length;
 
   // Show new messages first, then paginated history messages.
   const visibleMessages = useMemo(
-    () => [...newMessages, ...visibleHistory],
-    [newMessages, visibleHistory],
+    () => pagination ? [...newMessages, ...visibleHistory] : allMessages,
+    [pagination, allMessages, newMessages, visibleHistory],
   );
 
   const loadMore = useCallback(() => {
@@ -128,7 +130,7 @@ function useSimulatedMessagePagination(
         throw new Error('Message visibility request was superseded');
       }
 
-      if (historyIndex >= 0) {
+      if (pagination && historyIndex >= 0) {
         const currentRange = historyRangeRef.current;
         const targetVisible =
           historyIndex >= currentRange.start && historyIndex < currentRange.end;
@@ -150,7 +152,7 @@ function useSimulatedMessagePagination(
       }
       await waitForNextFrame();
     },
-    [historyMessages, setHistoryRange],
+    [pagination, historyMessages, setHistoryRange],
   );
 
   return { visibleMessages, noMore, loadMore, ensureMessageVisible };
@@ -178,11 +180,15 @@ export default function MessageList(props: {
   const userMessageAnchorsOptions = useChatAnywhereOptions(
     (v) => v.theme?.bubbleList?.userMessageAnchors,
   );
+  const pagination = useChatAnywhereOptions((v) => v.theme?.bubbleList?.pagination !== false);
   const listRef = React.useRef<{ scrollToBottom: () => void } | null>(null);
-  const prevMessagesLengthRef = React.useRef(safeMessages.length);
+  const previousMessagesRef = React.useRef({
+    messages: safeMessages,
+    sessionId: currentSessionId,
+  });
 
   const { visibleMessages, noMore, loadMore, ensureMessageVisible } =
-    useSimulatedMessagePagination(safeMessages, currentSessionId);
+    useSimulatedMessagePagination(safeMessages, currentSessionId, pagination);
   const renderedItemsKey = useMemo(
     () =>
       `${visibleMessages.length}:${visibleMessages[0]?.id || ''}:${
@@ -192,11 +198,17 @@ export default function MessageList(props: {
   );
 
   React.useEffect(() => {
-    if (safeMessages.length > prevMessagesLengthRef.current) {
+    const previous = previousMessagesRef.current;
+    if (shouldScrollForMessageUpdate(
+      previous.messages, safeMessages, previous.sessionId, currentSessionId,
+    )) {
       listRef.current?.scrollToBottom();
     }
-    prevMessagesLengthRef.current = safeMessages.length;
-  }, [safeMessages.length]);
+    previousMessagesRef.current = {
+      messages: safeMessages,
+      sessionId: currentSessionId,
+    };
+  }, [safeMessages, currentSessionId]);
 
   if (safeMessages.length === 0)
     return (
