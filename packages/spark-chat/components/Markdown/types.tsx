@@ -1,5 +1,9 @@
 import { XMarkdownProps } from '@ant-design/x-markdown';
 
+export interface MarkdownAnimationConfig {
+  /** Character reveal interval in ms. Default 5; larger values reveal more slowly. Zero fades each incoming chunk together. */
+  characterInterval?: number;
+}
 
 export interface MarkdownProps {
   /**
@@ -32,7 +36,7 @@ export interface MarkdownProps {
   /**
    * @description 是否禁用图片渲染
    * @descriptionEn Whether to disable image rendering
-  */
+   */
   disableImage?: boolean;
 
   /**
@@ -47,14 +51,18 @@ export interface MarkdownProps {
    */
   typing?: boolean | number;
 
-
   /**
    * @description 组件的CSS类名
    * @descriptionEn CSS class name for the component
    */
   className?: string;
   animation?: boolean;
-  
+  /**
+   * @description 逐字渐显速度配置，仅 animation 开启时生效。
+   * @descriptionEn Character reveal speed, effective only with animation enabled.
+   */
+  animationConfig?: MarkdownAnimationConfig;
+
   components?: XMarkdownProps['components'];
   citations?: {
     title?: string;
@@ -83,7 +91,6 @@ export interface MarkdownProps {
   >;
 }
 
-
 export interface InnerMarkdownXProps extends XMarkdownProps {
   /**
    * @description 光标样式类型，支持点状、下划线或布尔值控制
@@ -91,4 +98,5 @@ export interface InnerMarkdownXProps extends XMarkdownProps {
    */
   cursor?: MarkdownProps['cursor'];
   animation?: MarkdownProps['animation'];
+  animationConfig?: MarkdownProps['animationConfig'];
 }

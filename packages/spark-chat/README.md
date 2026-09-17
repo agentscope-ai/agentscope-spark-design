@@ -212,6 +212,7 @@ for await (const chunk of Stream({ readableStream: response.body })) {
 ## 📚 Documentation
 
 - [Overview](./docs/documents/overview.en-US.md)
+- [AgentScope Runtime WebUI and 1.2.0 Upgrade Guide](./docs/documents/agentscope-runtime-webui.en-US.md)
 - [ChatAnywhere Usage Guide](./docs/documents/chatanywhere.en-US.md)
 - [Bailian Agent Integration](./docs/documents/bailian.en-US.md)
 - [Custom Cards](./docs/documents/customCard.en-US.md)

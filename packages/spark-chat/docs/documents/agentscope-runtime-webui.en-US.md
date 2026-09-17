@@ -84,7 +84,10 @@ The core code in the scaffold is as follows:
 **`src/components/Chat/index.tsx`**
 
 ```tsx | pure
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIOptions } from '@agentscope-ai/chat';
+import {
+  AgentScopeRuntimeWebUI,
+  IAgentScopeRuntimeWebUIOptions,
+} from '@agentscope-ai/chat';
 import defaultConfig from './defaultConfig';
 
 export default function () {
@@ -119,15 +122,18 @@ const config: IAgentScopeRuntimeWebUIOptions = {
   },
   sender: {
     maxLength: 10000,
-    disclaimer: 'AI can also make mistakes, so please check carefully and use it with caution',
+    disclaimer:
+      'AI can also make mistakes, so please check carefully and use it with caution',
   },
   session: {
     multiple: false,
   },
   welcome: {
     greeting: 'Hello, how can I help you today?',
-    description: 'I am a helpful assistant that can help you with your questions.',
-    avatar: 'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
+    description:
+      'I am a helpful assistant that can help you with your questions.',
+    avatar:
+      'https://img.alicdn.com/imgextra/i2/O1CN01lmoGYn1kjoXATy4PX_!!6000000004720-2-tps-200-200.png',
     prompts: [
       { value: 'Hello' },
       { value: 'How are you?' },
@@ -197,19 +203,61 @@ const options = {
     token: 'YOUR_API_TOKEN',
 
     // Option 2: Custom fetch function for full control over request behavior
-    fetch: async ({ input, signal }) => {
+    fetch: async ({
+      input,
+      session_id,
+      context,
+      biz_params,
+      mentions,
+      submission,
+      signal,
+    }) => {
       return fetch('https://your-api-url.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({
+          input,
+          session_id,
+          context,
+          biz_params,
+          mentions,
+          submission,
+        }),
         signal,
       });
     },
+    // Receives one SSE event's data string, not the Response object
+    responseParser: (chunk) => JSON.parse(chunk),
     // Whether to include history messages in requests (default false)
     enableHistoryMessages: false,
   },
 };
 ```
+
+Starting in 1.2.0, WebUI creates a request snapshot when a submission begins. `session_id`, `context`, `biz_params`, `mentions`, and `signal` continue to come from that snapshot across asynchronous boundaries instead of being read again from the active session. A custom `fetch` should use the supplied `session_id` and `context` directly and must not read a global `activeSessionId` again after an `await`.
+
+Use `context` for generic business context scoped to one request. `biz_params` still supports `user_prompt_params` and may contain additional JSON fields. The default request and a custom `fetch` receive the same context fields. `responseParser` receives one SSE `data` string per call and defaults to `JSON.parse`.
+
+### Custom stop and cancellation events
+
+By default, Stop immediately terminates the browser SSE and marks running response, tool-call, and content states as `canceled`. If the backend emits cancellation progress or a terminal status on the original SSE, configure `api.cancel`:
+
+```tsx | pure
+const options = {
+  api: {
+    fetch: customFetch,
+    cancel: async ({ session_id, signal, abort }) => {
+      await fetch(`/api/sessions/${session_id}/cancel`, { method: 'POST' });
+
+      // Do not call abort: keep the original SSE open for backend cancel events.
+      // Call abort() explicitly when the host wants to close the local stream now.
+      if (signal?.aborted) return;
+    },
+  },
+};
+```
+
+When `api.cancel` is provided, the SDK does not automatically abort the original SSE. The backend should send a terminal `status: "canceled"` event on that stream; the SDK then ends loading and persists the response as interrupted. If `api.cancel` throws or rejects, the SDK falls back to local `abort()`. The host may also call the supplied `abort()` after a timeout or after confirming that no more server events will arrive.
 
 ### Theme Configuration
 
@@ -232,10 +280,18 @@ const options = {
     },
     bubbleList: {
       pagination: true,
+      userMessageAnchors: {
+        enabled: true,
+        variant: 'navigator',
+        minCount: 3,
+        badgeMaxCount: 99,
+      },
     },
   },
 };
 ```
+
+`theme.locale` controls the language of built-in WebUI copy. It accepts `'en'` or `'cn'` and defaults to `'en'`; built-in text such as the user-message navigation title follows this setting. Use `bubbleList.userMessageAnchors` to configure user-message anchors. Set `variant` to `'minimap'` for right-side bars or `'navigator'` for up/directory/down controls.
 
 ### Welcome Page Configuration
 
@@ -245,7 +301,8 @@ Configure the welcome page shown when users enter the chat via `welcome`.
 const options = {
   welcome: {
     greeting: 'Hello! How can I help you?',
-    description: 'I am an intelligent assistant that can answer your questions.',
+    description:
+      'I am an intelligent assistant that can answer your questions.',
     avatar: 'https://your-avatar.png',
     nick: 'Assistant',
     prompts: [
@@ -277,7 +334,11 @@ const options = {
   sender: {
     placeholder: 'Type your question...',
     maxLength: 5000,
-    disclaimer: 'AI-generated content may contain errors. Please verify carefully.',
+    showCharacterCount: true,
+    characterCountRender: ({ count, maxLength }) =>
+      `${count}/${maxLength ?? '-'}`,
+    disclaimer:
+      'AI-generated content may contain errors. Please verify carefully.',
     allowSpeech: true,
     suggestions: [
       { label: 'Draw a picture', value: 'Draw a sunset landscape' },
@@ -286,6 +347,21 @@ const options = {
     attachments: {
       accept: '.png,.jpg,.pdf',
       maxCount: 5,
+    },
+    longTextUpload: {
+      enabled: true,
+      customRequest(options) {
+        // Input over maxLength is passed here as a txt file
+        uploadTextFile(options.file)
+          .then((response) => {
+            options.onSuccess(response);
+          })
+          .catch(options.onError);
+      },
+      prompt: () =>
+        getCurrentLocale() === 'cn'
+          ? '请先阅读附件中的内容，再基于它回答我的问题'
+          : 'please read the file as prompt then answer it',
     },
     beforeUI: <div>Content above the input</div>,
     afterUI: <div>Content below the input</div>,
@@ -298,6 +374,131 @@ const options = {
 };
 ```
 
+Setting `sender.maxLength` displays the character count by default; use `showCharacterCount` to control it explicitly. `characterCountRender` customizes the counter and receives `value`, `count`, `maxLength`, `loading`, `disabled`, and `sendDisabled`. `count` is always the actual length of the current input, even when it exceeds `maxLength`; it is not capped at the threshold.
+
+When `longTextUpload` is enabled, `sender.maxLength` is used as the overlong text threshold. If typed or pasted content exceeds that threshold, WebUI automatically creates and uploads a txt attachment, then replaces the input content with `prompt`. `prompt` supports either a string or a `() => string` function for i18n. When an external language switch updates the `prompt` config, WebUI refreshes the input content only if it is still the auto-generated prompt; user-edited input is not overwritten. If `prompt` is omitted, it defaults to `please read the file as prompt then answer it`. When `customRequest` is omitted, `attachments.customRequest` is reused.
+
+#### Built-in Input Queue
+
+The built-in input queue is disabled by default. When `sender.queue` is omitted, WebUI does not create queue storage, a cross-tab channel, or background queue tasks. Pass `true` to use the defaults:
+
+```tsx | pure
+const options = {
+  sender: {
+    queue: true,
+  },
+};
+```
+
+Pass an options object when the host needs to provide session identity and runtime state:
+
+```tsx | pure
+const options = {
+  sender: {
+    queue: {
+      // Use a stable unique namespace on multi-agent/multi-tenant pages
+      scope: `${tenantId}:${agentId}`,
+      maxSize: 50,
+      onInputEnqueued: (item) => {
+        // item.data preserves the queued input and its request context
+        setCoffeeEnabled(false);
+      },
+      // A queue key must identify one chat; do not return the backend session_id
+      getQueueKey: (chatSessionId) => chatSessionId,
+      getRequestContext: (sessionId) => ({
+        session_id: sessionId,
+        user_id: getCurrentUserId(),
+        agent_id: getCurrentAgentId(),
+        context: {
+          workspaceId: getCurrentWorkspaceId(),
+        },
+      }),
+      isSessionRunning: async ({ sessionId, requestContext }) => {
+        return queryRunningState(sessionId, requestContext);
+      },
+      shouldRestoreOnError: async ({ error }) => {
+        return !isRequestAccepted(error);
+      },
+    },
+  },
+};
+```
+
+`getQueueKey` receives the SDK chat session id and returns the opaque key used for persistence and cross-tab communication. Chats that share one backend runtime `session_id` must still return different queue keys; request-routing fields belong only in `getRequestContext`. The legacy `getSessionId` option remains compatible but is deprecated.
+
+Each queue item keeps the `session_id` and `context` captured when it was enqueued, so draining does not bind it to the currently visible session. Web Locks (with a local lease fallback), a `scope`-isolated `BroadcastChannel`, and versioned `localStorage` state coordinate sending. Persistence keeps only JSON-compatible request fields and attachment references, and state expires after 24 hours without an update. Multi-agent or multi-tenant pages must provide a stable unique `scope`. Host-specific semantics remain in the callbacks above. For external migration or cleanup, use the exported `resolveInputQueueKey(chatSessionId, { scope, getQueueKey })` to generate exactly the same key as the SDK instead of duplicating its internal format.
+
+`sender.queue.onInputEnqueued(item)` fires once after an input is successfully queued and the queue state update completes. It receives the new queue item (including `id`, `data`, and `status`) and can reset composer toggles such as Coffee. It does not fire when the queue is full, the session is not ready, attachments are still uploading, or the queue update fails. Direct sends, persisted queue restoration, cross-tab synchronization, and retries of existing items do not trigger it either. Only the enqueuing instance is notified, without waiting for draining or request completion. Synchronous callback errors are logged without changing the successful enqueue result.
+
+#### Host-managed Delayed Queues
+
+You do not need to enable the built-in queue. The host continues to own FIFO ordering, persistence, pause/edit/retry behavior, and cross-tab ownership. The SDK `ref.execution` controller owns one AI Run's session creation, request submission, SSE consumption, cancellation, and stream recovery. Save the complete `IAgentScopeRuntimeWebUIInputData` when enqueuing, especially `session_id` and `context`:
+
+```tsx | pure
+const options = {
+  sender: {
+    beforeSubmit: async (data) => {
+      hostQueue.enqueue({
+        id: crypto.randomUUID(),
+        chatSessionId: activeSessionId,
+        data: {
+          ...data,
+          session_id: activeSessionId,
+          context: { workspaceId: activeWorkspaceId },
+        },
+      });
+      return { proceed: false, clear: true };
+    },
+  },
+};
+
+async function deliver(item: HostQueueItem) {
+  const run = await chatRef.current!.execution.execute(item.data, {
+    source: 'host-queue',
+    clientRequestId: item.id,
+    sessionId: item.chatSessionId,
+  });
+
+  const session = await run.session;
+  if (session.resolved) {
+    // The SDK chat session id is available before the request starts, so a
+    // newly created chat can immediately update the URL and selected row.
+    selectChatSession(session.sessionId!);
+  }
+
+  const unsubscribe = run.subscribe((event) => {
+    hostQueue.updateRunState(item.id, event);
+    // disconnected is not completion. The host chooses when to reconnect and
+    // must not submit this accepted queue item again.
+  });
+
+  const accepted = await run.accepted;
+  hostQueue.markAccepted(item.id, accepted.accepted, run.runId);
+
+  const result = await run.completion;
+  unsubscribe();
+  if (result.status === 'completed') hostQueue.remove(item.id);
+  else if (result.retryable) hostQueue.restore(item.id);
+  // For backendAcceptance === 'unknown', query the backend before any new POST.
+}
+
+function resume(item: HostQueueItem) {
+  return chatRef.current!.execution.resume({
+    runId: item.runId,
+    sessionId: item.chatSessionId,
+    source: 'host-queue',
+    clientRequestId: item.id,
+    requestContext: item.data, // Restore persisted backend routing after remount.
+  });
+}
+```
+
+`execution.execute` bypasses `beforeSubmit` and the SDK queue policy, so it cannot enqueue the item again. Repeating a `clientRequestId` in the same mounted instance returns the same active Run. The lifecycle advances through `preparing → submitting → accepted → streaming → completed/failed/canceled`. If SSE closes before a terminal runtime event, the Run enters `disconnected` and `completion` remains pending. `execution.resume` continues that same Run through `reconnecting` without creating a new business submission. When `execution.cancel({ runId })` resolves, the local stream and message state are terminal as well.
+
+`ref.input.submit` remains available for simple imperative submission and preserves the complete `IAgentScopeRuntimeWebUIInputData`. Durable host queues should use `ref.execution` and inspect `backendAcceptance`: `not-submitted` means the send adapter has not been called; `unknown` means it was called but no successful response was received; `accepted` means a successful response was received or the host explicitly resumed an existing Run. Only failures with `not-submitted` return `retryable: true`. Neither `backendAccepted: false` nor `accepted: false` proves backend rejection. For `unknown`, query backend state or rely on an explicitly supported backend idempotency protocol before resubmitting.
+
+Both the host queue and `api.fetch` should use the persisted `session_id` instead of reading the global active session again. Custom `fetch`, `cancel`, and `reconnect` receive `runId` / `clientRequestId` for correlation. These are SDK/host identifiers, not automatically backend Run IDs or idempotency keys; the built-in fetch does not invent a backend idempotency protocol. Public Run events belong to handles created by `execution.execute/resume`; ordinary UI submission, regeneration, and approval do not automatically create public Runs.
+
 ### Session Management
 
 Configure multi-session support and session persistence via `session`.
@@ -305,34 +506,78 @@ Configure multi-session support and session persistence via `session`.
 ```tsx | pure
 const options = {
   session: {
-    multiple: true,  // Enable multiple sessions
+    multiple: true, // Enable multiple sessions
+    currentSessionId: routeSessionId, // Optional: control the session from the host route
+    onCurrentSessionChange: setRouteSessionId,
     api: {
       // Implement session persistence interface
-      getSessionList: async () => { /* ... */ },
-      getSession: async (sessionId) => { /* ... */ },
-      createSession: async (session) => { /* ... */ },
-      updateSession: async (session) => { /* ... */ },
-      removeSession: async (session) => { /* ... */ },
+      getSessionList: async () => {
+        /* ... */
+      },
+      getSession: async (sessionId) => {
+        /* ... */
+      },
+      createSession: async (session) => {
+        const created = await createOrReuseSession(session);
+        const sessions = await listSessions();
+        return { sessions, session: created };
+      },
+      updateSession: async (session) => {
+        /* ... */
+      },
+      removeSession: async (session) => {
+        /* ... */
+      },
     },
   },
 };
 ```
 
-When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. Implement the above interface to connect to your backend storage.
+When `session.api` is not provided, the component includes a built-in `localStorage`-based session persistence implementation that works out of the box. To connect backend storage, implement all five methods above; `getSession` may return `undefined` when a session does not exist. `createSession` should return `{ sessions, session }`, where `sessions` is the updated list and `session` is the session created or reused by this call. Legacy adapters that only return the session array remain supported, but the explicit result prevents the SDK from guessing by list order when a host reuses an unresolved draft and removes the need to mutate the input `session.id`. When `currentSessionId` is provided, WebUI treats it as a host-controlled route value; `onCurrentSessionChange` synchronizes session creation and navigation back to the host route. After creation, the SDK immediately activates the new session's empty message list, so hosts do not need to clear messages through an internal Context hook.
+
+Isolate default storage with `session.storageScope`, for example `JSON.stringify([tenantId, userId, workspaceId, agentId])`. Multi-tenant, multi-account, or multi-agent hosts must provide a stable nonempty scope. This is separate from `sender.queue.scope`: configure both when using both history and queues. Omitting it preserves legacy keys and history. Scoped stores use independent keys and never import unscoped history automatically. Changing the scope remounts the session runtime and aborts the old local connection, but does not stop the backend task. Hosts using a custom `session.api` remain responsible for storage isolation; localStorage namespaces are not an authorization boundary.
+
+### Message Bubble Extensions
+
+Compose host UI with the SDK defaults through `request.render` and `response.render`. `fallback()` returns the default SDK bubble, so hosts do not need to deep-import internal components from `lib/AgentScopeRuntimeWebUI/core/...`. Runtime message, content, and status types are also exported directly from the `@agentscope-ai/chat` root entry.
+
+```tsx | pure
+const options = {
+  request: {
+    render: ({ data, fallback }) => (
+      <HostRequestFrame data={data}>{fallback()}</HostRequestFrame>
+    ),
+  },
+  response: {
+    render: ({ data, isLast, fallback }) => (
+      <HostResponseFrame data={data} isLast={isLast}>
+        {fallback()}
+      </HostResponseFrame>
+    ),
+  },
+};
+```
 
 ### Ref Instance Methods
 
 Access the component instance via `ref` to control messages and input behavior externally.
 
 ```tsx | pure
-import { AgentScopeRuntimeWebUI, IAgentScopeRuntimeWebUIRef } from '@agentscope-ai/chat';
+import {
+  AgentScopeRuntimeWebUI,
+  IAgentScopeRuntimeWebUIRef,
+} from '@agentscope-ai/chat';
 import { useRef } from 'react';
 
 export default function App() {
   const chatRef = useRef<IAgentScopeRuntimeWebUIRef>(null);
 
   const handleExternalSubmit = () => {
-    chatRef.current?.input.submit({ query: 'Hello' });
+    chatRef.current?.input.submit({
+      query: 'Hello',
+      session_id: activeSessionId,
+      context: { workspaceId: activeWorkspaceId },
+    });
   };
 
   const handleDisableInput = () => {
@@ -470,23 +715,29 @@ export default function Weather(props: { data: IToolMessage }) {
 
   if (!items.length) return null;
 
-  const todayItem = items.find((_, i) => {
-    const { weekday } = formatDate(items[i].date);
-    return weekday === 'Today';
-  }) || items[0];
+  const todayItem =
+    items.find((_, i) => {
+      const { weekday } = formatDate(items[i].date);
+      return weekday === 'Today';
+    }) || items[0];
 
   return (
     <div className={styles.wrapper}>
       <div className={styles.header}>
         <span>📍 {items[0].location}</span>
-        <span>{todayItem.temperature}° {weatherLabels[todayItem.weather]}</span>
+        <span>
+          {todayItem.temperature}° {weatherLabels[todayItem.weather]}
+        </span>
       </div>
       <div className={styles.container}>
         {items.map((item) => {
           const { weekday, date } = formatDate(item.date);
           const isToday = weekday === 'Today';
           return (
-            <div key={item.date} className={cx(styles.card, isToday && styles.todayCard)}>
+            <div
+              key={item.date}
+              className={cx(styles.card, isToday && styles.todayCard)}
+            >
               <span>{weekday}</span>
               <span>{date}</span>
               <span>{weatherIcons[item.weather]}</span>
@@ -520,7 +771,57 @@ export default config;
 
 When the backend returns `plugin_call` / `mcp_call` type messages and `content[0].data.name` matches the configured key, the WebUI will use the corresponding custom component instead of the default tool call collapse panel for rendering.
 
+## Upgrading to 1.2.0
+
+- A custom `api.fetch` now receives a required `session_id` plus independent `context`, `mentions`, `submission`, and `signal` values. Use these snapshot arguments instead of reading the global active session after asynchronous work.
+- Pass generic business context through `context`. `biz_params.user_prompt_params` remains compatible and additional JSON fields are supported.
+- The built-in input queue is now opt-in and disabled by default. Existing host-managed queues do not need to migrate; they only need to preserve and resubmit the complete input data.
+- Added the `ref.execution.execute/cancel/resume/getActiveRun/subscribe` Run controller. A host queue can retain its scheduling policy while reusing SDK session creation, submission, SSE, terminal-state, cancellation, and reconnection lifecycles. Only failures before the send adapter is called are safe to enqueue again; failures without acknowledgement after dispatch have `backendAcceptance: 'unknown'`.
+- `ref.input.submit` now preserves the full `IAgentScopeRuntimeWebUIInputData` and returns an awaitable Promise, so a host-managed delayed queue can wait for the submission or enqueue result.
+- `api.cancel` can take ownership of Stop. When configured, it keeps the original SSE open for backend cancellation events by default; call the supplied `abort()` to terminate the local stream immediately. Without it, Stop still aborts locally.
+- `responseParser` now correctly receives one SSE `data` string. Update custom parsers that previously declared a `Response` parameter.
+- A custom `session.api` must now implement all five session methods. Omitting it still uses the built-in implementation.
+- `sender.onSubmit` and `sender.onCancel` were removed from the types because runtime never invoked them. Use `beforeSubmit` for interception and `ref.input.submit` for external submission.
+- Built-in queue persistence uses schema v2 with `scope` isolation, minimized serialization, and 24-hour expiry. Unsent local v1 queue items are discarded during the upgrade, so drain or clear the old queue before upgrading.
 
 ## More Details
+
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat
 - https://github.com/agentscope-ai/agentscope-spark-design/tree/main/packages/spark-chat/components/AgentScopeRuntimeWebUI
+
+### Run lifecycle and session identity
+
+- In `execute(data, { sessionId })`, `sessionId` identifies the SDK Chat and `data.session_id` identifies the backend Runtime session. `api.fetch`, `api.cancel`, and `api.reconnect` all receive that captured backend identity as `session_id`; the separate `chatSessionId` identifies the SDK Chat. Explicit Runtime IDs are preserved, with the SDK Chat ID used only as a legacy fallback. Adapters that previously mapped cancel/reconnect `session_id` as an SDK Chat ID must use `chatSessionId` for that mapping instead.
+- Only Runtime response statuses `completed`, `failed`, and `canceled` are backend terminal states. Completed messages/content, HTTP 2xx, missing bodies, and stream EOF are not terminal evidence. An accepted disconnected input must be resumed, not submitted again.
+- Terminal message state and the awaited session save precede terminal events and `completion`. Persistence failures are logged without turning a known terminal into a disconnect; completion does not replace host storage reliability monitoring.
+- The built-in Stop button and public cancellation settle the corresponding Run after local cleanup. A custom `api.cancel` that does not call `abort()` keeps the built-in Stop stream open until a backend terminal arrives. Local `canceled` does not prove the server has stopped.
+- Within a mounted component, SessionLoader reconnection and explicit `execution.resume` attach to the same Run with its original routing snapshot and API adapter. Adapters needing refreshed credentials should obtain them internally. Old transport cleanup cannot overwrite the resumed connection. After a page reload, obtain a new handle using `resume({ sessionId, requestContext })`, supplying persisted `session_id`, `context`, and other routing metadata. Omitting the context falls back to the SDK Chat ID; the SDK does not infer backend identity from message content.
+- Canceling a detached Run finalizes its own message and session, without clearing another session's or a newer Run's loading state. Runtime terminal events, aborts, and consumption errors release the SSE reader and cancel upstream reading.
+
+
+### Async creation and cancellation ordering
+
+- Switching sessions, explicitly selecting the blank session again, or unmounting while creation is pending rejects the obsolete result with `AbortError`. The SDK does not activate it or submit the original first message. Records already created on the server are retained and can appear on the next list refresh.
+- Keep `session.api.createSession` limited to creating and returning the result; use `session.onCurrentSessionChange` for navigation. A host that navigates or migrates drafts/queues inside its create API must independently validate the originating visit. The SDK cannot undo host side effects that have already happened. A single controlled-route acknowledgement of the newly created ID before the API returns is still supported.
+- When custom `api.cancel` does not call `abort()`, public `execution.cancel()` / `run.cancel()` retain SSE and resolve after the Runtime terminal and the message save attempt. The built-in Stop button uses the same path when canceling a public Run.
+- `api.cancelTimeoutMs` bounds the public Run cancel request and terminal wait (default 30000 ms). A timeout or rejected cancel API triggers local cleanup and returns `status: 'failed'`. If the connection is already disconnected or disconnects while waiting, a successful cancel API is followed by local cleanup. `locallyCanceled: true` indicates local termination, not proof that the backend stopped.
+- Do not call `abort()` before requesting backend cancellation or immediately after the HTTP stop response: unread cancellation events would still be lost. Hosts whose backend provides no terminal event can explicitly call `abort()`.
+
+## Fade-in animation for live responses
+
+`options.response.animation` reveals streaming text character by character from left to right. SSE reception proceeds normally and CSS plays the animation without reparsing Markdown per character. Off by default. History displays immediately, normal completion lets pending characters settle, and cancellation/failure/rejection flushes them. Container height uses natural layout without animation.
+
+```tsx
+response: {
+  animation: true,
+  animationConfig: {
+    characterInterval: 12,
+  },
+}
+```
+
+`characterInterval` is the delay in milliseconds between successive characters beginning to fade in. Default `5`; larger values are slower, for example `12` for a gentler reveal or `20` for a slower one. `0` fades incoming text simultaneously. Configuration alone does not enable animation. Non-finite values use the default, negatives become zero and values are capped at `100`. Screen refresh rate determines actual paints; a 5ms interval does not imply a repaint every 5ms.
+
+The SDK bounds animation backlog and temporary nodes. Large bursts shorten intervals or group characters, even with a slow setting. Each Markdown keeps at most 384 active animated spans; new text displays immediately when the budget is exhausted, and settled spans compact into plain text. Reduced motion is respected. Code, math, media and custom renderers retain their own behavior.
+
+Custom `response.render` must call `fallback()` or reuse the SDK `Message`. Standalone `Markdown` and ChatAnywhere Text cards accept the same `animation` and `animationConfig.characterInterval` configuration.

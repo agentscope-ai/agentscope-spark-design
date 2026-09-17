@@ -1,5 +1,5 @@
-import { IAgentScopeRuntimeWebUIMessage } from "@agentscope-ai/chat";
-
+import type { MutableRefObject } from 'react';
+import type { IAgentScopeRuntimeWebUIMessage } from './IMessages';
 
 export interface IAgentScopeRuntimeWebUISession {
   /**
@@ -24,6 +24,25 @@ export interface IAgentScopeRuntimeWebUISession {
   generating?: boolean;
 }
 
+/**
+ * Explicit result for session creation.
+ *
+ * Returning both the updated list and the created/reused session avoids
+ * guessing from list order when an adapter reuses an unresolved draft.
+ */
+export interface IAgentScopeRuntimeWebUICreateSessionResult {
+  sessions: IAgentScopeRuntimeWebUISession[];
+  session: IAgentScopeRuntimeWebUISession;
+}
+
+/**
+ * Legacy adapters may keep returning the updated list. New adapters should
+ * return the explicit result whenever creation can reuse an existing session.
+ */
+export type IAgentScopeRuntimeWebUICreateSessionReturn =
+  | IAgentScopeRuntimeWebUISession[]
+  | IAgentScopeRuntimeWebUICreateSessionResult;
+
 export interface IAgentScopeRuntimeWebUISessionsContext {
   sessions: IAgentScopeRuntimeWebUISession[];
   setSessions: (sessions: IAgentScopeRuntimeWebUISession[]) => void;
@@ -31,4 +50,25 @@ export interface IAgentScopeRuntimeWebUISessionsContext {
   currentSessionId: string | undefined;
   setCurrentSessionId: (sessionId: string | undefined) => void;
   getCurrentSessionId: () => string | undefined;
+  skipNextSessionLoadIdRef?: MutableRefObject<string | undefined>;
+  pendingRouteSessionIdRef?: MutableRefObject<string | undefined>;
+  isCurrentSessionControlled?: boolean;
+  /** Internal async creation ownership; selection advances on explicit blank selection too. */
+  selectionVersionRef?: MutableRefObject<number>;
+  creationVersionRef?: MutableRefObject<number>;
+  mountedRef?: MutableRefObject<boolean>;
+}
+
+/** Explicit public return type preserves nullable ids in non-strict builds. */
+export interface IAgentScopeRuntimeWebUISessionActions {
+  changeCurrentSessionId: (sessionId: string) => void;
+  getCurrentSessionId: () => string | undefined;
+  getSessions: () => IAgentScopeRuntimeWebUISession[];
+  removeSession: (
+    session: Partial<IAgentScopeRuntimeWebUISession> & { id: string },
+  ) => Promise<void>;
+  updateSession: (
+    session: Partial<IAgentScopeRuntimeWebUISession>,
+  ) => Promise<Partial<IAgentScopeRuntimeWebUISession>>;
+  createSession: (data?: { name?: string }) => Promise<string | undefined>;
 }

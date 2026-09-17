@@ -25,3 +25,14 @@ import { Markdown } from '@agentscope-ai/chat';
 #### API
 
 <ApiParser source="./types.tsx" id="MarkdownProps"></ApiParser>
+## Fade-in animation options
+
+```tsx
+<Markdown
+  content={content}
+  cursor={isStreaming}
+  animation
+  animationConfig={{ characterInterval: 12 }}
+/>
+```
+`animationConfig.characterInterval` controls the stagger in milliseconds (default `5`). Larger values are slower: try `12` or `20`; `0` fades incoming text simultaneously. Large bursts accelerate to bound backlog; actual paints follow screen refresh rate. Container height remains natural with no height animation. Reduced motion is respected. ChatAnywhere Text cards accept the same configuration.

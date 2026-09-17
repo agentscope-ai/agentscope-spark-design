@@ -1,29 +1,41 @@
-import { CustomCardsProvider } from "@agentscope-ai/chat";
-import { ChatAnywhereInputContextProvider } from "../Context/ChatAnywhereInputContext";
-import { ChatAnywhereOptionsContextProvider } from "../Context/ChatAnywhereOptionsContext";
-import { ChatAnywhereSessionsContextProvider } from "../Context/ChatAnywhereSessionsContext";
-import { ChatAnywhereMessagesContextProvider } from "../Context/ChatAnywhereMessagesContext";
-import { ChatAnyWhereLayoutContextProvider } from "../Context/ChatAnywhereLayoutContext";
-import { ChatAnywhereI18nContextProvider, Locale } from "../Context/ChatAnywhereI18nContext";
+import type { ReactNode } from 'react';
+import { CustomCardsProvider } from '../../../Provider/CustomCardsProvider';
+import { ChatAnywhereI18nContextProvider } from '../Context/ChatAnywhereI18nContext';
+import { ChatAnywhereInputContextProvider } from '../Context/ChatAnywhereInputContext';
+import { ChatAnyWhereLayoutContextProvider } from '../Context/ChatAnywhereLayoutContext';
+import { ChatAnywhereMessagesContextProvider } from '../Context/ChatAnywhereMessagesContext';
+import { ChatAnywhereOptionsContextProvider } from '../Context/ChatAnywhereOptionsContext';
+import { ChatAnywhereSessionsContextProvider } from '../Context/ChatAnywhereSessionsContext';
+import { ChatAnywhereCommandProvider } from '../Context/useChatAnywhereEventEmitter';
+import type {
+  IAgentScopeRuntimeWebUICardsOptions,
+  IAgentScopeRuntimeWebUIOptions,
+} from '../types';
 
-function ComposedProvider(props: { options, cards, children }) {
+export default function ComposedProvider(props: {
+  options: IAgentScopeRuntimeWebUIOptions;
+  cards: IAgentScopeRuntimeWebUICardsOptions;
+  children: ReactNode;
+}) {
   const { options, cards, children } = props;
-  const providers = [
-    [ChatAnywhereI18nContextProvider, { defaultLocale: options.theme.locale }],
-    [ChatAnywhereOptionsContextProvider, { options }],
-    [CustomCardsProvider, { cardConfig: cards }],
-    [ChatAnywhereSessionsContextProvider, {}],
-    [ChatAnywhereMessagesContextProvider, {}],
-    [ChatAnywhereInputContextProvider, {}],
-    [ChatAnyWhereLayoutContextProvider, {}],
-  ];
 
-  return providers.reduceRight(
-    // @ts-ignore
-    (children, [Provider, props]) => <Provider {...props}>{children}</Provider>,
-    children
+  return (
+    <ChatAnywhereCommandProvider>
+      <ChatAnywhereI18nContextProvider defaultLocale={options.theme?.locale}>
+        <ChatAnywhereOptionsContextProvider options={options}>
+          <CustomCardsProvider cardConfig={cards}>
+            <ChatAnywhereSessionsContextProvider>
+              <ChatAnywhereMessagesContextProvider>
+                <ChatAnywhereInputContextProvider>
+                  <ChatAnyWhereLayoutContextProvider>
+                    {children}
+                  </ChatAnyWhereLayoutContextProvider>
+                </ChatAnywhereInputContextProvider>
+              </ChatAnywhereMessagesContextProvider>
+            </ChatAnywhereSessionsContextProvider>
+          </CustomCardsProvider>
+        </ChatAnywhereOptionsContextProvider>
+      </ChatAnywhereI18nContextProvider>
+    </ChatAnywhereCommandProvider>
   );
 }
-
-
-export default ComposedProvider;  

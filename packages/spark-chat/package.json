@@ -1,6 +1,6 @@
 {
   "name": "@agentscope-ai/chat",
-  "version": "1.1.71",
+  "version": "1.2.0",
   "description": "a free and open-source chat framework for building excellent LLM-powered chat experiences",
   "license": "Apache-2.0",
   "sideEffects": [
@@ -28,14 +28,15 @@
     "docs:preview": "dumi preview",
     "doctor": "father doctor",
     "lint": "npm run lint:es && npm run lint:css",
-    "lint:css": "stylelint \"{src,test}/**/*.{css,less}\"",
-    "lint:es": "eslint \"{src,test}/**/*.{js,jsx,ts,tsx}\"",
+    "lint:css": "stylelint \"components/AgentScopeRuntimeWebUI/**/*.{css,less}\" --allow-empty-input",
+    "lint:es": "eslint \"components/AgentScopeRuntimeWebUI/**/*.{js,jsx,ts,tsx}\" components/Bubble/Bubble.tsx components/Bubble/BubbleList.tsx --ignore-pattern \"**/__tests__/**\"",
     "llms:build": "LLM=true dumi build",
     "prepare": "dumi setup",
+    "release": "node publish.js",
+    "release:beta": "node publish-beta.js",
     "src:build": "father build",
     "start": "npm run dev",
-    "release:beta": "node publish-beta.js",
-    "release": "node publish.js"
+    "test:regression": "node --test scripts/check-chat-regressions.mjs scripts/check-controller-regressions.mjs scripts/check-session-creation-regressions.mjs"
   },
   "commitlint": {
     "extends": [
@@ -75,6 +76,7 @@
     "copy-to-clipboard": "^3.3.3",
     "dayjs": "^1.11.7",
     "dompurify": "^3.2.6",
+    "html-react-parser": "^5.2.13",
     "immer": "^10.1.1",
     "lodash": "^4.17.21",
     "marked": "~15.0.12",
