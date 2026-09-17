@@ -4,7 +4,6 @@ import Files from '../../../../DefaultCards/Files';
 import Images from '../../../../DefaultCards/Images';
 import Videos from '../../../../DefaultCards/Videos';
 import Markdown from '../../../../Markdown';
-import useTyping from '../../../../Markdown/core/hooks/useTyping';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
 import {
   AgentScopeRuntimeContentType,
@@ -12,7 +11,7 @@ import {
   IAgentScopeRuntimeMessage,
 } from '../types';
 
-/** Remember live content so a completed event does not skip the queued tail. */
+/** Fade incoming live text without delaying it in a character queue. */
 function StreamingText({
   text,
   status,
@@ -22,26 +21,19 @@ function StreamingText({
   status: AgentScopeRuntimeRunStatus;
   messageStatus: AgentScopeRuntimeRunStatus;
 }) {
-  const typing = useChatAnywhereOptions((v) => v.response?.typing);
+  const animation = useChatAnywhereOptions((v) => v.response?.animation);
   const streaming = status === AgentScopeRuntimeRunStatus.InProgress;
-  const [wasStreaming, setWasStreaming] = React.useState(streaming);
-  React.useEffect(() => {
-    if (streaming) setWasStreaming(true);
-  }, [streaming]);
   const interrupted = [status, messageStatus].some(
     (value) =>
       value === AgentScopeRuntimeRunStatus.Canceled ||
       value === AgentScopeRuntimeRunStatus.Failed ||
       value === AgentScopeRuntimeRunStatus.Rejected,
   );
-  const content = useTyping({
-    content: text,
-    typing: (streaming || wasStreaming) && !interrupted ? typing : false,
-  });
   return (
     <Markdown
-      content={content}
-      cursor={!interrupted && (streaming || content !== text)}
+      content={text}
+      animation={Boolean(animation && streaming && !interrupted)}
+      cursor={!interrupted && streaming}
     />
   );
 }

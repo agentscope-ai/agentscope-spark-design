@@ -806,9 +806,11 @@ export default config;
 - `api.cancelTimeoutMs` 设置公开 Run 取消请求与等待终态的上限（默认 30000 毫秒）。超时或取消接口抛错后执行本地收尾，并返回 `status: 'failed'`；连接已经断开或等待期间断开时，在取消接口成功后执行本地收尾。`locallyCanceled: true` 只表示执行了本地终止，不证明后端已停止。
 - 不要先调用 `abort()` 再请求后端停止，也不要在 HTTP 停止响应返回后立即 `abort()`，否则仍会丢失尚未消费的取消事件。后端不会提供终态时，宿主可以明确调用 `abort()`。
 
-## 实时回答逐字展示
+## 实时回答内容渐显
 
-通过 `options.response.typing` 开启 SDK 默认正文的打字机效果，默认关闭：
+`options.response.animation` 复用 Markdown 内置的渐显效果：流式正文每次新增的文本块以默认 200ms 淡入，已展示的文本不重复播放。不逐字排队，也不额外延迟显示。默认关闭；仅正文处于 `in_progress` 且消息未取消、失败或拒绝时播放，历史正文和终态直接展示。
+
+自定义 `response.render` 需调用 `fallback()` 或复用 SDK Message；思考卡片、工具卡片和媒体不受影响。
 
 ```tsx
 <AgentScopeRuntimeWebUI
@@ -816,14 +818,8 @@ export default config;
     ...options,
     response: {
       ...options.response,
-      typing: 15, // true：每个 Unicode 码点 5ms；正数：自定义毫秒间隔
+      animation: true,
     },
   }}
 />
 ```
-
-仅对组件观察到 `in_progress` 状态的实时正文启用，首次加载的已完成历史正文直接展示。等待数据时不会累计展示额度，后续文本块仍按顺序逐字显示。完成后继续排空已收到的文字；取消、失败、拒绝或关闭此选项时立即展示。切换消息或卸载时清理定时器。emoji 的 UTF-16 代理对不会被拆开；组合字符按 Unicode 码点展示。
-
-此选项只调整正文显示节奏，不改变 SSE、持久化或业务完成状态；较长的积压文本可能在业务完成后继续显示。不作用于思考卡片、工具卡片和媒体。自定义 `response.render` 需调用 `fallback()` 或复用 SDK Message 才会应用本选项。完全自定义的正文可使用导出的 `<Markdown typing={15} content={text} />`。
-
-独立 Markdown 的 `animation` 是按文本块淡入，与 `typing` 互斥；需要逐字展示时不要同时开启 `animation`。

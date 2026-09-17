@@ -807,9 +807,11 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 - `api.cancelTimeoutMs` bounds the public Run cancel request and terminal wait (default 30000 ms). A timeout or rejected cancel API triggers local cleanup and returns `status: 'failed'`. If the connection is already disconnected or disconnects while waiting, a successful cancel API is followed by local cleanup. `locallyCanceled: true` indicates local termination, not proof that the backend stopped.
 - Do not call `abort()` before requesting backend cancellation or immediately after the HTTP stop response: unread cancellation events would still be lost. Hosts whose backend provides no terminal event can explicitly call `abort()`.
 
-## Typewriter rendering for live responses
+## Fade-in animation for live responses
 
-Enable the SDK's default text renderer with `options.response.typing` (off by default):
+`options.response.animation` reuses Markdown's built-in fade-in: each incoming text chunk fades in over the default 200ms, while previously rendered text is preserved. There is no character queue or extra display delay. Disabled by default; active only for `in_progress` text whose message is not canceled, failed, or rejected. History and terminal states render immediately.
+
+Custom `response.render` must call `fallback()` or reuse the SDK Message renderer. Reasoning cards, tool cards, and media are unaffected.
 
 ```tsx
 <AgentScopeRuntimeWebUI
@@ -817,14 +819,8 @@ Enable the SDK's default text renderer with `options.response.typing` (off by de
     ...options,
     response: {
       ...options.response,
-      typing: 15, // true: 5ms per Unicode code point; positive number: interval in ms
+      animation: true,
     },
   }}
 />
 ```
-
-Only text observed in `in_progress` animates. Completed history renders immediately. Waiting for chunks never accumulates display credit. Completion drains the received text; cancellation, failure, rejection, or disabling typing flushes it immediately. Unmounting or switching messages clears timers. UTF-16 emoji surrogate pairs remain intact; combining sequences advance by Unicode code point.
-
-This changes presentation only, not SSE, persistence, or business completion status. Long backlogs may continue displaying after completion. Reasoning cards, tool cards, and media are unaffected. Custom `response.render` must call `fallback()` or reuse the SDK Message renderer to honor this option. Fully custom text can use the exported `<Markdown typing={15} content={text} />`.
-
-Standalone Markdown's `animation` fades incoming chunks and takes precedence over `typing`; do not enable both for character-by-character rendering.

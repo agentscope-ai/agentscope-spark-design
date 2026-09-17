@@ -916,10 +916,10 @@ export interface IAgentScopeRuntimeWebUIResponseSlot {
  */
 export interface IAgentScopeRuntimeWebUIResponseOptions {
   /**
-   * @description 实时正文逐字展示，默认关闭。true 为每个 Unicode 码点 5ms，正数指定毫秒间隔。历史消息直接展示；完成后排空缓冲，取消或失败时立即展示。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
-   * @descriptionEn Type live response text, off by default. true uses 5ms per Unicode code point; a positive number sets the interval in ms. History renders immediately; completion drains the queue; cancellation/failure flushes it. Custom renderers must use fallback() or the SDK Message component.
+   * @description 实时正文按新增文本块渐显，默认关闭。复用 Markdown 的 animation，不逐字排队。历史消息及终态不播放动画。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
+   * @descriptionEn Fade in incoming live text chunks, off by default. Reuses Markdown animation without a character queue. History and terminal states do not animate. Custom renderers must use fallback() or the SDK Message component.
    */
-  typing?: boolean | number;
+  animation?: boolean;
 
   /**
    * @description 整段替换默认 AI 气泡。调用 fallback() 可拿到 SDK 默认渲染。
