@@ -117,6 +117,7 @@ export default memo(function (props: MarkdownProps) {
       dompurifyConfig={dompurifyConfig}
       cursor={props.cursor}
       animation={props.animation}
+      animationConfig={props.animationConfig}
       // @ts-ignore
       components={components}
       style={markdownStyle}

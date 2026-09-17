@@ -54,6 +54,11 @@ export interface MarkdownProps {
    */
   className?: string;
   animation?: boolean;
+  /**
+   * @description 淡入动画配置，仅 animation 开启时生效；fadeDuration 单位为毫秒（默认 200），easing 默认 ease-in-out。
+   * @descriptionEn Fade-in options, effective only when animation is enabled; fadeDuration is in milliseconds (default 200), easing defaults to ease-in-out.
+   */
+  animationConfig?: NonNullable<XMarkdownProps['streaming']>['animationConfig'];
   
   components?: XMarkdownProps['components'];
   citations?: {
@@ -91,4 +96,5 @@ export interface InnerMarkdownXProps extends XMarkdownProps {
    */
   cursor?: MarkdownProps['cursor'];
   animation?: MarkdownProps['animation'];
+  animationConfig?: MarkdownProps['animationConfig'];
 }

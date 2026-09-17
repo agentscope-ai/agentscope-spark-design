@@ -6,7 +6,7 @@ import { memo, useMemo } from 'react';
 
 
 export default memo(function InnerMarkdownX(props: InnerMarkdownXProps) {
-  const { content: originalContent, cursor, animation, ...rest } = props;
+  const { content: originalContent, cursor, animation, animationConfig, ...rest } = props;
   const content = useCursorContent({
     cursor: cursor,
     content: originalContent,
@@ -17,9 +17,10 @@ export default memo(function InnerMarkdownX(props: InnerMarkdownXProps) {
     if (!animation) return undefined;
     return {
       hasNextChunk: animation && cursor,
-      enableAnimation: animation && cursor
+      enableAnimation: animation && cursor,
+      animationConfig,
     }
-  }, [cursor, animation]);
+  }, [cursor, animation, animationConfig]);
 
 
   return <>

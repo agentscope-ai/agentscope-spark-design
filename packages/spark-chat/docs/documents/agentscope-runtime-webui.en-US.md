@@ -820,7 +820,10 @@ Custom `response.render` must call `fallback()` or reuse the SDK Message rendere
     response: {
       ...options.response,
       animation: true,
+      animationConfig: { fadeDuration: 120, easing: 'ease-out' },
     },
   }}
 />
 ```
+
+`options.response.animationConfig` accepts `fadeDuration` (milliseconds, default `200`) and the CSS `easing` function (default `ease-in-out`). It only takes effect with `animation: true`; passing the config alone does not enable animation or change typing speed. Omitting it preserves existing behavior.

@@ -22,6 +22,7 @@ function StreamingText({
   messageStatus: AgentScopeRuntimeRunStatus;
 }) {
   const animation = useChatAnywhereOptions((v) => v.response?.animation);
+  const animationConfig = useChatAnywhereOptions((v) => v.response?.animationConfig);
   const streaming = status === AgentScopeRuntimeRunStatus.InProgress;
   const interrupted = [status, messageStatus].some(
     (value) =>
@@ -33,6 +34,7 @@ function StreamingText({
     <Markdown
       content={text}
       animation={Boolean(animation && streaming && !interrupted)}
+      animationConfig={animationConfig}
       cursor={!interrupted && streaming}
     />
   );

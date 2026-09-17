@@ -25,3 +25,15 @@ import { Markdown } from '@agentscope-ai/chat';
 #### API
 
 <ApiParser source="./types.tsx" id="MarkdownProps"></ApiParser>
+
+## 淡入动画配置
+
+```tsx
+<Markdown
+  content={content}
+  cursor={isStreaming}
+  animation
+  animationConfig={{ fadeDuration: 120, easing: 'ease-out' }}
+/>
+```
+`fadeDuration` 单位为毫秒，默认 `200`；`easing` 默认 `ease-in-out`。仅启用 `animation` 且正在流式输出时生效，不控制逐字输出速度。ChatAnywhere 的 Text 卡片可在 `data.animationConfig` 中传入相同配置。

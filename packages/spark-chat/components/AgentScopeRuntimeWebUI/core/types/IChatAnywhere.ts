@@ -1,4 +1,5 @@
 import { UploadProps } from 'antd';
+import type { MarkdownProps } from '../../../Markdown';
 import type { SenderComponents } from '../../../Sender';
 import {
   IAgentScopeRuntimeMessage,
@@ -920,6 +921,11 @@ export interface IAgentScopeRuntimeWebUIResponseOptions {
    * @descriptionEn Fade in incoming live text chunks, off by default. Reuses Markdown animation without a character queue. History and terminal states do not animate. Custom renderers must use fallback() or the SDK Message component.
    */
   animation?: boolean;
+  /**
+   * @description 正文淡入动画配置，仅 animation 为 true 时生效。fadeDuration 为毫秒（默认 200），easing 为 CSS 缓动函数（默认 ease-in-out）。不控制逐字输出速度。
+   * @descriptionEn Live text fade-in options, effective only when animation is true. fadeDuration is in milliseconds (default 200); easing is a CSS easing function (default ease-in-out). Does not control typing speed.
+   */
+  animationConfig?: MarkdownProps['animationConfig'];
 
   /**
    * @description 整段替换默认 AI 气泡。调用 fallback() 可拿到 SDK 默认渲染。

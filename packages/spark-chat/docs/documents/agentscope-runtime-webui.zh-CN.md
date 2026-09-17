@@ -819,7 +819,10 @@ export default config;
     response: {
       ...options.response,
       animation: true,
+      animationConfig: { fadeDuration: 120, easing: 'ease-out' },
     },
   }}
 />
 ```
+
+`options.response.animationConfig` 可配置淡入时长 `fadeDuration`（毫秒，默认 `200`）和 CSS 缓动函数 `easing`（默认 `ease-in-out`）。仅 `animation: true` 时生效；单独传配置不会开启动画，也不改变逐字输出速度。省略配置保持原有行为。
