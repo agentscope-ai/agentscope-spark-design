@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Audios from '../../../../DefaultCards/Audios';
 import Files from '../../../../DefaultCards/Files';
 import Images from '../../../../DefaultCards/Images';
@@ -11,7 +11,7 @@ import {
   IAgentScopeRuntimeMessage,
 } from '../types';
 
-/** Fade incoming live text without delaying it in a character queue. */
+/** Apply configured text effects only while live content is streaming. */
 function StreamingText({
   text,
   status,
@@ -21,9 +21,14 @@ function StreamingText({
   status: AgentScopeRuntimeRunStatus;
   messageStatus: AgentScopeRuntimeRunStatus;
 }) {
+  const typing = useChatAnywhereOptions((v) => v.response?.typing);
   const animation = useChatAnywhereOptions((v) => v.response?.animation);
   const animationConfig = useChatAnywhereOptions((v) => v.response?.animationConfig);
   const streaming = status === AgentScopeRuntimeRunStatus.InProgress;
+  const [wasStreaming, setWasStreaming] = useState(streaming);
+  useEffect(() => {
+    if (streaming) setWasStreaming(true);
+  }, [streaming]);
   const interrupted = [status, messageStatus].some(
     (value) =>
       value === AgentScopeRuntimeRunStatus.Canceled ||
@@ -33,6 +38,7 @@ function StreamingText({
   return (
     <Markdown
       content={text}
+      typing={(streaming || wasStreaming) && !interrupted ? typing : false}
       animation={Boolean(animation && streaming && !interrupted)}
       animationConfig={animationConfig}
       cursor={!interrupted && streaming}

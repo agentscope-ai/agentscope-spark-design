@@ -917,6 +917,11 @@ export interface IAgentScopeRuntimeWebUIResponseSlot {
  */
 export interface IAgentScopeRuntimeWebUIResponseOptions {
   /**
+   * @description 实时正文打字机效果，默认关闭。true 为每字 5ms，正数为每字间隔毫秒；非正数或非有限值关闭。animation 为 true 时优先渐显。历史消息直接显示，正常完成后继续显示剩余文字，中断时立即补齐。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
+   * @descriptionEn Typewriter effect for live text, off by default. true uses 5ms per character; a positive number sets the interval in milliseconds. Non-positive or non-finite values disable it. animation takes precedence. History renders immediately; normal completion drains pending text; interruption flushes it. Custom renderers must use fallback() or the SDK Message component.
+   */
+  typing?: MarkdownProps['typing'];
+  /**
    * @description 实时正文按新增文本块渐显，默认关闭。复用 Markdown 的 animation，不逐字排队。历史消息及终态不播放动画。自定义 render 需调用 fallback() 或复用 SDK Message 才生效。
    * @descriptionEn Fade in incoming live text chunks, off by default. Reuses Markdown animation without a character queue. History and terminal states do not animate. Custom renderers must use fallback() or the SDK Message component.
    */

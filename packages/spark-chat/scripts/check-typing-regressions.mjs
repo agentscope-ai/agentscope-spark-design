@@ -24,7 +24,7 @@ const { createTypingController } = await import(
 );
 
 function setup(t) {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: 1000 });
   const output = [];
   const controller = createTypingController((text) => output.push(text));
   t.after(() => controller.stop());
@@ -138,4 +138,20 @@ test('default interval, speed changes and invalid intervals are deterministic', 
     controller.update(`instant-${value}`, value);
     assert.equal(output.at(-1), `instant-${value}`);
   }
+});
+
+
+test('delayed rendering catches up at the configured average rate', (t) => {
+  const { controller, output, tick } = setup(t);
+  controller.update('abcdefghij', 5);
+  tick(20);
+  assert.equal(output.at(-1), 'abcd');
+  tick(10);
+  assert.equal(output.at(-1), 'abcdef');
+  tick(100);
+  assert.equal(output.at(-1), 'abcdefghij');
+  tick(60_000);
+  controller.update('abcdefghijklm', 5);
+  tick(5);
+  assert.equal(output.at(-1), 'abcdefghijk');
 });

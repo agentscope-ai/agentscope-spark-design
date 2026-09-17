@@ -826,3 +826,22 @@ export default config;
 ```
 
 `options.response.animationConfig` 可配置淡入时长 `fadeDuration`（毫秒，默认 `200`）和 CSS 缓动函数 `easing`（默认 `ease-in-out`）。仅 `animation: true` 时生效；单独传配置不会开启动画，也不改变逐字输出速度。省略配置保持原有行为。
+
+### 打字机效果
+
+`options.response.typing` 支持 `true`（默认每字 5ms）或正数（每字间隔毫秒）。数值越小越快；`false`、`0`、负数或非有限值关闭效果。默认不启用。
+
+```tsx
+<AgentScopeRuntimeWebUI
+  options={{
+    ...options,
+    response: {
+      ...options.response,
+      animation: false,
+      typing: 5,
+    },
+  }}
+/>
+```
+
+`animation: true` 优先于 `typing`，使用打字机效果时需关闭渐显。仅正在生成的正文逐字显示；历史消息直接显示，正常完成后继续打完剩余文字；取消、失败或拒绝时立即补齐并停止定时器。自定义 `response.render` 需调用 `fallback()` 或复用 SDK `Message`。`ChatAnywhere` 的 Text 卡片和独立 `Markdown` 已支持同名 `typing` 属性。

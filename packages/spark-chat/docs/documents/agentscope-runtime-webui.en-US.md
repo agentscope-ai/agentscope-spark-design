@@ -827,3 +827,22 @@ Custom `response.render` must call `fallback()` or reuse the SDK Message rendere
 ```
 
 `options.response.animationConfig` accepts `fadeDuration` (milliseconds, default `200`) and the CSS `easing` function (default `ease-in-out`). It only takes effect with `animation: true`; passing the config alone does not enable animation or change typing speed. Omitting it preserves existing behavior.
+
+### Typewriter effect
+
+`options.response.typing` accepts `true` (5ms per character by default) or a positive number (interval in milliseconds). Smaller values are faster. `false`, `0`, negative or non-finite values disable the effect. It is off by default.
+
+```tsx
+<AgentScopeRuntimeWebUI
+  options={{
+    ...options,
+    response: {
+      ...options.response,
+      animation: false,
+      typing: 5,
+    },
+  }}
+/>
+```
+
+`animation: true` takes precedence over `typing`, so disable fading to use the typewriter effect. Only live, in-progress text is typed. History renders immediately; normal completion continues typing the remaining text; cancellation, failure or rejection flushes it and stops its timer. Custom `response.render` implementations must call `fallback()` or reuse the SDK `Message` component. `ChatAnywhere` Text cards and standalone `Markdown` already support the same `typing` property.

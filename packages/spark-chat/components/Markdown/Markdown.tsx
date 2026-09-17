@@ -43,7 +43,7 @@ const isSupportsLookbehindAssertions = supportsLookbehindAssertions();
 export default memo(function (props: MarkdownProps) {
   const baseFontSize = props.baseFontSize || 14;
   const baseLineHeight = props.baseLineHeight || 1.7;
-  const content = useTyping({ content: props.content, typing: props.typing && !props.animation });
+  const content = useTyping({ content: props.content, typing: props.animation ? false : props.typing });
   const prefixCls = useProviderContext().getPrefixCls('markdown');
   const {
     raw = false,
