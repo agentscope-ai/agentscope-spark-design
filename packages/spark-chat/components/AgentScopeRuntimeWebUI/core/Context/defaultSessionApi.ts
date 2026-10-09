@@ -1,13 +1,17 @@
-import {
+import type {
   IAgentScopeRuntimeWebUISession,
   IAgentScopeRuntimeWebUISessionAPI,
-} from '@agentscope-ai/chat';
+} from '../types';
 
 const STORAGE_KEY_MULTIPLE = 'agent-scope-runtime-webui-sessions';
 const STORAGE_KEY_SINGLE = 'agent-scope-runtime-webui-session';
 
 function canUseLocalStorage() {
-  return typeof window !== 'undefined' && !!window.localStorage;
+  try {
+    return typeof window !== 'undefined' && !!window.localStorage;
+  } catch {
+    return false;
+  }
 }
 
 function createSessionId() {
@@ -26,23 +30,37 @@ function normalizeSession(
   } as IAgentScopeRuntimeWebUISession;
 }
 
-function createStorageSessionStore(multiple: boolean) {
-  const storageKey = multiple ? STORAGE_KEY_MULTIPLE : STORAGE_KEY_SINGLE;
+function createStorageSessionStore(multiple: boolean, storageScope?: string) {
+  const legacyKey = multiple ? STORAGE_KEY_MULTIPLE : STORAGE_KEY_SINGLE;
+  // Never copy unscoped data into a tenant-scoped store implicitly.
+  const storageKey = storageScope
+    ? `${legacyKey}:v1:${encodeURIComponent(storageScope)}`
+    : legacyKey;
   let sessionList: IAgentScopeRuntimeWebUISession[] = [];
 
   const persist = () => {
     if (!canUseLocalStorage()) {
       return;
     }
-    localStorage.setItem(storageKey, JSON.stringify(sessionList));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(sessionList));
+    } catch (error) {
+      console.error('persist default chat sessions failed:', error);
+    }
   };
 
   const load = () => {
     if (!canUseLocalStorage()) {
       return;
     }
-    const raw = localStorage.getItem(storageKey);
-    sessionList = raw ? JSON.parse(raw) : [];
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      sessionList = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('read default chat sessions failed:', error);
+      sessionList = [];
+    }
   };
 
   return {
@@ -68,7 +86,8 @@ function createStorageSessionStore(multiple: boolean) {
     },
     async updateSession(session: Partial<IAgentScopeRuntimeWebUISession>) {
       if (!session.id) {
-        return this.createSession(session);
+        const result = await this.createSession(session);
+        return Array.isArray(result) ? result : result.sessions;
       }
 
       const list = await this.getSessionList();
@@ -101,7 +120,7 @@ function createStorageSessionStore(multiple: boolean) {
       }
 
       persist();
-      return [...sessionList];
+      return { sessions: [...sessionList], session: created };
     },
     async removeSession(session: Partial<IAgentScopeRuntimeWebUISession>) {
       const list = await this.getSessionList();
@@ -115,6 +134,9 @@ function createStorageSessionStore(multiple: boolean) {
   } as IAgentScopeRuntimeWebUISessionAPI;
 }
 
-export function createDefaultSessionApi(multiple: boolean) {
-  return createStorageSessionStore(multiple);
+export function createDefaultSessionApi(
+  multiple: boolean,
+  storageScope?: string,
+) {
+  return createStorageSessionStore(multiple, storageScope);
 }

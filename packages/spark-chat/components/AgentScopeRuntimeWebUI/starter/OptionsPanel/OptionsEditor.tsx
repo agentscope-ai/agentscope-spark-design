@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
-import { Form, Input, ColorPicker, Flex, Splitter, Divider, InputNumber, Select } from 'antd';
+import React from 'react';
+import { Form, Input, ColorPicker, Flex, Divider, InputNumber, Select } from 'antd';
 import { createStyles } from 'antd-style';
 import { Button, IconButton, Switch } from '@agentscope-ai/design'
 import { SparkDeleteLine, SparkPlusLine } from '@agentscope-ai/icons';
 import FormItem from './FormItem';
 import defaultConfig from './defaultConfig';
 
-const useStyles = createStyles(({ token, css }) => ({
+const useStyles = createStyles(({ token }) => ({
   container: {
     height: '100%',
     display: 'flex',
@@ -116,6 +116,14 @@ const OptionsEditor: React.FC<OptionsEditorProps> = ({
           <InputNumber min={1000} />
         </FormItem>
 
+        <FormItem name={['sender', 'longTextUpload', 'enabled']} label="longTextUpload.enabled" >
+          <Switch />
+        </FormItem>
+
+        <FormItem name={['sender', 'longTextUpload', 'prompt']} label="longTextUpload.prompt" >
+          <Input />
+        </FormItem>
+
         <Divider orientation="left">Welcome</Divider>
 
 
@@ -171,4 +179,3 @@ const OptionsEditor: React.FC<OptionsEditorProps> = ({
 };
 
 export default OptionsEditor;
-

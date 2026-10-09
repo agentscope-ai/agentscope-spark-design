@@ -19,6 +19,9 @@ export default () => {
       // @ts-ignore
       attachments: true,
       maxLength: 10000,
+      longTextUpload: {
+        enabled: false,
+      },
       disclaimer:
         'AI can also make mistakes, so please check carefully and use it with caution',
       suggestions: [

@@ -1,61 +1,74 @@
-
-import { produce } from "immer";
-import { IAgentScopeRuntimeResponse, AgentScopeRuntimeRunStatus, IAgentScopeRuntimeMessage, IContent, AgentScopeRuntimeContentType, ITextContent, IImageContent, IDataContent, AgentScopeRuntimeMessageType } from "../types";
-import { uuid } from "@agentscope-ai/chat";
+import { produce } from 'immer';
+import { v4 as uuid } from 'uuid';
+import {
+  AgentScopeRuntimeContentType,
+  AgentScopeRuntimeMessageType,
+  AgentScopeRuntimeRunStatus,
+  IAgentScopeRuntimeMessage,
+  IAgentScopeRuntimeResponse,
+  IContent,
+  IDataContent,
+  IImageContent,
+  ITextContent,
+} from '../types';
 
 class AgentScopeRuntimeResponseBuilder {
+  static getToolMessageKey(message: IAgentScopeRuntimeMessage) {
+    const content = message.content?.[0] as
+      | IDataContent<{ name?: string; call_id?: string }>
+      | undefined;
+    return content?.data?.call_id || content?.data?.name;
+  }
 
   static mergeToolMessages(messages: IAgentScopeRuntimeMessage[]) {
-    const bufferMessagesMap = new Map<string, IDataContent>();
-    let resMessages: IAgentScopeRuntimeMessage[] = [];
+    const pendingInputs = new Map<string, number[]>();
+    const resMessages: IAgentScopeRuntimeMessage[] = [];
 
     for (const message of messages) {
-
-      if (AgentScopeRuntimeResponseBuilder.maybeToolInput(message) && message.content?.length) {
-        const content = message.content[0] as IDataContent<{
-          name: string;
-          call_id?: string;
-        }>;
-        const key = content.data.call_id || content.data.name;
-        bufferMessagesMap.set(key, content);
+      if (
+        AgentScopeRuntimeResponseBuilder.maybeToolInput(message) &&
+        message.content?.length
+      ) {
+        const key = AgentScopeRuntimeResponseBuilder.getToolMessageKey(message);
+        if (!key) {
+          resMessages.push(message);
+          continue;
+        }
+        const indexes = pendingInputs.get(key) || [];
+        indexes.push(resMessages.length);
+        pendingInputs.set(key, indexes);
         resMessages.push(message);
+      } else if (
+        AgentScopeRuntimeResponseBuilder.maybeToolOutput(message) &&
+        message.content?.length
+      ) {
+        const content = message.content[0] as IDataContent;
+        const key = AgentScopeRuntimeResponseBuilder.getToolMessageKey(message);
+        if (!key) {
+          resMessages.push(message);
+          continue;
+        }
+        const indexes = pendingInputs.get(key);
+        const inputIndex = indexes?.shift();
 
-      } else if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(message) && message.content?.length) {
-        const content = message.content[0] as IDataContent<{
-          name: string;
-          call_id?: string;
-        }>;
-        const key = content.data.call_id || content.data.name;
-        const bufferContent = bufferMessagesMap.get(key);
-
-        if (bufferContent) {
-
-          resMessages = resMessages.map(i => {
-            if (!AgentScopeRuntimeResponseBuilder.maybeToolInput(i)) return i;
-            const preContent = i.content[0] as IDataContent<{
-              name: string;
-              call_id?: string;
-            }>;
-
-            const preKey = preContent.data.call_id || preContent.data.name;
-
-            if (preKey === key) {
-              return { ...message, content: [...i.content, content] };
-            } else {
-              return i;
-            }
-          });
+        if (inputIndex !== undefined) {
+          const inputMessage = resMessages[inputIndex];
+          resMessages[inputIndex] = {
+            ...message,
+            content: [...inputMessage.content, content],
+          };
+          if (indexes?.length === 0) pendingInputs.delete(key);
+        } else {
+          // Preserve unmatched outputs instead of silently dropping them.
+          resMessages.push(message);
         }
       } else {
         resMessages.push(message);
       }
-
     }
 
     return resMessages;
-
   }
-
 
   static maybeToolOutput(message: IAgentScopeRuntimeMessage) {
     return [
@@ -92,16 +105,19 @@ class AgentScopeRuntimeResponseBuilder {
     ].includes(data.status);
   }
 
-
   data: IAgentScopeRuntimeResponse;
 
-  constructor({ id, status, created_at }: Pick<IAgentScopeRuntimeResponse, 'id' | 'status' | 'created_at'>) {
+  constructor({
+    id,
+    status,
+    created_at,
+  }: Pick<IAgentScopeRuntimeResponse, 'id' | 'status' | 'created_at'>) {
     this.data = {
-      id: id,
+      id,
       output: [],
       object: 'response',
       status: status || AgentScopeRuntimeRunStatus.Created,
-      created_at: created_at || Date.now(),
+      created_at: created_at ?? Math.floor(Date.now() / 1000),
     };
   }
 
@@ -121,9 +137,9 @@ class AgentScopeRuntimeResponseBuilder {
         // Merge by id: prefer the version with non-empty content to avoid
         // a partial-update response wiping out previously accumulated
         // tool-call data (Bug 2 of issue #4644).
-        const existingMap = new Map(existingOutput.map(m => [m.id, m]));
-        const incomingIds = new Set(incomingOutput.map(m => m.id));
-        const merged = incomingOutput.map(incoming => {
+        const existingMap = new Map(existingOutput.map((m) => [m.id, m]));
+        const incomingIds = new Set(incomingOutput.map((m) => m.id));
+        const merged = incomingOutput.map((incoming) => {
           const existing = existingMap.get(incoming.id);
           if (!existing) return incoming;
           // Prefer the message with content already populated.
@@ -147,12 +163,11 @@ class AgentScopeRuntimeResponseBuilder {
 
   handleMessage(data: IAgentScopeRuntimeMessage) {
     this.data = produce(this.data, (draft) => {
-
       if (!draft.output) {
         draft.output = [];
       }
 
-      const existingIndex = draft.output.findIndex(msg => msg.id === data.id);
+      const existingIndex = draft.output.findIndex((msg) => msg.id === data.id);
 
       if (existingIndex >= 0) {
         const existingContent = draft.output[existingIndex].content;
@@ -168,7 +183,7 @@ class AgentScopeRuntimeResponseBuilder {
 
   handleContent(data: IContent) {
     this.data = produce(this.data, (draft) => {
-      const msg = draft.output.find(m => m.id === data.msg_id);
+      const msg = draft.output.find((m) => m.id === data.msg_id);
 
       if (!msg) {
         console.warn('Message not found for content:', data.msg_id);
@@ -183,10 +198,15 @@ class AgentScopeRuntimeResponseBuilder {
         const lastContent = msg.content[msg.content.length - 1];
 
         if (lastContent && lastContent.delta) {
-          if (data.type === AgentScopeRuntimeContentType.TEXT && lastContent.type === AgentScopeRuntimeContentType.TEXT) {
+          if (
+            data.type === AgentScopeRuntimeContentType.TEXT &&
+            lastContent.type === AgentScopeRuntimeContentType.TEXT
+          ) {
             (lastContent as ITextContent).text += (data as ITextContent).text;
           } else if (data.type === AgentScopeRuntimeContentType.IMAGE) {
-            (lastContent as IImageContent).image_url = (data as IImageContent).image_url;
+            (lastContent as IImageContent).image_url = (
+              data as IImageContent
+            ).image_url;
           } else if (data.type === AgentScopeRuntimeContentType.DATA) {
             const isStreamingToolInput = [
               AgentScopeRuntimeMessageType.PLUGIN_CALL,
@@ -199,7 +219,10 @@ class AgentScopeRuntimeResponseBuilder {
               const newData = (data as IDataContent).data || {};
               const merged: Record<string, any> = { ...oldData };
               for (const [key, value] of Object.entries(newData)) {
-                if (typeof value === 'string' && typeof merged[key] === 'string') {
+                if (
+                  typeof value === 'string' &&
+                  typeof merged[key] === 'string'
+                ) {
                   merged[key] = merged[key] + value;
                 } else {
                   merged[key] = value;
@@ -214,7 +237,6 @@ class AgentScopeRuntimeResponseBuilder {
           msg.content.push(data);
         }
       } else {
-
         if (msg.content.length > 0) {
           Object.assign(msg.content[msg.content.length - 1], data);
         } else {
@@ -235,17 +257,22 @@ class AgentScopeRuntimeResponseBuilder {
         id: uuid(),
         role: 'assistant',
         code: data.code,
-        message: typeof data.message === 'string' ? data.message : JSON.stringify(data.message),
-      })
+        message:
+          typeof data.message === 'string'
+            ? data.message
+            : JSON.stringify(data.message),
+      });
     });
   }
 
-  handle(data: IAgentScopeRuntimeResponse | IAgentScopeRuntimeMessage | IContent) {
-
+  handle(
+    data: IAgentScopeRuntimeResponse | IAgentScopeRuntimeMessage | IContent,
+  ) {
     if (data.object === 'response') {
       this.handleResponse(data);
     } else if (data.object === 'message') {
-      if (data.type === AgentScopeRuntimeMessageType.HEARTBEAT) return this.data;
+      if (data.type === AgentScopeRuntimeMessageType.HEARTBEAT)
+        return this.data;
       this.handleMessage(data);
     } else if (data.object === 'content') {
       this.handleContent(data);
@@ -256,28 +283,51 @@ class AgentScopeRuntimeResponseBuilder {
     return this.data;
   }
 
-  cancel() {
-    this.data = produce(this.data, (draft) => {
+  static cancelResponse(data: IAgentScopeRuntimeResponse) {
+    return produce(data, (draft) => {
+      const pendingToolInputs = new Map<string, number[]>();
+      const unmatchedToolInputIndexes = new Set<number>();
+      draft.output?.forEach((message, index) => {
+        const key = AgentScopeRuntimeResponseBuilder.getToolMessageKey(message);
+        if (!key) return;
+        if (AgentScopeRuntimeResponseBuilder.maybeToolInput(message)) {
+          const indexes = pendingToolInputs.get(key) || [];
+          indexes.push(index);
+          pendingToolInputs.set(key, indexes);
+          unmatchedToolInputIndexes.add(index);
+          return;
+        }
+        if (AgentScopeRuntimeResponseBuilder.maybeToolOutput(message)) {
+          const inputIndex = pendingToolInputs.get(key)?.shift();
+          if (inputIndex !== undefined) {
+            unmatchedToolInputIndexes.delete(inputIndex);
+          }
+        }
+      });
+
       if (AgentScopeRuntimeResponseBuilder.maybeGenerating(draft)) {
         draft.status = AgentScopeRuntimeRunStatus.Canceled;
       }
-      draft.output.forEach(msg => {
-        if (AgentScopeRuntimeResponseBuilder.maybeGenerating(msg)) {
+      draft.output?.forEach((msg, index) => {
+        if (
+          AgentScopeRuntimeResponseBuilder.maybeGenerating(msg) ||
+          unmatchedToolInputIndexes.has(index)
+        ) {
           msg.status = AgentScopeRuntimeRunStatus.Canceled;
-          msg.content.forEach(content => {
-            if (AgentScopeRuntimeResponseBuilder.maybeGenerating(content)) {
-              content.status = AgentScopeRuntimeRunStatus.Canceled;
-            }
-          });
         }
+        msg.content?.forEach((content) => {
+          if (AgentScopeRuntimeResponseBuilder.maybeGenerating(content)) {
+            content.status = AgentScopeRuntimeRunStatus.Canceled;
+          }
+        });
       });
     });
-
-    return this.data;
   }
 
+  cancel() {
+    this.data = AgentScopeRuntimeResponseBuilder.cancelResponse(this.data);
+    return this.data;
+  }
 }
-
-
 
 export default AgentScopeRuntimeResponseBuilder;

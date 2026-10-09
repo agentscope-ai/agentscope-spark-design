@@ -1,9 +1,11 @@
-
 import React, { useMemo } from 'react';
-import { AgentScopeRuntimeContentType, IAgentScopeRuntimeRequest } from '../types';
-import { Bubble } from '@agentscope-ai/chat';
-import Actions from './Actions';
+import Bubble from '../../../../Bubble';
 import { useChatAnywhereOptions } from '../../Context/ChatAnywhereOptionsContext';
+import {
+  AgentScopeRuntimeContentType,
+  IAgentScopeRuntimeRequest,
+} from '../types';
+import Actions from './Actions';
 
 function sortByOrder<T extends { order?: number }>(arr: T[]): T[] {
   return arr.slice().sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
@@ -23,11 +25,13 @@ function DefaultRequestRender(props: {
   contentPrepend?: React.ReactNode;
   contentAppend?: React.ReactNode;
 }) {
-  const onFileCardClick = useChatAnywhereOptions(v => v.api?.onFileCardClick);
+  const onFileCardClick = useChatAnywhereOptions((v) => v.api?.onFileCardClick);
 
   const cards = useMemo(() => {
-
-    return props.data.input[0].content.reduce<any>((p, c) => {
+    const contents = (props.data.input || []).flatMap(
+      (message) => message.content || [],
+    );
+    return contents.reduce<any[]>((p, c) => {
       if (c.type === AgentScopeRuntimeContentType.TEXT) {
         p.push({
           code: 'Text',
@@ -39,13 +43,12 @@ function DefaultRequestRender(props: {
       }
 
       if (c.type === AgentScopeRuntimeContentType.IMAGE) {
-        const imageCard = p.find((item: any) => item.code === 'Image');
+        const imageCard = p.find((item) => item.code === 'Images');
         if (!imageCard) {
           p.push({
             code: 'Images',
             data: [{ url: c.image_url }],
           });
-
         } else {
           imageCard.data.push({ url: c.image_url });
         }
@@ -80,11 +83,21 @@ function DefaultRequestRender(props: {
         if (!fileCard) {
           p.push({
             code: 'Files',
-            data: [{ url: c.file_url, name: c.file_name || c.fileName, size: c.file_size }],
+            data: [
+              {
+                url: c.file_url,
+                name: c.file_name || c.fileName,
+                size: c.file_size,
+              },
+            ],
             onClick: onFileCardClick,
           });
         } else {
-          fileCard.data.push({ url: c.file_url, name: c.file_name || c.fileName, size: c.file_size });
+          fileCard.data.push({
+            url: c.file_url,
+            name: c.file_name || c.fileName,
+            size: c.file_size,
+          });
         }
       }
       return p;
@@ -93,12 +106,14 @@ function DefaultRequestRender(props: {
 
   if (!cards?.length) return null;
 
-  return <>
-    {props.contentPrepend ?? null}
-    <Bubble role="user" cards={cards}></Bubble>
-    {props.contentAppend ?? null}
-    <Actions data={props.data} />
-  </>;
+  return (
+    <>
+      {props.contentPrepend ?? null}
+      <Bubble role="user" cards={cards}></Bubble>
+      {props.contentAppend ?? null}
+      <Actions data={props.data} />
+    </>
+  );
 }
 
 export default function AgentScopeRuntimeRequestCard(props: {
@@ -106,7 +121,7 @@ export default function AgentScopeRuntimeRequestCard(props: {
   contentPrepend?: React.ReactNode;
   contentAppend?: React.ReactNode;
 }) {
-  const requestOptions = useChatAnywhereOptions(v => v.request);
+  const requestOptions = useChatAnywhereOptions((v) => v.request);
 
   const fallback = () => (
     <DefaultRequestRender
@@ -115,10 +130,6 @@ export default function AgentScopeRuntimeRequestCard(props: {
       contentAppend={props.contentAppend}
     />
   );
-  const main = requestOptions?.render
-    ? requestOptions.render({ data: props.data, fallback })
-    : fallback();
-
   const prependList = sortByOrder(requestOptions?.prepend ?? []);
   const appendList = sortByOrder(requestOptions?.append ?? []);
 
@@ -131,18 +142,23 @@ export default function AgentScopeRuntimeRequestCard(props: {
     return fallback();
   }
 
-  return <>
-    {prependList.map((e, i) => (
-      <React.Fragment key={e.id ?? `pre-${i}`}>
-        {e.render({ data: props.data })}
-      </React.Fragment>
-    ))}
-    {main}
-    {appendList.map((e, i) => (
-      <React.Fragment key={e.id ?? `post-${i}`}>
-        {e.render({ data: props.data })}
-      </React.Fragment>
-    ))}
-  </>;
-}
+  const main = requestOptions?.render
+    ? requestOptions.render({ data: props.data, fallback })
+    : fallback();
 
+  return (
+    <>
+      {prependList.map((e, i) => (
+        <React.Fragment key={e.id ?? `pre-${i}`}>
+          {e.render({ data: props.data })}
+        </React.Fragment>
+      ))}
+      {main}
+      {appendList.map((e, i) => (
+        <React.Fragment key={e.id ?? `post-${i}`}>
+          {e.render({ data: props.data })}
+        </React.Fragment>
+      ))}
+    </>
+  );
+}

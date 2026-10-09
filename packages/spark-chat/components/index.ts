@@ -26,15 +26,21 @@ export {
 export type { ChatAnywhereRef, TMessage, TSession } from './ChatAnywhere';
 export * as DefaultCards from './DefaultCards';
 
-export { default as AgentScopeRuntimeWebUI } from './AgentScopeRuntimeWebUI';
-export * from './AgentScopeRuntimeWebUI/core/types';
 export {
+  default as AgentScopeRuntimeWebUI,
+  ChatAnywhereInputContext,
+  ChatAnywhereSessionsContext,
+  clearInputQueueState,
+  hasInputQueueItems,
+  migrateInputQueueState,
+  resolveInputQueueKey,
+  useChatAnywhereInput,
   useChatAnywhereSessions,
   useChatAnywhereSessionsState,
-  ChatAnywhereSessionsContext,
-  ChatAnywhereInputContext,
-  useChatAnywhereInput,
+  type InputQueueKeyResolverOptions,
 } from './AgentScopeRuntimeWebUI';
+export * from './AgentScopeRuntimeWebUI/core/AgentScopeRuntime/types';
+export * from './AgentScopeRuntimeWebUI/core/types';
 
 export {
   Accordion,
@@ -89,6 +95,7 @@ export {
   default as Markdown,
   type MarkdownProps as IMarkdownProps,
   type MarkdownProps,
+  type MarkdownAnimationConfig,
 } from './Markdown';
 
 export { default as AIGC } from './AIGC';

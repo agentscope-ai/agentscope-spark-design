@@ -1,6 +1,13 @@
 import { createGlobalStyle } from 'antd-style';
 
 export default createGlobalStyle`
+@keyframes spark-stream-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spark-stream-character { animation: none !important; opacity: 1 !important; }
+}
 .${(p) => p.theme.prefixCls}-markdown {
   color: inherit;
   max-width: 100%;

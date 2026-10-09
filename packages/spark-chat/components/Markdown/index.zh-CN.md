@@ -25,3 +25,15 @@ import { Markdown } from '@agentscope-ai/chat';
 #### API
 
 <ApiParser source="./types.tsx" id="MarkdownProps"></ApiParser>
+
+## 淡入动画配置
+
+```tsx
+<Markdown
+  content={content}
+  cursor={isStreaming}
+  animation
+  animationConfig={{ characterInterval: 12 }}
+/>
+```
+`animationConfig.characterInterval` 控制相邻文字开始渐显的间隔（毫秒，默认 `5`）。值越大越慢，可设为 `12` 或 `20`；`0` 同时淡入新增内容。大段突发内容会自动加快以限制积压，实际画面按屏幕刷新率绘制。容器使用自然高度，不播放高度动画；尊重减少动态效果设置。ChatAnywhere Text 卡片可传入相同配置。
