@@ -57,7 +57,26 @@ describe('Button 组件 - 定制化功能测试', () => {
       // 验证 size 被正确传递（这需要 IconFont 组件的 mock 支持）
     });
 
-    it('应该将 size 传递给自定义 icon', () => {
+    it('不应该把 Button 的 size 注入自定义 icon', () => {
+      // lucide-react 等图标库会把 size 映射到 svg 的 width/height 属性，
+      // 而 'small' / 'middle' / 'large' 不是合法的 SVG 长度，
+      // 会触发 `<svg> attribute width: Expected length, "small"` 报错。
+      const LucideLikeIcon = (props: any) => (
+        <svg data-testid="custom-icon" width={props.size} height={props.size} />
+      );
+
+      render(
+        <Button icon={<LucideLikeIcon />} size="small">
+          自定义图标按钮
+        </Button>,
+      );
+
+      const icon = screen.getByTestId('custom-icon');
+      expect(icon).not.toHaveAttribute('width');
+      expect(icon).not.toHaveAttribute('height');
+    });
+
+    it('应该将显式传入的 iconSize 传递给自定义 icon', () => {
       const CustomIcon = (props: any) => (
         <span data-testid="custom-icon" data-size={props.size}>
           Icon
@@ -65,13 +84,13 @@ describe('Button 组件 - 定制化功能测试', () => {
       );
 
       render(
-        <Button icon={<CustomIcon />} size="middle">
+        <Button icon={<CustomIcon />} iconSize={14} size="small">
           自定义图标按钮
         </Button>,
       );
 
       const icon = screen.getByTestId('custom-icon');
-      expect(icon).toHaveAttribute('data-size', 'middle');
+      expect(icon).toHaveAttribute('data-size', '14');
     });
   });
 

@@ -81,12 +81,19 @@ const Button = forwardRef<any, SparkButtonProps>((props, ref) => {
       return (
         <IconFont type={iconType} size={iconSize ?? restProps.size} />
       ); // 注意 size 也需要传入下去
-    if (restProps.icon)
-      return React.cloneElement(restProps.icon as React.ReactElement, {
-        size: iconSize ?? restProps.size, // 注意 size 也需要传入下去
-      });
+    // 只透传显式传入的 iconSize。Button 的 size 是 'small' | 'middle' | 'large'
+    // 这类 CSS 关键字：给 IconFont 当 font-size 用没问题，但 lucide 等第三方图标
+    // 会把它当作 svg 的 width/height 属性，浏览器会报
+    // `<svg> attribute width: Expected length, "small"`。
+    // IconButton 也是只给自己的 IconFont 传 size、对外来节点原样透传，这里保持一致。
+    if (restProps.icon) {
+      const iconNode = restProps.icon as React.ReactElement;
+      return iconSize === undefined
+        ? iconNode
+        : React.cloneElement(iconNode, { size: iconSize });
+    }
     return null;
-  }, [iconType, restProps.icon]);
+  }, [iconType, restProps.icon, iconSize, restProps.size, loading]);
 
   const button = (
     <AntdButton
