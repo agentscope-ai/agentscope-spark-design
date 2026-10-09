@@ -811,7 +811,7 @@ When the backend returns `plugin_call` / `mcp_call` type messages and `content[0
 
 `options.response.animation` reveals streaming text character by character from left to right. SSE reception proceeds normally and CSS plays the animation without reparsing Markdown per character. Off by default. History displays immediately, normal completion lets pending characters settle, and cancellation/failure/rejection flushes them. Container height uses natural layout without animation.
 
-```tsx
+```tsx | pure
 response: {
   animation: true,
   animationConfig: {

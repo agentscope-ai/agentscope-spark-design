@@ -810,7 +810,7 @@ export default config;
 
 `options.response.animation` 让流式正文从左到右逐字淡入。SSE 正常接收，CSS 独立播放动画，不为每个字重新解析 Markdown。默认关闭；历史消息直接展示，正常结束时等待最后的文字动画收尾，取消、失败或拒绝时立即补齐。容器高度使用自然布局，不播放高度动画。
 
-```tsx
+```tsx | pure
 response: {
   animation: true,
   animationConfig: {
